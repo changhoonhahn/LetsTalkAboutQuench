@@ -4,6 +4,10 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt 
 from ChangTools.plotting import prettyplot
 
+# -- Local --
+import util as UT
+import catalogs as Cats
+
 
 def sSFR_Mstar(logsfr, logmstar, weights=None, logmstar_min=8., logmstar_max=12., dlogmstar=0.5, logmstar_massbins=None, 
         logsfr_min=-13., logsfr_max=-8., logsfr_nbin=50, normed=True): 
@@ -173,6 +177,28 @@ def plotSFR_Mstar_Comparison():
     ''' compare SFR vs M* relation of various simlations and data
     '''
     # Read in various data sets
+    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
+    catalog_label= ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'NSA Dickey', 'Mufasa']
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+    # Read in various data sets
+
+    Cat = Cats.Catalog()
+
     logSFRs, logMstars, data_labels = [], [], [] 
     ## santa cruz
     sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
