@@ -4,14 +4,12 @@ import dill as pickle
 
 # --- Local ---
 import util as UT
-
-
-    
     
     
 class Catalog: 
     def __init__(self): 
-        ''' class object for reading in log(M*) and log(SFR)s of various catalogs
+        ''' class object for reading in log(M*) and log(SFR)s of various galaxy 
+        catalogs.
         '''
         self.catalog_dict = {
                 'santacruz1': 'sc_sam_sfr_mstar_correctedweights.txt', 
@@ -68,9 +66,11 @@ class Catalog:
             w = np.ones(len(logM))
         else: 
             raise ValueError('')
-        # deal with sfr = 0 
-        sfr_zero = np.where(logSFR == -np.inf)
-        print len(sfr_zero[0]), ' of ', len(logM), ' galaxies have 0 SFR; logSFR of these galaxies will be -999.'
+
+        # deal with sfr = 0 or other non finite numbers 
+        sfr_zero = np.where(np.isfinite(logSFR) == False)
+        print len(sfr_zero[0]), ' of ', len(logM), ' galaxies have 0/non-finite SFRs'
+        print 'logSFR of these galaxies will be -999.'
         logSFR[sfr_zero] = -999.
 
         return [logM, logSFR, w]
@@ -83,11 +83,28 @@ class Catalog:
         else: 
             return self.catalog_dict[name]
 
+    def CatalogLabel(self, name):
+        ''' Label of catalogs. Given the catalog name, return label 
+        '''
+        label_dict = {
+                'santacruz1': 'Santa Cruz [$10^5$ yr]', 
+                'santacruz2': 'Santa Cruz [$10^8$ yr]', 
+                'tinkergroup': 'Tinker Group',
+                'illustris1': r'Illustris [$2 \times 10^7$ yr]', 
+                'illustris2': r'Illustris [$10^9$ yr]',
+                'nsa_dickey': 'NSA Dickey', 
+                'mufasa': 'MUFASA'
+                }
+
+        return label_dict[name]
+
+
 if __name__=='__main__': 
     Cat = Catalog()
     
     for cata in ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']: 
         logM, logSFR, w = Cat.Read(cata)
         print cata
+        print Cat.CatalogLabel(cata)
         print logM[:10], logSFR[:10], w[:10]
         print '------------------------------------------------------------'

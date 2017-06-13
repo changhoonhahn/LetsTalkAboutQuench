@@ -7,6 +7,7 @@ from ChangTools.plotting import prettyplot
 # -- Local --
 import util as UT
 import catalogs as Cats
+import galpy.util.bovy_plot as bovy 
 
 
 def sSFR_Mstar(logsfr, logmstar, weights=None, logmstar_min=8., logmstar_max=12., dlogmstar=0.5, logmstar_massbins=None, 
@@ -27,7 +28,7 @@ def sSFR_Mstar(logsfr, logmstar, weights=None, logmstar_min=8., logmstar_max=12.
         
     logsfr_range = [logsfr_min, logsfr_max]
     
-    PlogSFR,  logSFR_bin_mid, counts, wtots = [], [], [], [] 
+    PlogSFR, logSFR_bin_edges, counts, wtots = [], [], [], []
     # loop through the mass bins
     for i_m, mass_bin in enumerate(mass_bins): 
         mass_lim = np.where(
@@ -51,10 +52,11 @@ def sSFR_Mstar(logsfr, logmstar, weights=None, logmstar_min=8., logmstar_max=12.
                 normed=normed)
 
         PlogSFR.append(dist)
-        logSFR_bin_mid.append(0.5 * (bin_edges[:-1] + bin_edges[1:]))
+        logSFR_bin_edges.append(bin_edges)
+        #logSFR_bin_mid.append(0.5 * (bin_edges[:-1] + bin_edges[1:]))
         counts.append(n_bin)
     
-    return [logSFR_bin_mid, PlogSFR, mass_bins, counts, wtots]
+    return [logSFR_bin_edges, PlogSFR, mass_bins, counts, wtots]#, logSFR_bin_edges]
 
 
 def Plot_SFR_Mtar(logsfr, logmstar, file_name=None, yrange=None, **kwargs): 
@@ -106,37 +108,23 @@ def Plot_SFR_Mtar(logsfr, logmstar, file_name=None, yrange=None, **kwargs):
 def plotSSFR_Mstar_Comparison(xrange=[-12.5, -9.], yrange=[0., 1.6], **kwargs): 
     ''' compare SFR/sSFR histograms of various simlations and data in log M* bins 
     '''
+    Cat = Cats.Catalog()
     # Read in various data sets
-    logSFRs, logMstars, data_labels = [], [], [] 
-    ## santa cruz
-    sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
-    logSFRs.append(sc_logSFR1)
-    logMstars.append(sc_logM)
-    data_labels.append('SantaCruz')
-    ## Tinker group catalog 
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-    logSFRs.append(tink_logSFR)
-    logMstars.append(tink_logM)
-    data_labels.append('Tinker')
-    ## illustris
-    ill_logMstar, ill_ssfr1, ill_ssfr2 = np.loadtxt('Illustris1_SFR_M_values.csv', unpack=True, skiprows=1, delimiter=',')
-    ill_logSFR1 = np.log10(ill_ssfr1) + ill_logMstar
-    ill_logSFR2 = np.log10(ill_ssfr2) + ill_logMstar
-    logSFRs.append(ill_logSFR1)
-    logMstars.append(ill_logMstar)
-    data_labels.append('Illustris')
-    # NSA 
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    logSFRs.append(dic_logSFR)
-    logMstars.append(dic_logM)
-    data_labels.append('NSA')
-        
-    prettyplot()
+    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
 
+    catalog_labels = [] # Labels 
+    logSFRs, logMstars, weights = [], [], [] 
+    for cat in catalog_list: 
+        catalog_labels.append(Cat.CatalogLabel(cat))
+        logMstar, logSFR, weight = Cat.Read(cat)
+        logSFRs.append(logSFR)
+        logMstars.append(logMstar) 
+        weights.append(weight)
+
+    prettyplot()
     for i_data in range(len(logSFRs)):
-        logSFR_bin_mids, PlogSFRs, mass_bins, counts, wtots = sSFR_Mstar(logSFRs[i_data], logMstars[i_data], **kwargs)
+        logSFR_bin_edges, PlogSFRs, mass_bins, counts, wtots = \
+                sSFR_Mstar(logSFRs[i_data], logMstars[i_data], weights=weights[i_data], **kwargs)
         n_mbins = len(PlogSFRs)
         
         # determine paneling 
@@ -147,108 +135,77 @@ def plotSSFR_Mstar_Comparison(xrange=[-12.5, -9.], yrange=[0., 1.6], **kwargs):
                 panels = (2, int(np.ceil(np.float(n_mbins)/2.)))
             
             fig = plt.figure(1, figsize=(8*panels[1], 6*panels[0]))
+            bkgd = fig.add_subplot(111, frameon=False)
 
         for i_m in range(n_mbins): 
             sub = fig.add_subplot(panels[0], panels[1], i_m+1)
 
-            sub.plot(logSFR_bin_mids[i_m], PlogSFRs[i_m], lw=3, label=data_labels[i_data])
+            xx_bar, yy_bar = UT.bar_plot(logSFR_bin_edges[i_m], PlogSFRs[i_m])
+            sub.plot(xx_bar, yy_bar, lw=5, label=catalog_labels[i_data], alpha=0.75)
 
-            sub.text(0.8, 0.9, str(round(mass_bins[i_m][0],2))+'-'+str(round(mass_bins[i_m][1],2)), 
-                    fontsize=30, ha='center', va='center', transform=sub.transAxes)
-            #if 'weights' in kwargs.keys(): 
-            #    sub.text(0.3, 0.9, "$N_{gal}=$"+str(counts[i_m])+', $w_{tot}$ = '+str(wtots[i_m]),
-            #            ha='center', va='center', transform=sub.transAxes)
-            #else: 
-            #    sub.text(0.3, 0.9, "$N_{gal}=$"+str(counts[i_m]), 
-            #            ha='center', va='center', transform=sub.transAxes)
+            sub.text(0.95, 0.9, str(round(mass_bins[i_m][0],2))+'-'+str(round(mass_bins[i_m][1],2)), 
+                    fontsize=30, ha='right', va='center', transform=sub.transAxes)
             if xrange is not None: 
                 sub.set_xlim(xrange)#[-12.5, -9.])
             if yrange is not None: 
                 sub.set_ylim(yrange)
             if i_m == 0:  
-                sub.legend(loc='upper left')
+                sub.legend(loc='upper left', prop={'size':17})
 
-    fig.savefig('testing.png', bbox_inches='tight')
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$\mathtt{P(SSFR)}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'$\mathtt{log \; sSFR \;\;[yr^{-1}]}$', labelpad=20, fontsize=30) 
+    
+    fig_name = ''.join([UT.fig_dir(), 'Pssfr_comp', '.', str(n_mbins), 'Mbins', '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
 
 
 def plotSFR_Mstar_Comparison(): 
-    ''' compare SFR vs M* relation of various simlations and data
+    ''' Compare SFR vs M* relation of various simlations and data
     '''
+    Cat = Cats.Catalog()
     # Read in various data sets
     catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
-    catalog_label= ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'NSA Dickey', 'Mufasa']
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
-    # Read in various data sets
 
-    Cat = Cats.Catalog()
+    catalog_labels = [] # Labels 
+    logSFRs, logMstars, weights = [], [], [] 
+    for cat in catalog_list: 
+        catalog_labels.append(Cat.CatalogLabel(cat))
+        logMstar, logSFR, weight = Cat.Read(cat)
+        logSFRs.append(logSFR)
+        logMstars.append(logMstar) 
+        weights.append(weight)
 
-    logSFRs, logMstars, data_labels = [], [], [] 
-    ## santa cruz
-    sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
-    logSFRs.append(sc_logSFR1)
-    logMstars.append(sc_logM)
-    data_labels.append('SantaCruz')
-    ## Tinker group catalog 
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-    logSFRs.append(tink_logSFR)
-    logMstars.append(tink_logM)
-    data_labels.append('Tinker')
-    ## illustris
-    ill_logMstar, ill_ssfr1, ill_ssfr2 = np.loadtxt('Illustris1_SFR_M_values.csv', unpack=True, skiprows=1, delimiter=',')
-    ill_logSFR1 = np.log10(ill_ssfr1) + ill_logMstar
-    ill_logSFR2 = np.log10(ill_ssfr2) + ill_logMstar
-    logSFRs.append(ill_logSFR1)
-    logMstars.append(ill_logMstar)
-    data_labels.append('Illustris')
-    # NSA 
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    logSFRs.append(dic_logSFR)
-    logMstars.append(dic_logM)
-    data_labels.append('NSA')
-    # MUFASA
-    muf_M, muf_SSFR =  np.loadtxt('Mufasa_m50n512_z0.cat', unpack=True, skiprows=1, usecols=[0, 1]) 
-    muf_logM = np.log10(muf_M)
-    muf_logSSFR = np.log10(muf_SSFR)
-    muf_logSFR = muf_logSSFR + muf_logM
-    logSFRs.append(muf_logSFR)
-    logMstars.append(muf_logM)
-    data_labels.append('MUFASA')
-        
     prettyplot()
-        
-    fig = plt.figure(1, figsize=(8*len(logSFRs), 6))
+    n_rows = int(np.ceil(np.float(len(logSFRs))/4.))
+    fig = plt.figure(1, figsize=(32, 6*n_rows))
+    bkgd = fig.add_subplot(111, frameon=False)
 
     for i_data in range(len(logSFRs)):
-        sub = fig.add_subplot(1, len(logSFRs), i_data+1)
-        sub.scatter(logMstars[i_data], logSFRs[i_data], c='k', lw=0)
-        sub.set_xlim([6., 12.]) 
-        sub.set_ylim([-4., 2.]) 
-        if i_data == 0: 
-            sub.set_ylabel('log SFR')
-        sub.set_xlabel('log $M_*$')
-        sub.text(0.3, 0.9, data_labels[i_data],
-                ha='center', va='center', transform=sub.transAxes)
-        
-    fig.savefig('sfr_Mstar_comp.png', bbox_inches='tight')
+        sub = fig.add_subplot(n_rows, 4, i_data+1)
+        #sub.scatter(logMstars[i_data], logSFRs[i_data], c='k', s=2, lw=0)
+
+        bovy.scatterplot(logMstars[i_data], logSFRs[i_data], #weights=weights[i_data],
+                cmap='Blues', levels=[0.68, 0.95], aspect=0.75, gcf=True, scatter=True, s=3, xrange=[6., 12.], yrange=[-4., 2.])
+        #xx, yy, f = UT.gaussianKDE_contour(logMstars[i_data], logSFRs[i_data], 
+        #        xmin=6., xmax=12., ymin=-4., ymax=2.)
+        #sub.contourf(xx, yy, f, cmap='Blues')
+        #sub.contour(xx, yy, f, colors='k')
+        #sub.set_xlim([6., 12.]) 
+        #sub.set_ylim([-4., 2.]) 
+        sub.text(0.1, 0.9, catalog_labels[i_data],
+                ha='left', va='center', transform=sub.transAxes, fontsize=17)
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'$\mathtt{log \; SFR \;\;[M_\odot \, yr^{-1}]}$', labelpad=20, fontsize=30) 
+    
+    fig.subplots_adjust(wspace=0.15, hspace=0.15)
+
+    fig_name = ''.join([UT.fig_dir(), 'sfr_Mstar_comp.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
 
@@ -647,69 +604,46 @@ def plotSFR_Mstar_SFMSfits(fit_method='lowMbin_extrap'):
 def plotSFR_Mstar_SFMScut_QF(fit_method='lowMbin_extrap', scatter_method='constant'): 
     ''' compare SFR vs M* relation of various simlations and data
     '''
+    Cat = Cats.Catalog()
     # Read in various data sets
-    logSFRs, logMstars, data_labels = [], [], [] 
-    ## santa cruz
-    sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
-    logSFRs.append(sc_logSFR1)
-    logMstars.append(sc_logM)
-    data_labels.append('SantaCruz')
-    ## Tinker group catalog 
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-    logSFRs.append(tink_logSFR)
-    logMstars.append(tink_logM)
-    data_labels.append('Tinker')
-    ## illustris
-    ill_logMstar, ill_ssfr1, ill_ssfr2 = np.loadtxt('Illustris1_SFR_M_values.csv', unpack=True, skiprows=1, delimiter=',')
-    ill_logSFR1 = np.log10(ill_ssfr1) + ill_logMstar
-    ill_logSFR2 = np.log10(ill_ssfr2) + ill_logMstar
-    logSFRs.append(ill_logSFR1)
-    logMstars.append(ill_logMstar)
-    data_labels.append('Illustris')
-    # NSA 
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    logSFRs.append(dic_logSFR)
-    logMstars.append(dic_logM)
-    data_labels.append('NSA')
-    # MUFASA
-    muf_M, muf_SSFR =  np.loadtxt('Mufasa_m50n512_z0.cat', unpack=True, skiprows=1, usecols=[0, 1]) 
-    muf_logM = np.log10(muf_M)
-    muf_logSSFR = np.log10(muf_SSFR)
-    muf_logSFR = muf_logSSFR + muf_logM
-    logSFRs.append(muf_logSFR)
-    logMstars.append(muf_logM)
-    data_labels.append('MUFASA')
+    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
+
+    catalog_labels = [] # Labels 
+    logSFRs, logMstars, weights = [], [], [] 
+    for cat in catalog_list: 
+        catalog_labels.append(Cat.CatalogLabel(cat))
+        logMstar, logSFR, weight = Cat.Read(cat)
+        logSFRs.append(logSFR)
+        logMstars.append(logMstar) 
+        weights.append(weight)
         
     prettyplot()
-    fig = plt.figure(1, figsize=(8*(len(logSFRs)+1), 6))
+    n_rows = int(np.ceil(np.float(len(logSFRs))/4.))
+    fig = plt.figure(1, figsize=(32, 6*n_rows))
+    bkgd = fig.add_subplot(111, frameon=False)
     title = ''.join(['SFMS fit method: ', fit_method.replace('_', ' '), '; scatter method: ', scatter_method.replace('_', ' ')])
     plt.title(title)
         
-
     qfs = [] 
     for i_data in range(len(logSFRs)):
-        sub = fig.add_subplot(1, len(logSFRs)+1, i_data+1)
-        sub.scatter(logMstars[i_data], logSFRs[i_data], c='k', lw=0)
+        sub = fig.add_subplot(n_rows, 4, i_data+1)
+        
+        bovy.scatterplot(logMstars[i_data], logSFRs[i_data], #weights=weights[i_data],
+                levels=[0.68, 0.95], aspect=0.75, gcf=True, scatter=True,
+                xrange=[6., 12.], yrange=[-4., 2.], overplot=True)
         
         # plot best-fit SFMS 
         m_arr, sfr_sfms, sig_sfr = SFMS_scatter(logSFRs[i_data], logMstars[i_data], 
                 fit_method=fit_method, method=scatter_method)
         sub.plot(m_arr, sfr_sfms, c='b', lw=3, ls='--', label='SFMS')
         #  SFMS cut at 3 sigma below best-fit SFMS
-        sub.plot(m_arr, sfr_sfms - 3. * sig_sfr, c='r', lw=3, ls='--', label='SFR cut')
+        sub.plot(m_arr, sfr_sfms - 3. * sig_sfr, c='r', lw=3, ls='-.', label='SFR cut')
 
-        sub.set_xlim([6., 12.]) 
-        sub.set_ylim([-4., 2.]) 
-        if i_data == 0: 
-            sub.set_ylabel('log SFR')
-        sub.set_xlabel('log $M_*$')
-        sub.text(0.3, 0.9, data_labels[i_data],
-                ha='center', va='center', transform=sub.transAxes)
+        sub.text(0.1, 0.9, catalog_labels[i_data],
+                ha='left', va='center', transform=sub.transAxes, fontsize=20)
 
-        if i_data == 1: 
-            sub.legend(loc='lower right') 
+        if i_data == 3: 
+            sub.legend(loc='lower right', prop={'size':25}) 
 
         # calculate the quiescent fraction you would get using this cut off 
         sfr_cut = np.interp(logMstars[i_data], m_arr, sfr_sfms - 3. * sig_sfr)
@@ -728,17 +662,23 @@ def plotSFR_Mstar_SFMScut_QF(fit_method='lowMbin_extrap', scatter_method='consta
         qfs.append([np.array(mass_qf), np.array(qf)])
 
     # plot the quiescent fraction you would get using this cut off 
-    sub = fig.add_subplot(1, len(logSFRs)+1, i_data+2)
+    sub = fig.add_subplot(n_rows, 4, i_data+2)
     for i_qf in range(len(qfs)): 
-        sub.plot(qfs[i_qf][0], qfs[i_qf][1], label=data_labels[i_qf], lw=3)
+        sub.plot(qfs[i_qf][0], qfs[i_qf][1], label=catalog_labels[i_qf], lw=3)
     
     sub.set_xlim([6., 12.]) 
     sub.set_ylim([0., 1.]) 
-    sub.set_ylabel('$f_{Q}$')
-    sub.set_xlabel('log $M_*$')
-    sub.legend(loc='upper left') 
+    sub.set_ylabel('$\mathtt{f_{Q}}$', fontsize=20)
+    sub.yaxis.tick_right()
+    sub.yaxis.set_label_position("right")
+    sub.legend(loc='upper left', prop={'size':17}) 
 
-    fig_name = ''.join(['sfr_Mstar', 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$\mathtt{log \;M_* \;\;[M_\odot]}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'$\mathtt{log \;SFR \;\;[M_\odot/yr^{-1}]}$', labelpad=20, fontsize=30) 
+
+    fig.subplots_adjust(wspace=0.15, hspace=0.15)
+    fig_name = ''.join([UT.fig_dir(), 'sfr_Mstar', 
         '.SFMSfit_', fit_method, 
         '.scatter_', scatter_method, 
         '.png'])
@@ -754,50 +694,26 @@ def plot_Dquench_Mstar(logmstar_massbins=None, fit_method='lowMbin_extrap'):
     if logmstar_massbins is None: 
         raise ValueError
 
+    Cat = Cats.Catalog()
     # Read in various data sets
-    logSFRs, logMstars, data_labels = [], [], [] 
-    ## santa cruz
-    sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
-    logSFRs.append(sc_logSFR1)
-    logMstars.append(sc_logM)
-    data_labels.append('SantaCruz')
-    ## Tinker group catalog 
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-    logSFRs.append(tink_logSFR)
-    logMstars.append(tink_logM)
-    data_labels.append('Tinker')
-    ## illustris
-    ill_logMstar, ill_ssfr1, ill_ssfr2 = np.loadtxt('Illustris1_SFR_M_values.csv', unpack=True, skiprows=1, delimiter=',')
-    ill_logSFR1 = np.log10(ill_ssfr1) + ill_logMstar
-    ill_logSFR2 = np.log10(ill_ssfr2) + ill_logMstar
-    logSFRs.append(ill_logSFR1)
-    logMstars.append(ill_logMstar)
-    data_labels.append('Illustris')
-    # NSA 
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    logSFRs.append(dic_logSFR)
-    logMstars.append(dic_logM)
-    data_labels.append('NSA')
-    # MUFASA
-    muf_M, muf_SSFR =  np.loadtxt('Mufasa_m50n512_z0.cat', unpack=True, skiprows=1, usecols=[0, 1]) 
-    muf_logM = np.log10(muf_M)
-    muf_logSSFR = np.log10(muf_SSFR)
-    muf_logSFR = muf_logSSFR + muf_logM
-    logSFRs.append(muf_logSFR)
-    logMstars.append(muf_logM)
-    data_labels.append('MUFASA')
-        
-    prettyplot()
-        
-    fig = plt.figure(1, figsize=(8*(len(logSFRs)), 6))
+    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
 
+    catalog_labels = [] # Labels 
+    logSFRs, logMstars, weights = [], [], [] 
+    for cat in catalog_list: 
+        catalog_labels.append(Cat.CatalogLabel(cat))
+        logMstar, logSFR, weight = Cat.Read(cat)
+        logSFRs.append(logSFR)
+        logMstars.append(logMstar) 
+        weights.append(weight)
+
+    prettyplot()
+    n_rows = int(np.ceil(np.float(len(logSFRs))/4.))
+    fig = plt.figure(1, figsize=(32, 6*n_rows))
+    bkgd = fig.add_subplot(111, frameon=False)
     qfs = [] 
     for i_data in range(len(logSFRs)):
-        sub = fig.add_subplot(1, len(logSFRs), i_data+1)
-        #sub.scatter(logMstars[i_data], logSFRs[i_data], c='k', lw=0)
-        
+        sub = fig.add_subplot(n_rows, 4, i_data+1)
         # best-fit SFMS 
         sfr_sfms = SFMS_bestfit(logSFRs[i_data], logMstars[i_data], method=fit_method)
 
@@ -816,23 +732,23 @@ def plot_Dquench_Mstar(logmstar_massbins=None, fit_method='lowMbin_extrap'):
                     range=[-4., 2.], 
                     bins=30,  
                     normed=False)
-
-            sub.plot(0.5 * (bin_edges[1:] + bin_edges[:-1]), P_d_Q, lw=3, 
+            xx_bar, yy_bar = UT.bar_plot(bin_edges, P_d_Q)
+            sub.plot(xx_bar, yy_bar, lw=5, alpha=0.75,
                     label=str(logmstar_massbins[i_m][0])+'-'+str(logmstar_massbins[i_m][1]))
     
         sub.set_xlim([-3, 2]) 
-        sub.set_xlabel('$d_{MS}$ [dex]')
-        if i_data == 0: 
-            sub.set_ylabel('$P(d_{MS})$') 
         if i_data == len(logSFRs)-1: 
-            sub.legend(loc='upper left')
+            sub.legend(loc='upper left', prop={'size':17})
         
-        sub.text(0.8, 0.9, data_labels[i_data],
-                ha='center', va='center', transform=sub.transAxes)
+        sub.text(0.95, 0.9, catalog_labels[i_data],
+                ha='right', va='center', transform=sub.transAxes, fontsize=20)
 
-    fig_name = ''.join(['dMS_Mstar', 
-        '.SFMSfit_', fit_method, 
-        '.png'])
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$\mathtt{P(d_{MS})}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'$\mathtt{d_{MS} \;\;[dex]}$', labelpad=20, fontsize=30) 
+
+    fig.subplots_adjust(wspace=0.15, hspace=0.15)
+    fig_name = ''.join([UT.fig_dir(), 'dMS_Mstar', '.SFMSfit_', fit_method, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -850,33 +766,6 @@ if __name__=='__main__':
     #plotSFR_Mstar_SFMSfits(fit_method='SSFRcut_gaussfit_kinkedlinearfit')
     
     for fit in ['lowMbin_extrap', 'SSFRcut_gaussfit_linearfit', 'SSFRcut_gaussfit_kinkedlinearfit']: 
-        plot_Dquench_Mstar(logmstar_massbins=massbins, fit_method=fit)
-        #for scat in ['constant', 'half_gauss']: 
-        #    plotSFR_Mstar_SFMScut_QF(fit_method=fit, scatter_method=scat)
-    '''
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    SFMS_fit(dic_logSFR, dic_logM, method='lowMbin_extrap')
-    
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-    SFMS_fit(tink_logSFR, tink_logM, method='lowMbin_extrap')
-
-    sc_logM, sc_logSFR1, sc_logSFR2, sc_w = np.loadtxt("sc_sam_sfr_mstar_correctedweights.txt", unpack=True, skiprows=1) # logM*, logSFR (10^5yr), logSFR(10^8yr)
-    Plot_SFR_Mtar(sc_logSFR1, sc_logM, file_name='sc_sam_pSFR_mstar.png', weights=10**sc_w, yrange=[0., 1.6], logmstar_massbins=massbins)
-
-    tink_Mstar, tink_logSSFR = np.loadtxt('tinker_SDSS_centrals_M9.7.dat', unpack=True, skiprows=2, usecols=[0, 7])
-    tink_logM = np.log10(tink_Mstar)
-    tink_logSFR = tink_logSSFR + tink_logM
-
-    Plot_SFR_Mtar(tink_logSFR, tink_logM, file_name='Tinker_pSFR_mstar.png', yrange=[0., 1.6], logmstar_massbins=massbins)
-
-    ill_logMstar, ill_ssfr1, ill_ssfr2 = np.loadtxt('Illustris1_SFR_M_values.csv', unpack=True, skiprows=1, delimiter=',')
-    ill_logSFR1 = np.log10(ill_ssfr1) + ill_logMstar
-    ill_logSFR2 = np.log10(ill_ssfr2) + ill_logMstar
-
-    Plot_SFR_Mtar(ill_logSFR1, ill_logMstar, file_name='Illustris_pSFR_mstar.png', yrange=[0., 1.6], logmstar_massbins=massbins)
-    
-    dic_logM, dic_logSFR =  np.loadtxt('dickey_NSA_iso_lowmass_gals.txt', unpack=True, skiprows=1, usecols=[1,5]) 
-    Plot_SFR_Mtar(dic_logSFR, dic_logM, file_name='dickey_NSA_pSFR_mstar.png', yrange=[0., 1.6], logmstar_massbins=massbins)
-    ''' 
+        #plot_Dquench_Mstar(logmstar_massbins=massbins, fit_method=fit)
+        for scat in ['constant', 'half_gauss']: 
+            plotSFR_Mstar_SFMScut_QF(fit_method=fit, scatter_method=scat)
