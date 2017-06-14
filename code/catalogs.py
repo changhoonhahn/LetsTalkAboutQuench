@@ -20,6 +20,7 @@ class Catalog:
                 'nsa_dickey': 'dickey_NSA_iso_lowmass_gals.txt', 
                 'mufasa': 'Mufasa_m50n512_z0.cat'
                 }
+        self.catalog_list = self.catalog_dict.keys()
 
     def Read(self, name): 
         ''' Here we deal with the disparate outputs of the different catalogs and output
@@ -104,12 +105,12 @@ class Catalog:
         '''
         color_dict = {
                 'santacruz1': 'blue', 
-                'santacruz2': 'dark blue', 
+                'santacruz2': 'darkblue', 
                 'tinkergroup': 'red',
-                'illustris1': 'Illustris [$2 \times 10^7$ yr]', 
-                'illustris2': 'Illustris [$10^9$ yr]',
-                'nsa_dickey': 'NSA Dickey', 
-                'mufasa': 'MUFASA'
+                'illustris1': 'green', 
+                'illustris2': 'darkgreen',
+                'nsa_dickey': 'purple', 
+                'mufasa': 'yellow'
                 }
         return color_dict[name]
 
