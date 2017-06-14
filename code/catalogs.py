@@ -98,6 +98,22 @@ class Catalog:
 
         return label_dict[name]
 
+    def CatalogColors(self, name): 
+        ''' Colors for different catalogs. Defined so that all the plot colors are 
+        consistent.
+        '''
+        color_dict = {
+                'santacruz1': 'blue', 
+                'santacruz2': 'dark blue', 
+                'tinkergroup': 'red',
+                'illustris1': 'Illustris [$2 \times 10^7$ yr]', 
+                'illustris2': 'Illustris [$10^9$ yr]',
+                'nsa_dickey': 'NSA Dickey', 
+                'mufasa': 'MUFASA'
+                }
+        return color_dict[name]
+
+
 
 if __name__=='__main__': 
     Cat = Catalog()

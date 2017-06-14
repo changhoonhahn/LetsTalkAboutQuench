@@ -1,4 +1,5 @@
 dat
 *pyc
-fig/*
+figs/*
 .ipynb_checkpoints/
+*png
