@@ -272,6 +272,114 @@ def SFR_Mstar_SFMScut_QF(fit_method='lowMbin_extrap', scatter_method='constant',
     return None 
 
 
+def assess_SFMS_fits(catalog):    
+    ''' Assess the quality of the Gaussian / Negative Binomials 
+    fits by comparing the best-fit distribution to the P(SFR) at 
+    each of the mass bins. 
+    '''
+    # hardcoded fitting stellar mass range
+    if catalog == 'santacruz2':
+        fit_Mrange = [7.0, 11.]
+    elif catalog == 'tinkergroup': 
+        fit_Mrange = [9.5, 11.5]
+    elif catalog == 'nsa_dickey': 
+        fit_Mrange = [7.0, 10.5]
+
+    dlogM = 0.5 # dex
+
+    f_SFRcut = lambda mm: -11. + mm
+
+    # read in catalogs
+    Cat = Cats.Catalog()
+    logMstar, logSFR, weight = Cat.Read(catalog) 
+
+    Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
+
+    if len(Mass_cut[0]) == 0: 
+        raise ValueError("No galaxies within the fitting stellar mass range") 
+    
+    logMstar_fit = logMstar[Mass_cut]
+    logSFR_fit = logSFR[Mass_cut]
+
+    logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
+    
+    n_col = int(np.ceil(np.float(len(logM_bins))/2))
+
+    prettyplot()
+    pretty_colors = prettycolors()
+    fig = plt.figure(1, figsize=(8*n_col, 12))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub = fig.add_subplot(2, n_col, 1)
+
+    DFM.hist2d(logMstar, logSFR-logMstar, color='#1F77B4', ax=sub,
+            levels=[0.68, 0.95], range=[[6., 12.], [-13., -8.]], 
+            fill_contours=False) 
+                
+    sfms_fit, med = Gprop.SFMS_bestfit(logSFR, logMstar, 
+            method='SSFRcut_gaussfit_linearfit', forTest=True, 
+            fit_Mrange=fit_Mrange, f_SFRcut=f_SFRcut) 
+
+    sub.scatter(med[0], med[1], c='k',marker='x', lw=3, s=40, label='Gauss.')
+    #mm = np.arange(6., 12.5, 0.5)
+    #sub.plot(mm, f_SFRcut(mm), c='r', lw=2, ls='-.', label='SSFR cut')
+    #sub.plot(mm, sfms_fit(mm)-mm, c='k', lw=2, ls='--', label='Gauss.')
+    
+    sfms_fit, med = Gprop.SFMS_bestfit(logSFR, logMstar, 
+            method='SSFRcut_negbinomfit_linearfit', forTest=True, 
+            fit_Mrange=fit_Mrange, f_SFRcut=f_SFRcut) 
+    sub.scatter(med[0], med[1], c='r',marker='x', lw=3, s=40, label='Neg.Binom.')
+    sub.legend(loc='upper left', prop={'size':25})
+
+    for i_m in range(len(logM_bins)-1):  
+        sub = fig.add_subplot(2, n_col, i_m + 2)
+
+        SFR_cut = f_SFRcut(logMstar_fit) 
+        in_mbin = np.where(
+                (logMstar_fit >= logM_bins[i_m]) & 
+                (logMstar_fit < logM_bins[i_m+1]) & 
+                (logSFR_fit > SFR_cut))
+
+        sub.text(0.4, 0.9, 
+                str(logM_bins[i_m])+' < $\mathtt{log\,M_*}$ < '+str(logM_bins[i_m+1]),  
+                ha='center', va='center', transform=sub.transAxes, fontsize=25)
+        
+        if len(in_mbin[0]) > 20: 
+            yy, xx_edges = np.histogram(logSFR_fit[in_mbin] - logMstar_fit[in_mbin], 
+                    bins=20, range=[-13, -9], normed=True)
+            x_plot, y_plot = UT.bar_plot(xx_edges, yy)
+            sub.plot(x_plot, y_plot, c='k', lw=2)
+
+            xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
+
+            # Gaussian fit 
+            gaus = lambda xx, aa, x0, sig: aa * np.exp(-(xx - x0)**2/(2*sig**2))
+
+            popt, pcov = curve_fit(gaus, xx, yy, 
+                    p0=[1., np.median(logSFR_fit[in_mbin] - logMstar_fit[in_mbin]), 0.3])
+            sub.plot(xx, gaus(xx, *popt), c='b')
+
+            # negative binomial distribution 
+            NB_fit = lambda xx, aa, mu, theta: UT.NB_pdf_logx(np.power(10., xx+aa), mu, theta)
+            popt, pcov = curve_fit(NB_fit, xx, yy, p0=[12., 100, 1.5])
+
+            sub.plot(xx, NB_fit(xx, *popt), c='r', ls='--')
+
+        # x-axis
+        sub.set_xlim([-13, -9])
+        sub.set_xticks([-13, -12, -11, -10, -9])
+        
+        sub.set_ylim([0, 2.])
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$\mathtt{P(log \; SSFR \;\;[M_\odot \, yr^{-1}])}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'$\mathtt{log \; SSFR \;\;[M_\odot \, yr^{-1}]}$', labelpad=20, fontsize=30) 
+    plt.title(Cat.CatalogLabel(catalog))
+    fig_name = ''.join([UT.fig_dir(), 'Pssfr_fit.assess.', catalog, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None
+
+
 def SFMS_fitting_comparison():    
     ''' Compare the different methods of fitting the SFMS on Santa Cruz 2, 
     Tinker Group Catalog, and NSA Dickey catalog. Tinker covers high mass data, 
@@ -279,7 +387,7 @@ def SFMS_fitting_comparison():
     '''
     prettyplot()
     pretty_colors = prettycolors()
-    fig = plt.figure(1, figsize=(24, 18))
+    fig = plt.figure(1, figsize=(32, 18))
     bkgd = fig.add_subplot(111, frameon=False)
     
     # read in catalogs
@@ -295,8 +403,8 @@ def SFMS_fitting_comparison():
         weights.append(weight)
 
     for i_cat in range(len(catalog_list)):  
-        for i_fit in range(3): 
-            sub = fig.add_subplot(len(catalog_list), 3, i_cat*3 + i_fit + 1)
+        for i_fit in range(4): 
+            sub = fig.add_subplot(len(catalog_list), 4, i_cat*4 + i_fit + 1)
 
             # plot SFR-Mstar contours 
             DFM.hist2d(logMstars[i_cat], logSFRs[i_cat], color='#1F77B4', ax=sub,
@@ -341,6 +449,21 @@ def SFMS_fitting_comparison():
                 mm = np.arange(6., 12.5, 0.5)
                 sub.plot(mm, sfms_fit(mm), c='k', lw=2, ls='--', label='Best-fit')
                 sub.plot(mm, f_SFRcut(mm), c='r', lw=2, ls='-.', label='SSFR cut')
+            
+            elif i_fit == 3: 
+                # negative Binomial fit --> Linear fit with preliminary constant SSFR cut
+                fit_label = '$\mathtt{constant\; logSSFR\; cut;}$\n $\mathtt{Neg.Binom.\; fit}$'
+
+                f_SFRcut = lambda mm: -11. + mm
+
+                sfms_fit, med = Gprop.SFMS_bestfit(logSFRs[i_cat], logMstars[i_cat], 
+                        method='SSFRcut_negbinomfit_linearfit', forTest=True, 
+                        fit_Mrange=[7., 11.], f_SFRcut=f_SFRcut) 
+                
+                sub.scatter(med[0], med[1], c='k',marker='x', lw=3, s=40) 
+                mm = np.arange(6., 12.5, 0.5)
+                sub.plot(mm, sfms_fit(mm), c='k', lw=2, ls='--', label='Best-fit')
+                sub.plot(mm, f_SFRcut(mm), c='r', lw=2, ls='-.', label='SSFR cut')
 
             if i_cat == 0: 
                 sub.text(0.075, 0.925, fit_label,
@@ -348,8 +471,6 @@ def SFMS_fitting_comparison():
             if i_cat == len(catalog_list)-1: 
                 if i_fit == 2: 
                     sub.legend(loc='upper left', prop={'size':25})
-
-
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_ylabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', labelpad=20, fontsize=30) 
@@ -444,8 +565,11 @@ if __name__=='__main__':
     #SFR_Mstar_Catalogs(contour='gaussianKDE')
     #SFR_Mstar_Catalogs(contour=False)
     #SFR_Mstar_sfrtimescale_comparison()
+    assess_SFMS_fits('tinkergroup')
+    assess_SFMS_fits('santacruz2')
+    assess_SFMS_fits('nsa_dickey')
     #SFMS_fitting_comparison()
     #SFR_Mstar_SFMScut_QF(fit_method='lowMbin_extrap', scatter_method='constant', fit_Mrange=[9., 10.])
-    SFR_Mstar_SFMScut_QF(fit_method='SSFRcut_gaussfit_linearfit', scatter_method='constant', 
-            fit_Mrange=[7., 11.], f_SFRcut=lambda mm: -11.+ mm)
+    #SFR_Mstar_SFMScut_QF(fit_method='SSFRcut_gaussfit_linearfit', scatter_method='constant', 
+    #        fit_Mrange=[7., 11.], f_SFRcut=lambda mm: -11.+ mm)
 
