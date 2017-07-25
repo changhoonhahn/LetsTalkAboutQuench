@@ -284,10 +284,13 @@ def assess_SFMS_fits(catalog):
         fit_Mrange = [9.5, 11.5]
     elif catalog == 'nsa_dickey': 
         fit_Mrange = [7.0, 10.5]
+    else: 
+        raise NotImplementedError
 
     dlogM = 0.5 # dex
-
-    f_SFRcut = lambda mm: -11. + mm
+        
+    # function for SSFR cut off (simple constant SSFR cut)
+    f_SSFRcut = lambda mm: -11.
 
     # read in catalogs
     Cat = Cats.Catalog()
@@ -311,33 +314,35 @@ def assess_SFMS_fits(catalog):
     bkgd = fig.add_subplot(111, frameon=False)
     sub = fig.add_subplot(2, n_col, 1)
 
-    DFM.hist2d(logMstar, logSFR-logMstar, color='#1F77B4', ax=sub,
-            levels=[0.68, 0.95], range=[[6., 12.], [-13., -8.]], 
+    DFM.hist2d(logMstar, logSFR-logMstar, color='black', #color='#1F77B4', 
+            ax=sub, levels=[0.68, 0.95], range=[[6., 12.], [-13., -8.]], 
             fill_contours=False) 
                 
     sfms_fit, med = Gprop.SFMS_bestfit(logSFR, logMstar, 
             method='SSFRcut_gaussfit_linearfit', forTest=True, 
-            fit_Mrange=fit_Mrange, f_SFRcut=f_SFRcut) 
+            fit_Mrange=fit_Mrange, f_SSFRcut=f_SSFRcut) 
 
-    sub.scatter(med[0], med[1], c='k',marker='x', lw=3, s=40, label='Gauss.')
+    sub.scatter(med[0], med[1], c='b', marker='x', lw=3, s=40, label='Gauss.')
     #mm = np.arange(6., 12.5, 0.5)
     #sub.plot(mm, f_SFRcut(mm), c='r', lw=2, ls='-.', label='SSFR cut')
     #sub.plot(mm, sfms_fit(mm)-mm, c='k', lw=2, ls='--', label='Gauss.')
     
     sfms_fit, med = Gprop.SFMS_bestfit(logSFR, logMstar, 
             method='SSFRcut_negbinomfit_linearfit', forTest=True, 
-            fit_Mrange=fit_Mrange, f_SFRcut=f_SFRcut) 
+            fit_Mrange=fit_Mrange, f_SSFRcut=f_SSFRcut) 
     sub.scatter(med[0], med[1], c='r',marker='x', lw=3, s=40, label='Neg.Binom.')
-    sub.legend(loc='upper left', prop={'size':25})
+    sub.legend(loc='lower left', prop={'size':25})
+    sub.text(0.4, 0.9, Cat.CatalogLabel(catalog),
+            ha='right', va='center', transform=sub.transAxes, fontsize=25)
 
     for i_m in range(len(logM_bins)-1):  
         sub = fig.add_subplot(2, n_col, i_m + 2)
 
-        SFR_cut = f_SFRcut(logMstar_fit) 
+        SSFR_cut = f_SSFRcut(logMstar_fit) 
         in_mbin = np.where(
                 (logMstar_fit >= logM_bins[i_m]) & 
                 (logMstar_fit < logM_bins[i_m+1]) & 
-                (logSFR_fit > SFR_cut))
+                (logSFR_fit-logMstar_fit > SSFR_cut))
 
         sub.text(0.4, 0.9, 
                 str(logM_bins[i_m])+' < $\mathtt{log\,M_*}$ < '+str(logM_bins[i_m+1]),  
@@ -345,9 +350,9 @@ def assess_SFMS_fits(catalog):
         
         if len(in_mbin[0]) > 20: 
             yy, xx_edges = np.histogram(logSFR_fit[in_mbin] - logMstar_fit[in_mbin], 
-                    bins=20, range=[-13, -9], normed=True)
+                    bins=20, range=[-14, -8], normed=True)
             x_plot, y_plot = UT.bar_plot(xx_edges, yy)
-            sub.plot(x_plot, y_plot, c='k', lw=2)
+            sub.plot(x_plot, y_plot, c='k', lw=3)
 
             xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
 
@@ -357,12 +362,14 @@ def assess_SFMS_fits(catalog):
             popt, pcov = curve_fit(gaus, xx, yy, 
                     p0=[1., np.median(logSFR_fit[in_mbin] - logMstar_fit[in_mbin]), 0.3])
             sub.plot(xx, gaus(xx, *popt), c='b')
+            sub.vlines(popt[1], 0., 2., color='b', linewidth=2)
 
             # negative binomial distribution 
             NB_fit = lambda xx, aa, mu, theta: UT.NB_pdf_logx(np.power(10., xx+aa), mu, theta)
             popt, pcov = curve_fit(NB_fit, xx, yy, p0=[12., 100, 1.5])
 
             sub.plot(xx, NB_fit(xx, *popt), c='r', ls='--')
+            sub.vlines(np.log10(popt[1])-popt[0], 0., 2., color='r', linewidth=2)
 
         # x-axis
         sub.set_xlim([-13, -9])
@@ -373,7 +380,6 @@ def assess_SFMS_fits(catalog):
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_ylabel(r'$\mathtt{P(log \; SSFR \;\;[M_\odot \, yr^{-1}])}$', labelpad=20, fontsize=30) 
     bkgd.set_xlabel(r'$\mathtt{log \; SSFR \;\;[M_\odot \, yr^{-1}]}$', labelpad=20, fontsize=30) 
-    plt.title(Cat.CatalogLabel(catalog))
     fig_name = ''.join([UT.fig_dir(), 'Pssfr_fit.assess.', catalog, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 

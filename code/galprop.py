@@ -58,21 +58,37 @@ def sSFR_Mstar(logsfr, logmstar, weights=None,
 
 
 def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwargs): 
-    ''' calculate the best fit of the SFMS for a given galaxy sample with log SFR 
-    and log M* values. 
+    ''' best fit of the SFMS for a given galaxy sample with log SFR and log M* values. 
 
     returns log SFR_sfms(M*) best fit. 
     '''
-    if 'fit_Mrange' not in kwargs.keys(): 
+    if 'fit_Mrange' not in kwargs.keys():
+        # this is to account for the fact that different catalogs
+        # have different stellar mass ranges. 
         raise ValueError("specify the M* fitting range with 'fit_Mrange' kwarg") 
     fit_Mrange = kwargs['fit_Mrange']
 
     if 'SSFRcut_' in method: 
         # required keyword arguments
-        if 'f_SFRcut' not in kwargs.keys(): 
-            raise ValueError("specify preliminary SFR cut with 'f_SFRcut' kwarg. This should be a function of M*") 
+        if 'f_SSFRcut' not in kwargs.keys(): 
+            raise ValueError("specify preliminary SSFR cut with 'f_SFRcut' kwarg. This should be a function of M*") 
         else: 
-            f_SFRcut = kwargs['f_SFRcut']
+            f_SSFRcut = kwargs['f_SSFRcut']
+    
+    # impose mass cut
+    Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
+    if len(Mass_cut[0]) == 0: 
+        raise ValueError("No galaxies within the fitting stellar mass range") 
+
+    logMstar_fit = logMstar[Mass_cut]
+    logSFR_fit = logSFR[Mass_cut]
+    
+    # mass bins 
+    if method == 'lowMbin_extrap': # width
+        dlogM = 0.2 # dex
+    else: 
+        dlogM = 0.5 # dex 
+    logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
     
     if method == 'lowMbin_extrap': 
         # fit the SFMS with median SFR in mass range where f_Q ~ 0. 
@@ -80,68 +96,36 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
         # motivated by Bluck et al. 2016
 
         Mfid = np.mean(fit_Mrange)  # fiducial M* 
-        dlogM = 0.2 # dex
-
-        Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
-
-        if len(Mass_cut[0]) == 0: 
-            raise ValueError("No galaxies within the fitting stellar mass range") 
         
-        logMstar_fit = logMstar[Mass_cut]
-        logSFR_fit = logSFR[Mass_cut]
-
-        # calculate the median SFRs within the fitting M* bin 
-        logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
-
-        med_Mstar, med_SFR = [], [] 
+        # calculate the median SSFRs within the fitting M* bin 
+        fit_Mstar, fit_SSFR = [], [] 
         for i in range(len(logM_bins)-1):  
-            in_mbin = np.where((logMstar_fit >= logM_bins[i]) & (logMstar_fit < logM_bins[i+1]) & (np.isnan(logSFR_fit) == False))
+            in_mbin = np.where(
+                    (logMstar_fit >= logM_bins[i]) & 
+                    (logMstar_fit < logM_bins[i+1]) & 
+                    (np.isnan(logSFR_fit) == False))
             
             if len(in_mbin[0]) > 0: 
                 med_Mstar.append(np.median(logMstar_fit[in_mbin]))
-                med_SFR.append(np.median(logSFR_fit[in_mbin]))
-
-        # now least square fit line to the values
-        xx = np.array(med_Mstar) - Mfid  # log Mstar - log M_fid
-        yy = np.array(med_SFR)
-        A = np.vstack([xx, np.ones(len(xx))]).T
-        m, c = np.linalg.lstsq(A, yy)[0] 
-
-        sfms_fit = lambda mm: m * (mm - Mfid) + c
-        
-        if forTest: 
-            return sfms_fit, [med_Mstar, med_SFR]
-        else: 
-            return sfms_fit 
+                med_SSFR.append(np.median(logSFR_fit[in_mbin] - logMstar_fit[in_mbin]))
 
     elif method == 'SSFRcut_gaussfit_linearfit': 
         # fit P(SSFR) distribution above some hard SSFR cut with a Gaussian 
         # then fit the mus you get from the Gaussian with a linear fit 
 
         Mfid = 10.  # fiducial M* hardcoded at 10 (no good reason)
-        dlogM = 0.5 # dex
-
-        Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
-
-        if len(Mass_cut[0]) == 0: 
-            raise ValueError("No galaxies within the fitting stellar mass range") 
-        
-        logMstar_fit = logMstar[Mass_cut]
-        logSFR_fit = logSFR[Mass_cut]
-
-        logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
 
         fit_Mstar, fit_SSFR = [], [] 
         for i in range(len(logM_bins)-1):  
-            SFR_cut = f_SFRcut(logMstar_fit) 
+            SSFR_cut = f_SSFRcut(logMstar_fit) 
             in_mbin = np.where(
                     (logMstar_fit >= logM_bins[i]) & 
                     (logMstar_fit < logM_bins[i+1]) & 
-                    (logSFR_fit > SFR_cut))
+                    (logSFR_fit-logMstar_fit > SSFR_cut)) # SSFR cut
             
             if len(in_mbin[0]) > 20: 
                 yy, xx_edges = np.histogram(logSFR_fit[in_mbin]-logMstar_fit[in_mbin],
-                        bins=10, normed=True)
+                        bins=20, range=[-14, -8], normed=True)
                 xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
 
                 gaus = lambda xx, aa, x0, sig: aa * np.exp(-(xx - x0)**2/(2*sig**2))
@@ -158,19 +142,41 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
 
                 fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
                 fit_SSFR.append(popt[1])
-        
-        # now least square fit line to the values
-        xx = np.array(fit_Mstar) - Mfid  # log Mstar - log M_fid
-        yy = np.array(fit_SSFR)
-        A = np.vstack([xx, np.ones(len(xx))]).T
-        m, c = np.linalg.lstsq(A, yy)[0] 
-        
-        sfms_fit = lambda mm: m * (mm - Mfid) + c + mm
 
-        if forTest: 
-            return sfms_fit, [fit_Mstar, fit_SSFR]
-        else: 
-            return sfms_fit 
+    elif method == 'SSFRcut_negbinomfit_linearfit': 
+        # fit P(SSFR) distribution above some hard SSFR cut with a negative binomial distribution
+        # then fit the mus with a linear fit (see ipython notebook for details on binomial distribution)
+
+        Mfid = 10.  # fiducial M* hardcoded at 10 (no good reason)
+
+        fit_Mstar, fit_SSFR = [], [] 
+        for i in range(len(logM_bins)-1):  
+            SSFR_cut = f_SSFRcut(logMstar_fit) 
+            in_mbin = np.where(
+                    (logMstar_fit >= logM_bins[i]) & 
+                    (logMstar_fit < logM_bins[i+1]) & 
+                    (logSFR_fit-logMstar_fit > SSFR_cut)) # SSFR cut 
+            
+            if len(in_mbin[0]) > 20:
+                # only fit mass bins that have more than 20 galaxies. Otherwise, whats't he point? 
+                yy, xx_edges = np.histogram(logSFR_fit[in_mbin] - logMstar_fit[in_mbin], bins=20, range=[-14., -8], normed=True)
+                xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
+                
+                # negative binomial PDF 
+                NB_fit = lambda xx, aa, mu, theta: UT.NB_pdf_logx(np.power(10., xx+aa), mu, theta)
+
+                try: 
+                    popt, pcov = curve_fit(NB_fit, xx, yy, 
+                            p0=[12., 100, 1.5])
+                except RuntimeError: 
+                    fig = plt.figure(2)
+                    plt.scatter(xx, yy)
+                    plt.show()
+                    plt.close()
+                    raise ValueError
+
+                fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
+                fit_SSFR.append(np.log10(popt[1]) - popt[0])
 
     elif method == 'SSFRcut_gaussfit_kinkedlinearfit': 
         # fit P(SSFR) distribution above some hard SSFR cut with a Gaussian 
@@ -179,17 +185,6 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
         SSFR_cut = -11.
 
         Mkink = 9.5  # fiducial M* hardcoded at 10 (no good reason)
-        dlogM = 0.5 # dex
-
-        Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
-
-        if len(Mass_cut[0]) == 0: 
-            raise ValueError("No galaxies within the fitting stellar mass range") 
-        
-        logMstar_fit = logMstar[Mass_cut]
-        logSFR_fit = logSFR[Mass_cut]
-
-        logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
 
         fit_Mstar, fit_SSFR = [], [] 
         for i in range(len(logM_bins)-1):  
@@ -215,7 +210,7 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
 
                 fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
                 fit_SSFR.append(popt[1])
-        raise ValueError 
+        raise NotImplementedError("need to fix code")
         # Need to fix below 
         #def kinked(mm, m1, m2, c): 
         #    sfr_out = np.zeros(len(mm))
@@ -248,55 +243,8 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
         #else: 
         #    return sfms_fit 
 
-    elif method == 'SSFRcut_negbinomfit_linearfit': 
-        # fit P(SSFR) distribution above some hard SSFR cut with a negative binomial distribution
-        # then fit the mus with a linear fit (see ipython notebook for details on binomial distribution)
-
-        Mfid = 10.  # fiducial M* hardcoded at 10 (no good reason)
-        dlogM = 0.5 # dex
-
-        Mass_cut = np.where((logMstar >= fit_Mrange[0]) & (logMstar < fit_Mrange[1])) 
-
-        if len(Mass_cut[0]) == 0: 
-            raise ValueError("No galaxies within the fitting stellar mass range") 
-        
-        logMstar_fit = logMstar[Mass_cut]
-        logSFR_fit = logSFR[Mass_cut]
-
-        logM_bins = np.arange(fit_Mrange[0], fit_Mrange[1]+dlogM, dlogM) 
-
-        fit_Mstar, fit_SSFR = [], [] 
-        for i in range(len(logM_bins)-1):  
-            SFR_cut = f_SFRcut(logMstar_fit) 
-            in_mbin = np.where(
-                    (logMstar_fit >= logM_bins[i]) & 
-                    (logMstar_fit < logM_bins[i+1]) & 
-                    (logSFR_fit > SFR_cut))
-            
-            if len(in_mbin[0]) > 20:
-                # only fit mass bins that have more than 20 galaxies. Otherwise, whats't he point? 
-                yy, xx_edges = np.histogram(logSFR_fit[in_mbin] - logMstar_fit[in_mbin], bins=10, normed=True)
-                xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
-
-                NB_fit = lambda xx, aa, mu, theta: UT.NB_pdf_logx(np.power(10., xx+aa), mu, theta)
-                
-                print logM_bins[i], ' - ', logM_bins[i+1]
-                print -10. + 0.5 * (logM_bins[i] + logM_bins[i+1])
-
-                try: 
-                    popt, pcov = curve_fit(NB_fit, xx, yy, 
-                            p0=[12., 100, 1.5])
-                except RuntimeError: 
-                    fig = plt.figure(2)
-                    plt.scatter(xx, yy)
-                    plt.show()
-                    plt.close()
-                    raise ValueError
-
-                fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
-                fit_SSFR.append(np.log10(popt[1]) - popt[0])
-        
-        # now least square fit line to the values
+    if ('linearfit' in method) or (method == 'lowMbin_extrap'): 
+        # now fit line to the fit_Mstar and fit_SSFR values
         xx = np.array(fit_Mstar) - Mfid  # log Mstar - log M_fid
         yy = np.array(fit_SSFR)
         A = np.vstack([xx, np.ones(len(xx))]).T
