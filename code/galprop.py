@@ -106,8 +106,8 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
                     (np.isnan(logSFR_fit) == False))
             
             if len(in_mbin[0]) > 0: 
-                med_Mstar.append(np.median(logMstar_fit[in_mbin]))
-                med_SSFR.append(np.median(logSFR_fit[in_mbin] - logMstar_fit[in_mbin]))
+                fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
+                fit_SSFR.append(np.median(logSFR_fit[in_mbin] - logMstar_fit[in_mbin]))
 
     elif method == 'SSFRcut_gaussfit_linearfit': 
         # fit P(SSFR) distribution above some hard SSFR cut with a Gaussian 
@@ -253,7 +253,7 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
         sfms_fit = lambda mm: m * (mm - Mfid) + c + mm
 
         if forTest: 
-            return sfms_fit, [fit_Mstar, fit_SSFR]
+            return sfms_fit, [np.array(fit_Mstar), np.array(fit_SSFR)]
         else: 
             return sfms_fit 
 
