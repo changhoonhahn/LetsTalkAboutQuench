@@ -8,6 +8,9 @@ import numpy as np
 import scipy.stats as Stat
 from scipy.stats import nbinom as nbinom
 
+from scipy import interpolate
+from astropy.cosmology import FlatLambdaCDM 
+
 def code_dir(): 
     ''' Directory where all the code is located (the directory that this file is in!)
     '''
@@ -78,3 +81,25 @@ def NB_pdf_logx(k, mu, theta, loc=0, dk=1.):
                                         
     pdeff[big] = (cdf2 - cdf1)/(np.log10(k[big]+dk) - np.log10(k[big]-dk))
     return pdeff
+
+
+def f_zoft(H0=70., Om0=0.274): 
+    ''' return function z(t_cosmic) 
+    '''
+    cosmo = FlatLambdaCDM(H0=H0, Om0=Om0) # cosmo 
+    z_arr = np.arange(0., 10.1, 0.1)
+    t_arr = cosmo.age(z_arr).value 
+
+    zoft = interpolate.interp1d(list(reversed(t_arr)), list(reversed(z_arr)), kind='cubic') 
+    return zoft
+
+
+def f_tofz(H0=70., Om0=0.274): 
+    ''' return function z(t_cosmic) 
+    '''
+    cosmo = FlatLambdaCDM(H0=H0, Om0=Om0) # cosmo 
+    z_arr = np.arange(0., 10.1, 0.1)
+    t_arr = cosmo.age(z_arr).value 
+
+    zoft = interpolate.interp1d(list(reversed(z_arr)), list(reversed(t_arr)), kind='cubic') 
+    return zoft

@@ -1,4 +1,5 @@
 import os 
+import h5py
 import numpy as np 
 import dill as pickle 
 
@@ -115,8 +116,54 @@ class Catalog:
         return color_dict[name]
 
 
+def Build_Illustris_SFH(): 
+    ''' Build catalog from Illustris SFH data (binsv2all1e8Msunh_z0.hdf5)
+    '''
+    # read in illustris data 
+    f = h5py.File(UT.dat_dir()+'binsv2all1e8Msunh_z0.hdf5', 'r')
+    # load data into a dict
+    galpop = {} 
+    galpop['t'] = []
+    galpop['z'] = []
+    galpop['m_star0'] = f['CurrentStellarMass'].value.flatten() * 1e10 # [Msun]
+
+    t_bins = np.array([0.0, 0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095, 0.125,0.175,0.225,0.275,0.325,0.375,0.425,0.475,0.55,0.65,0.75,0.85,0.95,1.125,1.375,1.625,1.875,2.125,2.375,2.625,2.875,3.125,3.375,3.625,3.875,4.25,4.75,5.25,5.75,6.25,6.75,7.25,7.75,8.25,8.75,9.25,9.75,10.25,10.75,11.25,11.75,12.25,12.75,13.25,13.75])
+
+    dm_grid = f['FormedStellarMass'].value # grid of d M* in bins of cosmic time and metallicities 
+    dm_t = np.sum(dm_grid, axis=1) # summed
+
+    galpop['sfr0'] = (1.e10 * (dm_t[:,0] + dm_t[:,1])/(0.015 * 1e9)).flatten() # "current" SFR 
+    galpop['t'].append(0.005)
+    
+    zoft = UT.f_zoft()
+    tofz = UT.f_tofz() 
+    galpop['z'].append(zoft(tofz(0.) - galpop['t'][0]))
+
+    for i in range(len(t_bins)-5): 
+        # calculate M* and SFRs at previous time bins 
+        dt = t_bins[3+i] - t_bins[2+i]
+        t_i = 0.5 * (t_bins[3+i] + t_bins[2+i])
+        galpop['t'].append(t_i)
+        galpop['z'].append(zoft(tofz(0.) - t_i))
+
+        galpop['sfr'+str(i+1)] = (10. * dm_t[:,2+i] / dt).flatten() 
+        galpop['m_star'+str(i+1)] = galpop['m_star0'] - 1e10 * np.sum(dm_t[:,:i+2], axis=1)
+    
+    galpop['t'] = np.array(galpop['t'])
+    galpop['z'] = np.array(galpop['z'])
+
+    # save galpop dict to hdf5 file 
+    g = h5py.File(UT.dat_dir()+'illustris_sfh.hdf5', 'w') 
+    for k in galpop.keys(): 
+        g.create_dataset(k, data=galpop[k])
+    f.close() 
+    g.close() 
+    return None  
+
 
 if __name__=='__main__': 
+    Build_Illustris_SFH()
+    '''
     Cat = Catalog()
     
     for cata in ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']: 
@@ -125,3 +172,4 @@ if __name__=='__main__':
         print Cat.CatalogLabel(cata)
         print logM[:10], logSFR[:10], w[:10]
         print '------------------------------------------------------------'
+    '''
