@@ -126,23 +126,25 @@ class Catalog:
 
 
 def Build_Illustris_SFH(): 
-    ''' Build catalog from Illustris SFH data (binsv2all1e8Msunh_z0.hdf5)
+    ''' Build central galaxy catalog with SFHs from Illustris data and 
+    Jeremey Tinker's group finder
     '''
-    # read in illustris data 
+    # read in illustris SFH data 
     f = h5py.File(UT.dat_dir()+'binsv2all1e8Msunh_z0.hdf5', 'r')
     # load data into a dict
     galpop = {} 
     galpop['t'] = []
     galpop['z'] = []
     galpop['m_star0'] = f['CurrentStellarMass'].value.flatten() * 1e10 # [Msun]
-
+    
+    # time binning of SFHs 
     t_bins = np.array([0.0, 0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095, 0.125,0.175,0.225,0.275,0.325,0.375,0.425,0.475,0.55,0.65,0.75,0.85,0.95,1.125,1.375,1.625,1.875,2.125,2.375,2.625,2.875,3.125,3.375,3.625,3.875,4.25,4.75,5.25,5.75,6.25,6.75,7.25,7.75,8.25,8.75,9.25,9.75,10.25,10.75,11.25,11.75,12.25,12.75,13.25,13.75])
 
     dm_grid = f['FormedStellarMass'].value # grid of d M* in bins of cosmic time and metallicities 
-    dm_t = np.sum(dm_grid, axis=1) # summed
+    dm_t = np.sum(dm_grid, axis=1) # summed over metallicities 
 
-    galpop['sfr0'] = (1.e10 * (dm_t[:,0] + dm_t[:,1])/(0.015 * 1e9)).flatten() # "current" SFR 
-    galpop['t'].append(0.005)
+    galpop['sfr0'] = (1.e10 * (dm_t[:,0] + dm_t[:,1])/(0.015 * 1e9)).flatten() # "current" SFR averaged over 0.015 Gyr
+    galpop['t'].append(0.5*0.015) 
     
     zoft = UT.f_zoft()
     tofz = UT.f_tofz() 
@@ -160,12 +162,17 @@ def Build_Illustris_SFH():
     
     galpop['t'] = np.array(galpop['t'])
     galpop['z'] = np.array(galpop['z'])
+    f.close() 
+
+    # group finder data 
+    grp = np.loadtxt(UT.dat_dir()+"Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv", 
+            unpack=True, skiprows=1, delimiter=',', usecols=[-1]) 
+    galpop['central'] = grp 
 
     # save galpop dict to hdf5 file 
     g = h5py.File(UT.dat_dir()+'illustris_sfh.hdf5', 'w') 
     for k in galpop.keys(): 
         g.create_dataset(k, data=galpop[k])
-    f.close() 
     g.close() 
     return None  
 
