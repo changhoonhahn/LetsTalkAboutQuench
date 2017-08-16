@@ -18,7 +18,7 @@ def SFR_Mstar(name, yrange=None, **kwargs):
     '''
     assert name
 
-    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa']
+    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa', 'eagle']
     if name not in catalog_list: 
         raise ValueError("catalog must be one of ["+', '.join(catalog_list)+"]")
     
@@ -562,15 +562,14 @@ def SFR_Mstar_sfrtimescale_comparison():
 if __name__=='__main__': 
     #massbins = [[6., 6.5], [7., 7.5], [8., 8.5], [9., 9.5], [10., 10.5], [11., 11.5], [12., 12.5]]
     #Pssfr_Catalogs(logmstar_massbins=massbins, logsfr_nbin=25) 
-    #SFR_Mstar_Catalogs(contour='dfm')
+    SFR_Mstar_Catalogs(contour='dfm')
     #SFR_Mstar_Catalogs(contour='gaussianKDE')
     #SFR_Mstar_Catalogs(contour=False)
     #SFR_Mstar_sfrtimescale_comparison()
     #assess_SFMS_fits('tinkergroup')
     #assess_SFMS_fits('santacruz2')
-    assess_SFMS_fits('nsa_dickey')
+    #assess_SFMS_fits('nsa_dickey')
     #SFMS_fitting_comparison()
     #SFR_Mstar_SFMScut_QF(fit_method='lowMbin_extrap', scatter_method='constant', fit_Mrange=[9., 10.])
     #SFR_Mstar_SFMScut_QF(fit_method='SSFRcut_gaussfit_linearfit', scatter_method='constant', 
     #        fit_Mrange=[7., 11.], f_SFRcut=lambda mm: -11.+ mm)
-

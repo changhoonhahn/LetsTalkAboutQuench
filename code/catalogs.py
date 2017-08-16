@@ -19,7 +19,8 @@ class Catalog:
                 'illustris1': 'Illustris1_SFR_M_values.csv', 
                 'illustris2': 'Illustris1_SFR_M_values.csv', 
                 'nsa_dickey': 'dickey_NSA_iso_lowmass_gals.txt', 
-                'mufasa': 'Mufasa_m50n512_z0.cat'
+                'mufasa': 'Mufasa_m50n512_z0.cat', 
+                'eagle': 'EAGLE_mstar_sfr_RefL0100N1504.txt'
                 }
         self.catalog_list = self.catalog_dict.keys()
 
@@ -66,11 +67,17 @@ class Catalog:
             logM = np.log10(muf_M)
             logSFR = np.log10(muf_SSFR) + logM
             w = np.ones(len(logM))
+        elif name == 'eagle': 
+            eag_M, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,1])
+            logM = np.log10(eag_M)
+            logSFR = np.log10(eag_SFR) 
+            w = np.ones(len(logM))
         else: 
             raise ValueError('')
 
         # deal with sfr = 0 or other non finite numbers 
         sfr_zero = np.where(np.isfinite(logSFR) == False)
+        print '------ ', name, ' ------'
         print len(sfr_zero[0]), ' of ', len(logM), ' galaxies have 0/non-finite SFRs'
         print 'logSFR of these galaxies will be -999.'
         logSFR[sfr_zero] = -999.
@@ -95,7 +102,8 @@ class Catalog:
                 'illustris1': r'Illustris [$2 \times 10^7$ yr]', 
                 'illustris2': r'Illustris [$10^9$ yr]',
                 'nsa_dickey': 'NSA Dickey', 
-                'mufasa': 'MUFASA'
+                'mufasa': 'MUFASA', 
+                'eagle': 'EAGLE' 
                 }
 
         return label_dict[name]
@@ -111,7 +119,8 @@ class Catalog:
                 'illustris1': 'green', 
                 'illustris2': 'darkgreen',
                 'nsa_dickey': 'purple', 
-                'mufasa': 'yellow'
+                'mufasa': 'yellow',
+                'eagle': 'darkred'
                 }
         return color_dict[name]
 
