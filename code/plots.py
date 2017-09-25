@@ -17,12 +17,11 @@ def SFR_Mstar(name, yrange=None, **kwargs):
     ''' plot SFR histogram in log M* bins for specified catalog
     '''
     assert name
-
-    catalog_list = ['santacruz1', 'santacruz2', 'tinkergroup', 'illustris1', 'illustris2', 'nsa_dickey', 'mufasa', 'eagle']
-    if name not in catalog_list: 
-        raise ValueError("catalog must be one of ["+', '.join(catalog_list)+"]")
-    
     Cat = Cats.Catalog()
+
+    if name not in Cat.catalog_list: 
+        raise ValueError("catalog must be one of ["+', '.join(Cat.catalog_list)+"]")
+    
     logMstar, logSFR, weight = Cat.Read(name) # read in values 
     
     logSFR_bin_mids, PlogSFRs, mass_bins, counts, wtots = Gprop.sSFR_Mstar(logSFR, logMstar, **kwargs)

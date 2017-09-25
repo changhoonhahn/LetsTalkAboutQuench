@@ -7,7 +7,22 @@ from ChangTools.plotting import prettyplot
 # -- Local --
 import util as UT
 import catalogs as Cats
-import galpy.util.bovy_plot as bovy 
+
+
+def dQuench(logsfr, logmstar, method='lowMbin_extrap', **kwargs):
+    ''' Given log(SFR) and log(M*) of a catalog, calculate the dQuench of galaxies
+    dQuench is defined as log(SFR) - log(SFR)_MS. i.e. SF galaxies *above* the MS 
+    have positive dQuench
+    '''
+    if len(logsfr) != len(logmstar): 
+        raise ValueError
+
+    # first, fit the SFMS 
+    sfr_sfms = SFMS_bestfit(logsfr, logmstar, method=method, **kwargs)
+
+    # calculate d_Quench
+    d_Q = logsfr - sfr_sfms(logmstar)
+    return d_Q
 
 
 def sSFR_Mstar(logsfr, logmstar, weights=None, 
