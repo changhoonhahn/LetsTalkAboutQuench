@@ -9,9 +9,10 @@ import util as UT
 import catalogs as Cats
 
 
-def dQuench(logsfr, logmstar, method='lowMbin_extrap', **kwargs):
-    ''' Given log(SFR) and log(M*) of a catalog, calculate the dQuench of galaxies
-    dQuench is defined as log(SFR) - log(SFR)_MS. i.e. SF galaxies *above* the MS 
+def dMS(logsfr, logmstar, method=None, **kwargs):
+    ''' Given log(SFR) and log(M*) of a catalog, calculate the dMS of galaxies
+    dMS (distance from the m
+    is defined as log(SFR) - log(SFR)_MS. i.e. SF galaxies *above* the MS 
     have positive dQuench
     '''
     if len(logsfr) != len(logmstar): 
@@ -21,8 +22,8 @@ def dQuench(logsfr, logmstar, method='lowMbin_extrap', **kwargs):
     sfr_sfms = SFMS_bestfit(logsfr, logmstar, method=method, **kwargs)
 
     # calculate d_Quench
-    d_Q = logsfr - sfr_sfms(logmstar)
-    return d_Q
+    d_MS = logsfr - sfr_sfms(logmstar)
+    return d_MS
 
 
 def sSFR_Mstar(logsfr, logmstar, weights=None, 
@@ -77,6 +78,9 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
 
     returns log SFR_sfms(M*) best fit. 
     '''
+    if method not in ['logMbin_extrap', 'SSFRcut_gaussfit_linearfit', 'SSFRcut_negbinomfit_linearfit']: 
+        raise ValueError("not one of the methods!") 
+
     if 'fit_Mrange' not in kwargs.keys():
         # this is to account for the fact that different catalogs
         # have different stellar mass ranges. 
@@ -194,38 +198,38 @@ def SFMS_bestfit(logSFR, logMstar, method='lowMbin_extrap', forTest=False, **kwa
                 fit_SSFR.append(np.log10(popt[1]) - popt[0])
 
     elif method == 'SSFRcut_gaussfit_kinkedlinearfit': 
+        raise NotImplementedError("need to fix code")
         # fit P(SSFR) distribution above some hard SSFR cut with a Gaussian 
         # then fit the mus you get from the Gaussian witha kinked linear fit 
-        fit_Mrange = [logMstar.min(), 11.0]  # hardcoded for now 
-        SSFR_cut = -11.
+        #fit_Mrange = [logMstar.min(), 11.0]  # hardcoded for now 
+        #SSFR_cut = -11.
 
-        Mkink = 9.5  # fiducial M* hardcoded at 10 (no good reason)
+        #Mkink = 9.5  # fiducial M* hardcoded at 10 (no good reason)
 
-        fit_Mstar, fit_SSFR = [], [] 
-        for i in range(len(logM_bins)-1):  
-            SFR_cut = SSFR_cut + 0.5 * (logM_bins[i] + logM_bins[i+1])
-            in_mbin = np.where((logMstar_fit >= logM_bins[i]) & (logMstar_fit < logM_bins[i+1]) & (logSFR_fit > SFR_cut))
-            
-            if len(in_mbin[0]) > 20: 
-                yy, xx_edges = np.histogram(logSFR_fit[in_mbin]-logMstar_fit[in_mbin], 
-                        bins=10, normed=True)
-                xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
+        #fit_Mstar, fit_SSFR = [], [] 
+        #for i in range(len(logM_bins)-1):  
+        #    SFR_cut = SSFR_cut + 0.5 * (logM_bins[i] + logM_bins[i+1])
+        #    in_mbin = np.where((logMstar_fit >= logM_bins[i]) & (logMstar_fit < logM_bins[i+1]) & (logSFR_fit > SFR_cut))
+        #    
+        #    if len(in_mbin[0]) > 20: 
+        #        yy, xx_edges = np.histogram(logSFR_fit[in_mbin]-logMstar_fit[in_mbin], 
+        #                bins=10, normed=True)
+        #        xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
 
-                gaus = lambda xx, aa, x0, sig: aa * np.exp(-(xx - x0)**2/(2*sig**2))
-                
-                try: 
-                    popt, pcov = curve_fit(gaus, xx, yy, 
-                            p0=[1., np.median(logSFR_fit[in_mbin]-logMstar_fit[in_mbin]), 0.3])
-                except RuntimeError: 
-                    fig = plt.figure(2)
-                    plt.scatter(xx, yy)
-                    plt.show()
-                    plt.close()
-                    raise ValueError
+        #        gaus = lambda xx, aa, x0, sig: aa * np.exp(-(xx - x0)**2/(2*sig**2))
+        #        
+        #        try: 
+        #            popt, pcov = curve_fit(gaus, xx, yy, 
+        #                    p0=[1., np.median(logSFR_fit[in_mbin]-logMstar_fit[in_mbin]), 0.3])
+        #        except RuntimeError: 
+        #            fig = plt.figure(2)
+        #            plt.scatter(xx, yy)
+        #            plt.show()
+        #            plt.close()
+        #            raise ValueError
 
-                fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
-                fit_SSFR.append(popt[1])
-        raise NotImplementedError("need to fix code")
+        #        fit_Mstar.append(np.median(logMstar_fit[in_mbin]))
+        #        fit_SSFR.append(popt[1])
         # Need to fix below 
         #def kinked(mm, m1, m2, c): 
         #    sfr_out = np.zeros(len(mm))

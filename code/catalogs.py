@@ -14,14 +14,14 @@ class Catalog:
         self.catalog_dict = { 
                 'illustris_1gyr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
                 'illustris_10myr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
-                'illustris1': 'Illustris1_SFR_M_values.csv', 
-                'illustris2': 'Illustris1_SFR_M_values.csv', 
+                #'illustris1': 'Illustris1_SFR_M_values.csv', 
+                #'illustris2': 'Illustris1_SFR_M_values.csv', 
                 'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
                 'eagle_10myr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
                 'mufasa_1gyr': 'MUFASA_GALAXY.txt',
                 'mufasa_10myr': 'MUFASA_GALAXY.txt',
-                'santacruz1': 'sc_sam_sfr_mstar_correctedweights.txt',
-                'santacruz2': 'sc_sam_sfr_mstar_correctedweights.txt',
+                #'santacruz1': 'sc_sam_sfr_mstar_correctedweights.txt',
+                #'santacruz2': 'sc_sam_sfr_mstar_correctedweights.txt',
                 'tinkergroup': 'tinker_SDSS_centrals_M9.7.dat',
                 'nsa_dickey': 'dickey_NSA_iso_lowmass_gals.txt', 
                 }
@@ -48,9 +48,9 @@ class Catalog:
             w = np.ones(len(logM))
         elif 'eagle' in name: # EAGLE simulation 
             if name == 'eagle_1gyr': # SFR on 1 Gyr timescales
-                logM, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,3])
-            elif name == 'eagle_10myr': # SFR on 1 Myr timescales
                 logM, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,4])
+            elif name == 'eagle_10myr': # SFR on 1 Myr timescales
+                logM, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,3])
             logSFR = np.log10(eag_SFR) 
             w = np.ones(len(logM))
         elif 'mufasa' in name: # MUFASA simulation 
@@ -88,7 +88,7 @@ class Catalog:
             raise ValueError('')
 
         # deal with sfr = 0 or other non finite numbers 
-        sfr_zero = np.where(np.isfinite(logSFR) == False)
+        sfr_zero = np.where((np.isfinite(logSFR) == False) | (logSFR < -5))
         print '------ ', name, ' ------'
         print len(sfr_zero[0]), ' of ', len(logM), ' galaxies have 0/non-finite SFRs'
         print 'logSFR of these galaxies will be -999.'
@@ -148,6 +148,35 @@ class Catalog:
             print name 
             raise ValueError
         return color_dict[name]
+
+    def _default_Mstar_range(self, name): 
+        ''' stellar mass range of catalog where the SFR-M* relation
+        is well defined. This is determined by eye and *conservatively*
+        selected.
+        '''
+        if name == 'illustris_1gyr': 
+            fit_Mrange = [8.5, 10.5]
+        elif name == 'illustris_10myr': 
+            fit_Mrange = [9.75, 10.75]
+        elif name == 'eagle_1gyr': 
+            fit_Mrange = [8.5, 11.]
+        elif name == 'eagle_10myr': 
+            fit_Mrange = [8.5, 10.5]
+        elif name == 'mufasa_1gyr': 
+            fit_Mrange = [8.75, 10.5]
+        elif name == 'mufasa_10myr': 
+            fit_Mrange = [8.75, 10.5]
+        elif name == 'tinkergroup': 
+            fit_Mrange = [10., 11.5]
+        elif name == 'nsa_dickey': 
+            fit_Mrange = [7.5, 10.]
+        return fit_Mrange
+    
+    def _default_fSSFRcut(self, name): 
+        ''' default SSFRcut 
+        '''
+        f_SSFRcut = lambda mm: -11.
+        return f_SSFRcut
 
 
 def Build_Illustris_SFH(): 

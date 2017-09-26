@@ -38,9 +38,6 @@ def SFR_Mstar(name, yrange=None, **kwargs):
     bkgd = fig.add_subplot(111, frameon=False)
     
     sub = fig.add_subplot(panels[0], panels[1], 1)
-    #bovy.scatterplot(logMstar, logSFR, cmap='Blues', 
-    #        levels=[0.68, 0.95], aspect=0.75, gcf=True, scatter=True, 
-    #        xrange=[6., 12.], yrange=[-4., 2.])
     sub.set_ylabel(r'$\mathtt{log \; M_* \;\; [M_\odot]}$', fontsize=20) 
     sub.set_xlabel(r'$\mathtt{log \; SFR \;\; [M_\odot yr^{-1}]}$', fontsize=20) 
 
@@ -136,7 +133,9 @@ def SFR_Mstar_Catalogs(contour='dfm'):
     '''
     Cat = Cats.Catalog()
     # Read in various data sets
-    catalog_list = Cat.catalog_list
+    catalog_list = ['tinkergroup', 'nsa_dickey', 
+            'illustris_1gyr', 'illustris_10myr', 'eagle_1gyr', 'eagle_10myr', 
+            'mufasa_1gyr', 'mufasa_10myr']
 
     catalog_labels = [] # Labels 
     logSFRs, logMstars, weights = [], [], [] 
@@ -155,24 +154,30 @@ def SFR_Mstar_Catalogs(contour='dfm'):
     for i_data in range(len(logSFRs)):
         sub = fig.add_subplot(n_rows, 4, i_data+1)
         if contour == 'dfm':  
-            DFM.hist2d(logMstars[i_data], logSFRs[i_data], color='#1F77B4', 
-                    levels=[0.68, 0.95], range=[[6., 12.], [-4., 2.]], 
+            if catalog_list[i_data] in ['tinkergroup', 'nsa_dickey']:
+                colour = '#ee6a50'
+            else: 
+                colour =  '#1F77B4'
+
+            DFM.hist2d(logMstars[i_data], logSFRs[i_data], color=colour, 
+                    levels=[0.68, 0.95], range=[[7., 12.], [-4., 2.]], 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
         elif contour == 'gaussianKDE': 
             xx, yy, f = UT.gaussianKDE_contour(logMstars[i_data], logSFRs[i_data], 
                     xmin=6., xmax=12., ymin=-4., ymax=2.)
             sub.contourf(xx, yy, f, cmap='Blues')
             sub.contour(xx, yy, f, colors='k')
-            sub.set_xlim([6., 12.]) 
+            sub.set_xlim([7., 12.]) 
             sub.set_ylim([-4., 2.]) 
         elif contour == False: 
             sub.scatter(logMstars[i_data], logSFRs[i_data], c='k', s=2, lw=0)
-            sub.set_xlim([6., 12.]) 
+            sub.set_xlim([7., 12.]) 
             sub.set_ylim([-4., 2.]) 
         else: 
             raise ValueError() 
         sub.text(0.1, 0.9, catalog_labels[i_data],
-                ha='left', va='center', transform=sub.transAxes, fontsize=17)
+                ha='left', va='center', transform=sub.transAxes, fontsize=20)
+        #sub.plot(np.linspace(6., 12., 10), np.linspace(6., 12., 10) - 11., ls='--', c='k') 
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', labelpad=20, fontsize=30) 
@@ -559,13 +564,15 @@ def SFR_Mstar_sfrtimescale_comparison():
 
 
 if __name__=='__main__': 
+
     #massbins = [[6., 6.5], [7., 7.5], [8., 8.5], [9., 9.5], [10., 10.5], [11., 11.5], [12., 12.5]]
     #Pssfr_Catalogs(logmstar_massbins=massbins, logsfr_nbin=25) 
-    SFR_Mstar_Catalogs(contour='dfm')
+    #SFR_Mstar('tinkergroup')
+    #SFR_Mstar_Catalogs(contour='dfm')
     #SFR_Mstar_Catalogs(contour='gaussianKDE')
     #SFR_Mstar_Catalogs(contour=False)
     #SFR_Mstar_sfrtimescale_comparison()
-    #assess_SFMS_fits('tinkergroup')
+    assess_SFMS_fits('tinkergroup')
     #assess_SFMS_fits('santacruz2')
     #assess_SFMS_fits('nsa_dickey')
     #SFMS_fitting_comparison()
