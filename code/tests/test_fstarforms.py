@@ -81,8 +81,14 @@ def assess_SFMS_fit(catalog, fit_method):
             gmm_weights = fSFMS._gmix_weights[i_m]
             gmm_means = fSFMS._gmix_means[i_m]
             gmm_vars = fSFMS._gmix_covariances[i_m]
-            icomp = gmm_means.argmax()
-            sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), c='r', lw=2, ls='--')
+
+
+            for ii, icomp in enumerate(gmm_means.argsort()[::-1]): 
+                if ii == 0: 
+                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), c='r', lw=2, ls='--')
+                else: 
+                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=1, ls='--')
+
         # x-axis
         sub.set_xlim([-13, -8])
         sub.set_xticks([-13, -12, -11, -10, -9, -8])
@@ -97,7 +103,6 @@ def assess_SFMS_fit(catalog, fit_method):
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None
-
 
 
 def sfmsfit_check(catalog, fit_method):
@@ -135,4 +140,5 @@ def sfmsfit_check(catalog, fit_method):
 
 if __name__=='__main__': 
     for fit in ['gaussfit', 'negbinomfit', 'gaussmix']: 
-        assess_SFMS_fit('illustris_1gyr', fit)
+        assess_SFMS_fit('tinkergroup', fit)
+        assess_SFMS_fit('nsa_dickey', fit)
