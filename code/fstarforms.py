@@ -145,6 +145,7 @@ class fstarforms(object):
 
             fit_logm, fit_logssfr = [], []
             fit_popt, fit_amp = [], []
+            frac_sfms = [] 
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
@@ -169,8 +170,10 @@ class fstarforms(object):
                         raise ValueError
                     fit_logm.append(np.median(logmstar[in_mbin]))
                     fit_logssfr.append(popt[1])
-                    fit_amp.append(float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i])))
+                    famp = float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i]))
+                    fit_amp.append(famp)
                     fit_popt.append(popt)
+                    frac_sfms.append(popt[0] * np.sqrt(2.*np.pi*popt[2]**2) * famp)
             self._fit_amp = fit_amp
             self._fit_popt = fit_popt
 
@@ -219,6 +222,7 @@ class fstarforms(object):
                     fit_popt.append(popt)
             self._fit_amp = fit_amp
             self._fit_popt = fit_popt
+            frac_sfms = ['not worth integrating negative binomial distribution'] 
 
         elif method == 'gaussmix':
             # in stellar mass bins, fit P(log SSFR) distribution using a Gaussian mixture model 
@@ -229,6 +233,7 @@ class fstarforms(object):
 
             fit_logm, fit_logssfr = [], []
             gmix_weights_, gmix_means_, gmix_covariances_ = [], [], []
+            frac_sfms = [] 
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
@@ -277,7 +282,8 @@ class fstarforms(object):
                                 continue 
                             else: 
                                 fit_logm.append(np.median(logmstar[in_mbin])) 
-                                fit_logssfr.append(gbest.means_.flatten().max())
+                                sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                                fit_logssfr.append(gbest.means_.flatten()[sf_comp])
                                 gmix_weights_.append(gbest.weights_)
                                 gmix_means_.append(gbest.means_.flatten())
                                 gmix_covariances_.append(gbest.covariances_.flatten())
@@ -286,7 +292,8 @@ class fstarforms(object):
                             continue 
                         else: 
                             fit_logm.append(np.median(logmstar[in_mbin])) 
-                            fit_logssfr.append(gbest.means_.flatten().max())
+                            sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                            fit_logssfr.append(gbest.means_.flatten()[sf_comp])
                             gmix_weights_.append(gbest.weights_)
                             gmix_means_.append(gbest.means_.flatten())
                             gmix_covariances_.append(gbest.covariances_.flatten())
@@ -295,21 +302,30 @@ class fstarforms(object):
                         # distribution. hOwever, the second component does not contribute
                         # significantly to the distribution. 
                         fit_logm.append(np.median(logmstar[in_mbin])) 
-                        fit_logssfr.append(gbest.means_.flatten().max())
+                        sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                        fit_logssfr.append(gbest.means_.flatten()[sf_comp])
                         gmix_weights_.append(gbest.weights_)
                         gmix_means_.append(gbest.means_.flatten())
                         gmix_covariances_.append(gbest.covariances_.flatten())
                 else: 
                     fit_logm.append(np.median(logmstar[in_mbin])) 
-                    fit_logssfr.append(gbest.means_.flatten().max())
+                    sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                    fit_logssfr.append(gbest.means_.flatten()[sf_comp])
                     gmix_weights_.append(gbest.weights_)
                     gmix_means_.append(gbest.means_.flatten())
                     gmix_covariances_.append(gbest.covariances_.flatten())
+
+                # calculate the star formation main sequence fraction 
+                # an estimate of the fraction of galaxies in this mass bin that are 
+                # on the star formation main sequence 
+                frac_sfms.append(gbest.weights_[sf_comp])
 
             # save the gmix fit values 
             self._gmix_weights = gmix_weights_ 
             self._gmix_means = gmix_means_
             self._gmix_covariances = gmix_covariances_
+
+        self._frac_sfms = np.array(frac_sfms)
 
         # save the fit ssfr and logm 
         self._fit_logm = np.array(fit_logm)  
@@ -351,3 +367,24 @@ class fstarforms(object):
         
         sfms_fit = lambda mm: m * (mm - logMfid) + c + mm
         return sfms_fit 
+
+    def frac_SFMS(self): 
+        ''' Return the estimate of the fraction of galaxies that are on 
+        the star formation main sequence as a function of mass produce from 
+        the fit. 
+        '''
+        if self._fit_logm is None  or self._frac_sfms is None:
+            raise ValueError('Run `fit` method first')
+        if isinstance(self._frac_sfms[0], str): 
+            raise NotImplementedError(self._frac_sfms[0]) 
+        return [self._fit_logm, self._frac_sfms]
+
+    def _GMM_SFMS_logSSFR(self, means, weights): 
+        ''' Given means and weights of a GMM, determine which component corresponds to the
+        SFMS portion
+        '''
+        issf = np.where(means > -11.)
+        if len(issf[0]) == 0: # there's only one component thats in the SF portion  
+            return issf[0]
+        else: 
+            return issf[0][weights[issf].argmax()]

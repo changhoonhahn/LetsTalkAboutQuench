@@ -138,7 +138,29 @@ def sfmsfit_check(catalog, fit_method):
     return None 
 
 
+def SFMSfrac(catalog):   
+    # read in catalogs
+    cat = Cat()
+    logm, logsfr, w = cat.Read(catalog)  
+    
+    fig = plt.figure(1)
+    sub = fig.add_subplot(111)
+
+    for fit_method in ['gaussfit', 'gaussmix']: 
+        # fit the SFMS using whatever method 
+        fSFMS = fstarforms()
+        _ = fSFMS.fit(logm, logsfr, method=fit_method) 
+        fit_logm, frac_sfms = fSFMS.frac_SFMS() 
+
+        sub.plot(fit_logm, frac_sfms) 
+    sub.set_xlim([9., 12.]) 
+    sub.set_xlabel('log $M_*\;\;[M_\odot]$', fontsize=20)
+    sub.set_ylim([0., 1.]) 
+    sub.set_ylabel('$f_\mathrm{SFMS}$', fontsize=20)
+    plt.show()
+    plt.close() 
+    return None
+
+
 if __name__=='__main__': 
-    for fit in ['gaussfit', 'negbinomfit', 'gaussmix']: 
-        assess_SFMS_fit('tinkergroup', fit)
-        assess_SFMS_fit('nsa_dickey', fit)
+    SFMSfrac('tinkergroup')
