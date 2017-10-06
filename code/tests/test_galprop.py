@@ -140,6 +140,47 @@ def sfmsfit_check(catalog, fit_method):
     return None 
 
 
+
+def dMS_Mstar(catalog, fit_method):
+    '''
+    ''' 
+    cat = Cat()    
+    if catalog not in cat.catalog_list: 
+        raise ValueError("catalog not in list") 
+    
+    logm, logsfr, w = cat.Read(catalog)  
+    
+    # zero SFR
+    notzero = np.where(logsfr != -999.)
+
+    fit_Mrange = cat._default_Mstar_range(catalog) 
+    f_SSFRcut = cat._default_fSSFRcut(catalog)
+    
+    dMS = GP.dMS(logsfr[notzero], logm[notzero], 
+            method=fit_method, # method for fitting the SFMS 
+            fit_Mrange=fit_Mrange, # stellar mass range of fit
+            f_SSFRcut=f_SSFRcut)
+
+    prettyplot()
+    fig = plt.figure(1)
+    sub = fig.add_subplot(111)
+    DFM.hist2d(logm[notzero], dMS, color='#1F77B4', 
+            levels=[0.68, 0.95], range=[[7., 12.], [-5., 1.]], 
+            plot_datapoints=True, fill_contours=False, plot_density=True, 
+            ax=sub) 
+    sub.plot([7., 12.], [-0.9, -0.9], c='r', ls='--', lw=2)
+    sub.set_xlim([7., 12.]) 
+    sub.set_ylim([-5., 1.]) 
+    sub.set_xlabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', fontsize=25) 
+    sub.set_ylabel(r'$\mathtt{d_{MS} \;\;[dex]}$', fontsize=25) 
+
+    fig_name = ''.join([UT.fig_dir(), 'dMS_Mstar.', catalog, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
+
 def P_dMS(catalog, fit_method):
     ''' plot the distribution of d_MS for catalog based on fit_method 
     ''' 
@@ -358,5 +399,4 @@ def assess_SFMS_fit(catalog, fit_method, Mrange=None):
 
 
 if __name__=="__main__": 
-    fQ_dMS('SSFRcut_gaussfit_linearfit')
-    #P_dMS('illustris_1gyr', 'SSFRcut_gaussfit_linearfit')
+    dMS_Mstar('tinkergroup', 'SSFRcut_gaussfit_linearfit')
