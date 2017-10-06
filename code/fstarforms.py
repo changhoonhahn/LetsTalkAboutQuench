@@ -6,6 +6,7 @@ fStarForMS = fitting the STAR FORming Main Sequence
 import numpy as np 
 import types
 import warnings 
+from scipy.optimize import curve_fit
 from sklearn.mixture import GaussianMixture as GMix
 
 import util as UT 
@@ -16,11 +17,17 @@ class fstarforms(object):
     of a galaxy population. 
 
     Main functionality of this class include : 
-    *
+    * fitting log SFR of the SFMS in bins of log M*  
+    * fitting parameterizations of the SFMS using log SFR 
 
+
+    to-do
+    * implement calculate f_SFMS (the SFMS fraction)
     '''
     def __init__(self):
-        pass
+        self._fit_logm = None 
+        self._fit_logssfr = None
+        self._fit_logsfr = None
 
     def fit(self, logmstar, logsfr, method=None, fit_range=None, dlogm=0.2,
             Nbin_thresh=100, SSFR_cut=None, **kwargs): 
@@ -57,6 +64,11 @@ class fstarforms(object):
             before doing the fitting. For 'gaussfit' and 'negbinomfit' 
             default SSFR_cut is logSSFR > -11.
 
+        Returns 
+        -------
+        fit_logm, fit_logsfr : (array, array)
+             
+
         Notes
         -----
         - Since the inputs are logM* and logSFR, SFR=0 is by construction 
@@ -76,9 +88,10 @@ class fstarforms(object):
             raise ValueError("not one of the methods!") 
 
         # only keep sensible logmstar and log sfr
-        sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False))
+        sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
         if len(logmstar) - np.sum(sense) > 0:  
             warnings.warn(str(len(logmstar) - np.sum(sense))+' galaxies have nonsensical logM* or logSFR values')  
+        self._sensecut = sense
         logmstar = logmstar[np.where(sense)]
         logsfr = logsfr[np.where(sense)]
 
@@ -94,6 +107,8 @@ class fstarforms(object):
         # logM* binning 
         mbin_low = np.arange(fit_range[0], fit_range[1], dlogm)
         mbin_high = mbin_low + dlogm
+        self._dlogm = dlogm
+        self._Nbin_thresh = Nbin_thresh
 
         if method == 'lowMbin_extrap': 
             # fit the SFMS with median SFR in the low mass range where 
@@ -128,7 +143,8 @@ class fstarforms(object):
                     # if SSFR_cut is a function of log M*
                     ssfrcut = (logsfr - logmstar > SSFR_cut(logmstar))
 
-            fit_logm, fit_logsfr = [], []
+            fit_logm, fit_logssfr = [], []
+            fit_popt, fit_amp = [], []
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
@@ -137,7 +153,7 @@ class fstarforms(object):
 
                 if len(in_mbin[0]) > Nbin_thresh: 
                     # now fit a gaussian to the distribution 
-                    yy, xx_edges = np.histogram(logSFR_fit[in_mbin]-logMstar_fit[in_mbin],
+                    yy, xx_edges = np.histogram(logsfr[in_mbin]-logmstar[in_mbin],
                             bins=20, range=[-14, -8], normed=True)
                     xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
 
@@ -151,9 +167,12 @@ class fstarforms(object):
                         plt.show()
                         plt.close()
                         raise ValueError
-
                     fit_logm.append(np.median(logmstar[in_mbin]))
-                    fit_logsfr.append(popt[1])
+                    fit_logssfr.append(popt[1])
+                    fit_amp.append(float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i])))
+                    fit_popt.append(popt)
+            self._fit_amp = fit_amp
+            self._fit_popt = fit_popt
 
         elif method == 'negbinomfit': 
             # in stellar mass bins, fit P(SSFR) distribution above some SSFR cut with a 
@@ -167,7 +186,8 @@ class fstarforms(object):
                     # if SSFR_cut is a function of log M*
                     ssfrcut = (logsfr - logmstar > SSFR_cut(logmstar))
             
-            fit_logm, fit_logsfr = [], []
+            fit_logm, fit_logssfr = [], []
+            fit_popt, fit_amp = [], []
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
@@ -192,9 +212,13 @@ class fstarforms(object):
                         plt.show()
                         plt.close()
                         raise ValueError
-
+                    
                     fit_logm.append(np.median(logmstar[in_mbin]))
-                    fit_logsfr.append(np.log10(popt[1]) - popt[0])
+                    fit_logssfr.append(np.log10(popt[1]) - popt[0])
+                    fit_amp.append(float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i])))
+                    fit_popt.append(popt)
+            self._fit_amp = fit_amp
+            self._fit_popt = fit_popt
 
         elif method == 'gaussmix':
             # in stellar mass bins, fit P(log SSFR) distribution using a Gaussian mixture model 
@@ -203,16 +227,21 @@ class fstarforms(object):
             # cut like gaussfit and negbinomfit, which is nice.
             # (see ipython notebook for examples of the gaussian mixture model) 
 
-            fit_logm, fit_logsfr = [], []
+            fit_logm, fit_logssfr = [], []
+            gmix_weights_, gmix_means_, gmix_covariances_ = [], [], []
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
-                        (logmstar < mbin_high[i]) & 
-                        ssfrcut) 
+                        (logmstar < mbin_high[i])) 
+                X = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+                X = np.reshape(X, (-1,1))
+                if len(in_mbin[0]) <= Nbin_thresh: 
+                    continue
+
+                n_comps = [1,2,3]
                 gmms, bics = [], []  
-                for i_n, n in enumerate([1,2,3]): 
-                    X = logsfr[in_mbin] - logmstar[in_mbin]
-                    gmm = Mix.GaussianMixture(n_components=n)
+                for i_n, n in enumerate(n_comps): 
+                    gmm = GMix(n_components=n)
                     gmm.fit(X)
                     gmms.append(gmm)
                     bics.append(gmm.bic(X)) # bayesian information criteria
@@ -224,33 +253,101 @@ class fstarforms(object):
                     # this means that the bestfitting GMM does not find a gaussian with 
                     # log SSFR > -11. we take this to mean that SFMS is not well 
                     # defined in this mass bin 
+                    warnings.warn('SFMS is not well defined in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
                     continue 
-                if i_best > 0 and np.sum(gbest.means_.flatten() > -11) > 1: 
+
+                if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
                     # if best fit has more than one component make sure that it's not
                     # 'overfitting' the sfms. Check whether the two gaussians with
                     # means log SSFR > -11 have comparable weights
-                    in_sf = np.where(gbest.means_.flatten() > -11) > 1)
+                    in_sf = np.where(gbest.means_.flatten() > -11)
 
                     if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.33: 
-                        #### finish this up 
-                        #### finish this up 
-                        #### finish this up 
-                        #### finish this up 
-                        #### finish this up 
-                        #### finish this up 
-                        #### finish this up 
+                        # there are two components that contribute significantly 
+                        # to the SF population distribution. The second component 
+                        # cannot be considered a nuissance component.  
+                        bics[i_best] = np.inf 
+                        i_best = np.array(bics).argmin() # next best fit 
+                        gbest = gmms[i_best]
+                        if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
+                            in_sf = np.where(gbest.means_.flatten() > -11)
+                            if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.33: 
+                                warnings.warn('GMM does not provide a sensible fit to the SFMS '+\
+                                        'in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
+                                continue 
+                            else: 
+                                fit_logm.append(np.median(logmstar[in_mbin])) 
+                                fit_logssfr.append(gbest.means_.flatten().max())
+                                gmix_weights_.append(gbest.weights_)
+                                gmix_means_.append(gbest.means_.flatten())
+                                gmix_covariances_.append(gbest.covariances_.flatten())
+                        elif gbest.means_.flatten().max() < -11.:
+                            warnings.warn('SFMS is not well defined in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
+                            continue 
+                        else: 
+                            fit_logm.append(np.median(logmstar[in_mbin])) 
+                            fit_logssfr.append(gbest.means_.flatten().max())
+                            gmix_weights_.append(gbest.weights_)
+                            gmix_means_.append(gbest.means_.flatten())
+                            gmix_covariances_.append(gbest.covariances_.flatten())
+                    else: 
+                        # there are two components that contribute to the SF population 
+                        # distribution. hOwever, the second component does not contribute
+                        # significantly to the distribution. 
+                        fit_logm.append(np.median(logmstar[in_mbin])) 
+                        fit_logssfr.append(gbest.means_.flatten().max())
+                        gmix_weights_.append(gbest.weights_)
+                        gmix_means_.append(gbest.means_.flatten())
+                        gmix_covariances_.append(gbest.covariances_.flatten())
+                else: 
+                    fit_logm.append(np.median(logmstar[in_mbin])) 
+                    fit_logssfr.append(gbest.means_.flatten().max())
+                    gmix_weights_.append(gbest.weights_)
+                    gmix_means_.append(gbest.means_.flatten())
+                    gmix_covariances_.append(gbest.covariances_.flatten())
 
-        if ('linearfit' in method) or (method == 'lowMbin_extrap'): 
-            # now fit line to the fit_Mstar and fit_SSFR values
-            xx = np.array(fit_Mstar) - Mfid  # log Mstar - log M_fid
-            yy = np.array(fit_SSFR)
-            A = np.vstack([xx, np.ones(len(xx))]).T
-            m, c = np.linalg.lstsq(A, yy)[0] 
-            
-            sfms_fit = lambda mm: m * (mm - Mfid) + c + mm
+            # save the gmix fit values 
+            self._gmix_weights = gmix_weights_ 
+            self._gmix_means = gmix_means_
+            self._gmix_covariances = gmix_covariances_
 
-            if forTest: 
-                return sfms_fit, [np.array(fit_Mstar), np.array(fit_SSFR)]
-            else: 
-                return sfms_fit 
+        # save the fit ssfr and logm 
+        self._fit_logm = np.array(fit_logm)  
+        self._fit_logssfr = np.array(fit_logssfr)  
+        self._fit_logsfr = self._fit_logm + self._fit_logssfr
+        return [self._fit_logm, self._fit_logsfr]
 
+    def powerlaw(self, logMfid=None): 
+        ''' Find the best-fit power-law parameterization of the 
+        SFMS from the logM* and log SFR_SFMS fit from the `fit` 
+        method above. This is the simplest fit possible
+
+        f_SFMS(log M*)  = a * (log M* - logM_fid) + b 
+
+        Parameters
+        ----------
+        Mid : (float) 
+            Fiducial 
+
+        Returns
+        -------
+        sfms_fit : (function)
+            f_SFMS(logM*)
+        '''
+        if self._fit_logm is None  or self._fit_logssfr is None or self._fit_logsfr is None: 
+            raise ValueError('Run `fit` method first')
+
+        # fiducial log M*  
+        if logMfid is None: 
+            logMfid = int(np.round(np.median(self._fit_logm)/0.5))*0.5
+            print('fiducial log M* ='+str(logMfid))
+        self._logMfid = logMfid
+
+        # now fit line to the fit_Mstar and fit_SSFR values
+        xx = self._fit_logm - logMfid  # log Mstar - log M_fid
+        yy = self._fit_logssfr
+        A = np.vstack([xx, np.ones(len(xx))]).T
+        m, c = np.linalg.lstsq(A, yy)[0] 
+        
+        sfms_fit = lambda mm: m * (mm - logMfid) + c + mm
+        return sfms_fit 
