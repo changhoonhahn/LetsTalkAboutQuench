@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+#from setuptools import setup, find_packages
+from distutils.core import setup
 import os, sys
 
 __version__ = '0.1'
@@ -13,6 +14,6 @@ setup(name = 'LetsTalkAboutQuench',
       license='GPL',
       requires = ['numpy','matplotlib','scipy', 'sklearn'],
       provides = ['LetsTalkAboutQuench'],
-      packages = ['code'],
-      scripts=['code/catalogs.py', 'code/fstarforms.py', 'code/util.py']
+      packages = ['letstalkaboutquench'],
+      scripts=['letstalkaboutquench/catalogs.py', 'letstalkaboutquench/fstarforms.py', 'letstalkaboutquench/util.py']
 )
