@@ -4,7 +4,6 @@ fStarForMS = fitting the STAR FORming Main Sequence
 
 '''
 import numpy as np 
-import types
 import warnings 
 from scipy.optimize import curve_fit
 from sklearn.mixture import GaussianMixture as GMix
