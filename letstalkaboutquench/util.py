@@ -19,13 +19,13 @@ def code_dir():
 def dat_dir(): 
     ''' dat directory is symlinked to a local path where the data files are located
     '''
-    return os.path.dirname(os.path.realpath(__file__)).split('code')[0]+'dat/'
+    return os.path.dirname(os.path.realpath(__file__)).split('letstalkaboutquench')[0]+'dat/'
 
 
 def fig_dir(): 
     ''' dat directory is symlinked to a local path where the data files are located
     '''
-    return os.path.dirname(os.path.realpath(__file__)).split('code')[0]+'figs/'
+    return os.path.dirname(os.path.realpath(__file__)).split('letstalkaboutquench')[0]+'figs/'
 
 
 def gaussianKDE_contour(x, y, xmin=None, xmax=None, ymin=None, ymax=None):

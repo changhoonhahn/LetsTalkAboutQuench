@@ -360,11 +360,12 @@ class fstarforms(object):
 
         # now fit line to the fit_Mstar and fit_SSFR values
         xx = self._fit_logm - logMfid  # log Mstar - log M_fid
-        yy = self._fit_logssfr
+        yy = self._fit_logsfr
         A = np.vstack([xx, np.ones(len(xx))]).T
         m, c = np.linalg.lstsq(A, yy)[0] 
         
-        sfms_fit = lambda mm: m * (mm - logMfid) + c + mm
+        sfms_fit = lambda mm: m * (mm - logMfid) + c
+        print 'logSFR_SFMS = '+str(round(m, 3))+' (logM* - '+str(round(logMfid,3))+') + '+str(round(c, 3))
         return sfms_fit 
 
     def frac_SFMS(self): 

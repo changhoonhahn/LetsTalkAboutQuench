@@ -64,7 +64,7 @@ def assess_SFMS_fit(catalog, fit_method):
                 ha='left', va='center', transform=sub.transAxes, fontsize=20)
 
         _ = sub.hist(logsfr[in_mbin] - logm[in_mbin], bins=32, 
-                range=[-14., -8.], normed=True, histtype='step', color='k', linewidth=2)
+                range=[-14., -8.], normed=True, histtype='step', color='k', linewidth=1.75)
 
         # plot the fits 
         xx = np.linspace(-14, -8, 50) 
@@ -85,9 +85,12 @@ def assess_SFMS_fit(catalog, fit_method):
 
             for ii, icomp in enumerate(gmm_means.argsort()[::-1]): 
                 if ii == 0: 
-                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), c='r', lw=2, ls='--')
+                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=2, ls='--')
+                    gmm_tot = gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
                 else: 
-                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=1, ls='--')
+                    sub.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=1.5, ls='--')
+                    gmm_tot += gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
+            sub.plot(xx, gmm_tot, c='r', lw=2, ls='-')
 
         # x-axis
         sub.set_xlim([-13, -8])
@@ -163,4 +166,5 @@ def SFMSfrac(catalog):
 
 
 if __name__=='__main__': 
-    SFMSfrac('tinkergroup')
+    assess_SFMS_fit('tinkergroup', 'gaussmix')
+    #SFMSfrac('tinkergroup')
