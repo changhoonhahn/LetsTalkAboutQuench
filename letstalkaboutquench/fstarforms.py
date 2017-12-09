@@ -79,6 +79,12 @@ class fstarforms(object):
         - Bluck et al., 2016 (arXiv:1607.03318)
         - Feldmann, 2017 (arXiv:1705.03014) 
         - Bisigello et al., 2017 (arXiv: 1706.06154)
+        Gaussian Mixture Modelling: 
+        - Kuhn and Feigelson, 2017 (arXiv:1711.11101) 
+        - McLachlan and Peel, 2000
+        - Lloyd, 1982 (k-means algorithm)
+        - Dempster, Laird, Rubin, 1977 (EM algoritmh) 
+        - Wu, 1983 (EM convergence) 
         '''
         if len(logmstar) != len(logsfr): 
             raise ValueError("logmstar and logsfr are not the same length arrays") 
