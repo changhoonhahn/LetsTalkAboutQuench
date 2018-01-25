@@ -369,6 +369,8 @@ class fstarforms(object):
         yy = self._fit_logsfr
         A = np.vstack([xx, np.ones(len(xx))]).T
         m, c = np.linalg.lstsq(A, yy)[0] 
+        self._powerlaw_m = m 
+        self._powerlaw_c = c
         
         sfms_fit = lambda mm: m * (mm - logMfid) + c
         print 'logSFR_SFMS = '+str(round(m, 3))+' (logM* - '+str(round(logMfid,3))+') + '+str(round(c, 3))
