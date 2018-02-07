@@ -1,6 +1,7 @@
 import os 
 import h5py
 import numpy as np 
+import warnings 
 
 # --- Local ---
 import util as UT
@@ -11,90 +12,126 @@ class Catalog:
         ''' class object for reading in log(M*) and log(SFR)s of various galaxy 
         catalogs.
         '''
+        # dictionary of all the file names
+        # this needs to be cleaned up before public release
         self.catalog_dict = { 
-                'illustris_1gyr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
+                'illustris_inst': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
                 'illustris_10myr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
-                #'illustris1': 'Illustris1_SFR_M_values.csv', 
-                #'illustris2': 'Illustris1_SFR_M_values.csv', 
-                'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
+                'illustris_100myr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
+                'illustris_1gyr': 'Illustris1_extended_individual_galaxy_values_all1e8Msunh_z0.csv', 
+                'eagle_inst': 'EAGLE_RefL0100_MstarMcoldgasSFR_allabove1.8e8Msun.txt', 
                 'eagle_10myr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
+                'eagle_100myr': 'EAGLE_RefL0100_MstarSFR100Myr_allabove1.8e8Msun.txt', 
+                'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
+                'mufasa_inst': 'MUFASA_GALAXY.txt',
                 'mufasa_1gyr': 'MUFASA_GALAXY.txt',
-                'mufasa_10myr': 'MUFASA_GALAXY.txt',
-                #'santacruz1': 'sc_sam_sfr_mstar_correctedweights.txt',
-                #'santacruz2': 'sc_sam_sfr_mstar_correctedweights.txt',
+                'nsa_combined': 'NSA_complete_SFRs.cat', 
+                'nsa_combined_uv': 'NSA_complete_SFRs.cat', 
                 'tinkergroup': 'tinker_SDSS_centrals_M9.7.dat',
                 'nsa_dickey': 'dickey_NSA_iso_lowmass_gals.txt', 
                 }
         self.catalog_list = self.catalog_dict.keys()
 
-    def Read(self, name): 
+    def Read(self, name, silent=False): 
         ''' Here we deal with the disparate outputs of the different catalogs and output
         log(M*), log(SFR), weight 
 
         name : (string) 
             catalog name e.g. 'santacruz1'
+        
+        Notes
+        -----
+        * central/satellite : 1/0
         '''
         f_name = ''.join([UT.dat_dir(), self._File(name)]) 
-        if 'illustris' in name:  
-            if name == 'illustris_1gyr': # Illustris SFR on 1 Gyr timescales
-                logM, ill_ssfr = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,3])
-            elif name == 'illustris_10myr': # Illustris SFR on 10 Myr timescales
-                logM, ill_ssfr = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,1])
-            elif name == 'illustris1': # Illustris SFR timescale = 2 x 10^7 yr
-                logM, ill_ssfr = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,1])
-            elif name == 'illustris2': # Illustris SFR timescale = 10^9 yr
-                logM, ill_ssfr = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,2])
-            logSFR = np.log10(ill_ssfr) + logM
-            w = np.ones(len(logM))
+
+        if 'illustris' in name: # illustris simulation 
+            # header for file 
+            # log10(M_*[Msun]),sSFR[1/yr](0Myr),sSFR[1/yr](10Myr),sSFR[1/yr](20Myr),sSFR[1/yr](1Gyr),log10(M_HI[Msun]),sigma_*(<0.8kpc)[km/s],log10(SFing M_HI[Msun]),Z(SFing gas)[metal mass fraction],log10(M_BH[Msun]),iscentral_SUBFIND
+            if name == 'illustris_inst': # instantaneous SFRs
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,1,-1])
+            elif name == 'illustris_10myr': # 10 Myr SFRs 
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,2,-1])
+            elif name == 'illustris_100myr': # 100 Myr SFRs
+                raise NotImplementedError("100 Myr SSFR currently not included in Illustris data; Somebody bother Shy")
+            elif name == 'illustris_1gyr': # 1 Gyr SFRs
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,4,-1])
+            else: 
+                raise ValueError(name+" not found")
+            logSFR = np.log10(_ssfr) + logM # calculate log SFR from sSFR
+            w = np.ones(len(logM)) # uniform weights 
+
         elif 'eagle' in name: # EAGLE simulation 
-            if name == 'eagle_1gyr': # SFR on 1 Gyr timescales
-                logM, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,4])
-            elif name == 'eagle_10myr': # SFR on 1 Myr timescales
-                logM, eag_SFR = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,3])
-            logSFR = np.log10(eag_SFR) 
-            w = np.ones(len(logM))
+            if name == 'eagle_inst': # instantaneous SFRs
+                # header: GroupNr, SubGroupNr, log10(StellarMass)[Msun], log10(ColdGasMass)[Msun], InstantSFR[Msun/yr], Central_SUBFIND
+                logM, _SFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,4,5])
+            elif name == 'eagle_10myr': # 10 Myr SFRs 
+                # header: GroupNr, SubGroupNr, log10(StellarMass)[Msun], SFR10Myr[Msun/yr], SFR1Gyr[Msun/yr], Central_SUBFIND
+                logM, _SFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,3,5])
+            elif name == 'eagle_100myr': # 100 Myr SFRs
+                # header: GroupNr, SubGroupNr, log10(StellarMass)[Msun], SFR10Myr[Msun/yr], SFR100Myr[Msun/yr], Central_SUBFIND
+                logM, _SFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,4,5])
+            elif name == 'eagle_1gyr': # SFR on 1 Gyr timescales
+                # header: GroupNr, SubGroupNr, log10(StellarMass)[Msun], SFR10Myr[Msun/yr], SFR1Gyr[Msun/yr], Central_SUBFIND
+                logM, _SFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[2,4,5])
+            else: 
+                raise ValueError(name+" not found")
+            logSFR = np.log10(_SFR) # log SFRs
+            w = np.ones(len(logM)) # uniform weights 
+
         elif 'mufasa' in name: # MUFASA simulation 
-            if name == 'mufasa_1gyr': 
-                logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,8])
-            elif name == 'mufasa_10myr': 
-                logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,7])
-            w = np.ones(len(logM))
-        elif name == 'santacruz1': # santa cruz log(SFR) [10^5 yr]
-            sc_logM, sc_logSFR1, sc_logw = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,1,3])  
-            logM = sc_logM 
-            logSFR = sc_logSFR1
-            w = 10**sc_logw 
-        elif name == 'santacruz2': # santa cruz log(SFR) [10^8 yr]
-            sc_logM, sc_logSFR2, sc_logw = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,2,3])  
-            logM = sc_logM 
-            logSFR = sc_logSFR2
-            w = 10**sc_logw 
-        elif name == 'tinkergroup': # Tinker group catalog 
+            # header: positionx[kpc](0), positiony[kpc](1), positionz[kpc](2), velocityx[km/s](3), velocityy[km/s](4), velocityz[km/s](5), 
+            # log10(Mstar_gal/Msun)(6), log10(SFR_10M[Msun/yr](7), log10(SFR_1G[Msun/yr])(8), log10(coldgasmass[Msun])(9), log10(Z/sfr[yr/Msun])(10), cen(1)/sat(0)(11)
+            if name == 'mufasa_inst': 
+                # 10 Myr is actually instantaneous (ask Romeel for details) 
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,7,11])
+            elif name == 'mufasa_1gyr': 
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,8,11])
+            else: 
+                raise ValueError(name+" not found")
+            w = np.ones(len(logM)) # uniform weights
+
+        elif name == 'nsa_combined': # NSA + SDSS combined, run through a group catalog 
+            logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0,1])
+            w = np.ones(len(logM)) 
+            censat = np.ones(len(logM)) 
+        
+        elif name == 'nsa_combined_uv': # NSA + SDSS combined, run through a group catalog
+            # but with UV photometry star formation rate 
+            logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0,2])
+            w = np.ones(len(logM)) 
+            censat = np.ones(len(logM)) 
+
+        elif name == 'tinkergroup': # SDSS DR7 Tinker group catalog 
             tink_Mstar, tink_logSSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0, 7])
             logM = np.log10(tink_Mstar)
             logSFR = tink_logSSFR + logM
             w = np.ones(len(logM))
+            censat = np.ones(len(logM)) # all centrals
+
         elif name == 'nsa_dickey': 
             dic_logM, dic_logSFR =  np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[1,5]) 
             logM = dic_logM            
             logSFR = dic_logSFR 
             w = np.ones(len(logM))
-        elif name == 'mufasa':
-            muf_M, muf_SSFR =  np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0, 1]) 
-            logM = np.log10(muf_M)
-            logSFR = np.log10(muf_SSFR) + logM
-            w = np.ones(len(logM))
+            censat = np.ones(len(logM)) # all centrals (since isolation criteria is more stringent)  
         else: 
-            raise ValueError('')
+            raise ValueError(name+' not found')
 
         # deal with sfr = 0 or other non finite numbers 
         sfr_zero = np.where((np.isfinite(logSFR) == False) | (logSFR < -5))
-        print '------ ', name, ' ------'
-        print len(sfr_zero[0]), ' of ', len(logM), ' galaxies have 0/non-finite SFRs'
-        print 'logSFR of these galaxies will be -999.'
+        msg_warn = '\n'.join(['', 
+            ''.join(['------ ', name, ' ------']), 
+            ''.join([str(len(sfr_zero[0])), ' of ', str(len(logM)), 
+                ' galaxies have 0/non-finite SFRs']), 
+            'logSFR of these galaxies will be -999.']) 
+
+        if not silent: 
+            warnings.warn(msg_warn) 
+
         logSFR[sfr_zero] = -999.
 
-        return [logM, logSFR, w]
+        return [logM, logSFR, w, censat]
 
     def _File(self, name): 
         ''' catalog file names
@@ -107,48 +144,42 @@ class Catalog:
     def CatalogLabel(self, name):
         ''' Label of catalogs. Given the catalog name, return label 
         '''
-        label_dict = {
-                'illustris_1gyr': r'Illustris [$1$ Gyr]',
-                'illustris_10myr': r'Illustris [$10$ Myr]', 
-                'illustris1': r'Illustris [$2 \times 10^7$ yr]', 
-                'illustris2': r'Illustris [$10^9$ yr]',
-                'eagle_1gyr': r'EAGLE [$1$ Gyr]',
-                'eagle_10myr': r'EAGLE [$10$ Myr]',
-                'mufasa_1gyr': r'MUFASA [$1$ Gyr]', 
-                'mufasa_10myr': r'MUFASA [$10$ Myr]', 
-                'santacruz1': 'Santa Cruz [$10^5$ yr]', 
-                'santacruz2': 'Santa Cruz [$10^8$ yr]', 
-                'tinkergroup': 'Tinker Group',
-                'nsa_dickey': 'NSA Dickey' 
-                }
-        if name not in label_dict.keys():
-            print name 
+        if 'illustris' in name: 
+            name_cat = 'Illustris'
+        elif 'eagle' in name: 
+            name_cat = 'EAGLE'
+        elif 'mufasa' in name: 
+            name_cat = 'MUFASA'
+        elif 'tinkergroup' in name: 
+            return 'SDSS DR7 Group Catalog'
+        elif 'nsa_dickey' in name: 
+            return 'NSA'
+        else: 
             raise ValueError
-        return label_dict[name]
 
-    def CatalogColors(self, name): 
-        ''' Colors for different catalogs. Defined so that all the plot colors are 
-        consistent.
+        if 'inst' in name: 
+            name_tscale = 'instant.'
+        elif '10myr' in name: 
+            name_tscale = '$10$ Myr'
+        elif '100myr' in name: 
+            name_tscale = '$100$ Myr'
+        elif '1gyr' in name: 
+            name_tscale = '$1$ Gyr'
+        else: 
+            raise ValueError("specify SFR timescale") 
+
+        return ''.join([name_cat, ' ', r'[', name_tscale, ']']) 
+    
+    def _SimulationVolume(self, name): 
+        ''' Simulation volumes in units of Mpc^3
         '''
-        color_dict = {
-                'illustris_1gyr': 'green',
-                'illustris_10myr': 'darkgreen', 
-                'illustris1': 'green', 
-                'illustris2': 'darkgreen',
-                'eagle_1gyr': 'darkred',
-                'eagle_10myr': 'red',
-                'mufasa_1gyr': 'yellow',
-                'mufasa_10myr': 'darkyellow',
-                'santacruz1': 'blue', 
-                'santacruz2': 'darkblue', 
-                'tinkergroup': 'red',
-                'nsa_dickey': 'purple'
-                }
-        if name not in color_dict.keys():
-            print name 
-            raise ValueError
-        return color_dict[name]
-
+        if 'illustris' in name: # illustris 106.5^3 Mpc^3
+            return 106.5**3
+        elif 'eagle' in name: # eagle 100^3 Mpc^3
+            return 100.**3
+        elif 'mufasa' in name: # mufasa (50 Mpc/h)^3
+            return 50.**3
+    
     def _default_Mstar_range(self, name): 
         ''' stellar mass range of catalog where the SFR-M* relation
         is well defined. This is determined by eye and *conservatively*
