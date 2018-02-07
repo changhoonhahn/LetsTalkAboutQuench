@@ -27,9 +27,10 @@ class fstarforms(object):
         self._fit_logm = None 
         self._fit_logssfr = None
         self._fit_logsfr = None
+        self._sfms_fit = None 
 
     def fit(self, logmstar, logsfr, method=None, fit_range=None, dlogm=0.2,
-            Nbin_thresh=100, SSFR_cut=None, **kwargs): 
+            Nbin_thresh=100, SSFR_cut=None, forTest=False, silent=False, **kwargs): 
         '''Given log SFR and log Mstar values of a galaxy population, 
         return the power-law best fit to the SFMS. After some initial 
         common sense cuts, P(log SSFR) in bins of stellar mass are fit 
@@ -90,20 +91,22 @@ class fstarforms(object):
             raise ValueError("logmstar and logsfr are not the same length arrays") 
 
         if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix']: 
-            raise ValueError("not one of the methods!") 
+            raise ValueError(method+" is not one of the methods!") 
 
         # only keep sensible logmstar and log sfr
         sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
-        if len(logmstar) - np.sum(sense) > 0:  
+        if (len(logmstar) - np.sum(sense) > 0) and not silent: 
             warnings.warn(str(len(logmstar) - np.sum(sense))+' galaxies have nonsensical logM* or logSFR values')  
         self._sensecut = sense
         logmstar = logmstar[np.where(sense)]
         logsfr = logsfr[np.where(sense)]
 
         # fitting M* range
-        if fit_range is None:
+        if fit_range is None: 
+            # if not specified, use all the galaxies 
             if method == 'lowMbin_extrap': 
-                warnings.warn('Specify fitting range of lowMbin_extrap fit method will return garbage') 
+                warnings.warn('Specify fitting range of lowMbin_extrap '+\
+                        'fit method will return garbage') 
             fit_range = [logmstar.min(), logmstar.max()]
         mass_cut = (logmstar > fit_range[0]) & (logmstar < fit_range[1])
         if np.sum(mass_cut) == 0: 
@@ -239,6 +242,11 @@ class fstarforms(object):
             fit_logm, fit_logssfr = [], []
             gmix_weights_, gmix_means_, gmix_covariances_ = [], [], []
             frac_sfms = [] 
+            if forTest: # for testing purposes, store all componenets of the best fit gmm
+                self._tests = {} 
+                self._tests['mbin_mid'] = [] 
+                self._tests['gbests'] = []  
+
             for i in range(len(mbin_low)): 
                 in_mbin = np.where(
                         (logmstar > mbin_low[i]) & 
@@ -259,11 +267,17 @@ class fstarforms(object):
                 # components with the lowest BIC (preferred)
                 i_best = np.array(bics).argmin()
                 gbest = gmms[i_best]
-                if gbest.means_.flatten().max() < -11.:
+            
+                if forTest: # for testing purposes, store all componenets of the best fit gmm
+                    self._tests['mbin_mid'].append(0.5*(mbin_low[i] + mbin_high[i]))  
+                    self._tests['gbests'].append(gbest)  
+
+                if (gbest.means_.flatten().max() < -11.) and not silent:
                     # this means that the bestfitting GMM does not find a gaussian with 
                     # log SSFR > -11. we take this to mean that SFMS is not well 
                     # defined in this mass bin 
-                    warnings.warn('SFMS is not well defined in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
+                    warnings.warn('SFMS is not well defined in the M* bin'+\
+                            str(mbin_low[i])+'-'+(str(mbin_high[i])))
                     continue 
 
                 if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
@@ -271,20 +285,44 @@ class fstarforms(object):
                     # 'overfitting' the sfms. Check whether the two gaussians with
                     # means log SSFR > -11 have comparable weights
                     in_sf = np.where(gbest.means_.flatten() > -11)
+                    _gbest = gbest
+                    _in_sf = in_sf 
+                    _w_sf_mean = np.sum(gbest.weights_[in_sf] * gbest.means_.flatten()[in_sf])/np.sum(gbest.weights_[in_sf])
+                    _w_sf = np.sum(gbest.weights_[in_sf])
+                    _w_sf_cov = np.sum(gbest.weights_[in_sf] * gbest.covariances_.flatten()[in_sf])/np.sum(gbest.weights_[in_sf])
 
-                    if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.33: 
+                    if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.90: 
+                        continue 
                         # there are two components that contribute significantly 
-                        # to the SF population distribution. The second component 
+                        # to the SF population distribution and the second component 
                         # cannot be considered a nuissance component.  
+
+                        # try the next best fit GMM
                         bics[i_best] = np.inf 
                         i_best = np.array(bics).argmin() # next best fit 
                         gbest = gmms[i_best]
                         if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
                             in_sf = np.where(gbest.means_.flatten() > -11)
-                            if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.33: 
+                            if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.45: 
                                 warnings.warn('GMM does not provide a sensible fit to the SFMS '+\
                                         'in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
                                 continue 
+                                fit_logm.append(np.median(logmstar[in_mbin])) 
+                                fit_logssfr.append(_w_sf_mean)
+                                
+                                gmix_weights_.append(_gbest.weights_)
+                                gmix_means_.append(_gbest.means_.flatten())
+                                gmix_covariances_.append(_gbest.covariances_.flatten())
+                                
+                                #gmix_weights_.append(
+                                #        np.append(np.delete(gbest.weights_, in_sf), _w_sf))
+                                #gmix_means_.append(
+                                #        np.append(np.delete(gbest.means_.flatten(), in_sf), 
+                                #            _w_sf_mean)) 
+                                #gmix_covariances_.append(
+                                #        np.append(np.delete(gbest.means_.flatten(), in_sf), 
+                                #            _w_sf_cov)) 
+                                #continue 
                             else: 
                                 fit_logm.append(np.median(logmstar[in_mbin])) 
                                 sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
@@ -323,7 +361,10 @@ class fstarforms(object):
                 # calculate the star formation main sequence fraction 
                 # an estimate of the fraction of galaxies in this mass bin that are 
                 # on the star formation main sequence 
-                frac_sfms.append(gbest.weights_[sf_comp])
+                try: 
+                    frac_sfms.append(gbest.weights_[sf_comp])
+                except UnboundLocalError: 
+                    frac_sfms.append(_w_sf)
 
             # save the gmix fit values 
             self._gmix_weights = gmix_weights_ 
@@ -373,8 +414,16 @@ class fstarforms(object):
         self._powerlaw_c = c
         
         sfms_fit = lambda mm: m * (mm - logMfid) + c
+        self._sfms_fit = sfms_fit 
         print 'logSFR_SFMS = '+str(round(m, 3))+' (logM* - '+str(round(logMfid,3))+') + '+str(round(c, 3))
         return sfms_fit 
+    
+    def d_MS(self, logmstar, logsfr): 
+        ''' Calculate the `distance` from the best-fit main sequence 
+        '''
+        if self._sfms_fit is None: 
+            raise ValueError("Run `fit` and `powerlaw` methods first") 
+        return logsfr - self._sfms_fit(logmstar) 
 
     def frac_SFMS(self): 
         ''' Return the estimate of the fraction of galaxies that are on 
@@ -386,7 +435,7 @@ class fstarforms(object):
         if isinstance(self._frac_sfms[0], str): 
             raise NotImplementedError(self._frac_sfms[0]) 
         return [self._fit_logm, self._frac_sfms]
-
+    
     def _GMM_SFMS_logSSFR(self, means, weights): 
         ''' Given means and weights of a GMM, determine which component corresponds to the
         SFMS portion
