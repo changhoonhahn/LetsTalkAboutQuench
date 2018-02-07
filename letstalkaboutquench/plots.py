@@ -3,14 +3,26 @@ from scipy.optimize import curve_fit
 
 import matplotlib.pyplot as plt 
 from matplotlib import lines as mlines
-from ChangTools.plotting import prettyplot
-from ChangTools.plotting import prettycolors
 
 # -- Local --
 import util as UT
 import catalogs as Cats
 import galprop as Gprop
 import corner as DFM 
+
+from ChangTools.plotting import prettycolors
+import matplotlib as mpl
+import matplotlib.pyplot as plt 
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['axes.linewidth'] = 1.5
+mpl.rcParams['axes.xmargin'] = 1
+mpl.rcParams['xtick.labelsize'] = 'x-large'
+mpl.rcParams['xtick.major.size'] = 5
+mpl.rcParams['xtick.major.width'] = 1.5
+mpl.rcParams['ytick.labelsize'] = 'x-large'
+mpl.rcParams['ytick.major.size'] = 5
+mpl.rcParams['ytick.major.width'] = 1.5
 
 
 def SFR_Mstar(name, yrange=None, **kwargs): 
@@ -133,9 +145,11 @@ def SFR_Mstar_Catalogs(contour='dfm'):
     '''
     Cat = Cats.Catalog()
     # Read in various data sets
-    catalog_list = ['tinkergroup', 'nsa_dickey', 
-            'illustris_1gyr', 'illustris_10myr', 'eagle_1gyr', 'eagle_10myr', 
-            'mufasa_1gyr', 'mufasa_10myr']
+    catalog_list = ['tinkergroup', 
+            'nsa_dickey', 
+            'illustris_1gyr', #'illustris_10myr', 
+            'eagle_1gyr', #'eagle_10myr', 
+            'mufasa_1gyr']#, 'mufasa_10myr']
 
     catalog_labels = [] # Labels 
     logSFRs, logMstars, weights = [], [], [] 
@@ -145,20 +159,15 @@ def SFR_Mstar_Catalogs(contour='dfm'):
         logSFRs.append(logSFR)
         logMstars.append(logMstar) 
         weights.append(weight)
-
-    prettyplot()
-    n_rows = int(np.ceil(np.float(len(logSFRs))/4.))
-    fig = plt.figure(1, figsize=(32, 6*n_rows))
+    
+    n_cols = int(np.ceil(np.float(len(logSFRs))/2.))
+    fig = plt.figure(1, figsize=(14,8))
     bkgd = fig.add_subplot(111, frameon=False)
 
     for i_data in range(len(logSFRs)):
-        sub = fig.add_subplot(n_rows, 4, i_data+1)
+        sub = fig.add_subplot(2, n_cols, i_data+1)
         if contour == 'dfm':  
-            if catalog_list[i_data] in ['tinkergroup', 'nsa_dickey']:
-                colour = '#ee6a50'
-            else: 
-                colour =  '#1F77B4'
-
+            colour = 'C'+str(i_data)
             DFM.hist2d(logMstars[i_data], logSFRs[i_data], color=colour, 
                     levels=[0.68, 0.95], range=[[7., 12.], [-4., 2.]], 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
@@ -175,13 +184,13 @@ def SFR_Mstar_Catalogs(contour='dfm'):
             sub.set_ylim([-4., 2.]) 
         else: 
             raise ValueError() 
-        sub.text(0.1, 0.9, catalog_labels[i_data],
-                ha='left', va='center', transform=sub.transAxes, fontsize=20)
+        sub.text(0.9, 0.1, catalog_labels[i_data],
+                ha='right', va='center', transform=sub.transAxes, fontsize=20)
         #sub.plot(np.linspace(6., 12., 10), np.linspace(6., 12., 10) - 11., ls='--', c='k') 
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', labelpad=20, fontsize=30) 
-    bkgd.set_ylabel(r'$\mathtt{log \; SFR \;\;[M_\odot \, yr^{-1}]}$', labelpad=20, fontsize=30) 
+    bkgd.set_xlabel(r'log $M_* \;\;[M_\odot]$', labelpad=20, fontsize=30) 
+    bkgd.set_ylabel(r'log SFR $[M_\odot \, yr^{-1}]$', labelpad=20, fontsize=30) 
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
@@ -568,11 +577,11 @@ if __name__=='__main__':
     #massbins = [[6., 6.5], [7., 7.5], [8., 8.5], [9., 9.5], [10., 10.5], [11., 11.5], [12., 12.5]]
     #Pssfr_Catalogs(logmstar_massbins=massbins, logsfr_nbin=25) 
     #SFR_Mstar('tinkergroup')
-    #SFR_Mstar_Catalogs(contour='dfm')
+    SFR_Mstar_Catalogs(contour='dfm')
     #SFR_Mstar_Catalogs(contour='gaussianKDE')
     #SFR_Mstar_Catalogs(contour=False)
     #SFR_Mstar_sfrtimescale_comparison()
-    assess_SFMS_fits('tinkergroup')
+    #assess_SFMS_fits('tinkergroup')
     #assess_SFMS_fits('santacruz2')
     #assess_SFMS_fits('nsa_dickey')
     #SFMS_fitting_comparison()
