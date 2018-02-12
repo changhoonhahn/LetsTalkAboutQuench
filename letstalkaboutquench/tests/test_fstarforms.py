@@ -1,12 +1,14 @@
 '''
 '''
 import numpy as np 
+from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
 import corner as DFM 
 
 import env
 from catalogs import Catalog as Cat
 from fstarforms import fstarforms
+from fstarforms import sfr_mstar_gmm
 import util as UT
 import corner as DFM 
 
@@ -443,9 +445,53 @@ def SFMSfrac(catalog):
     return None
 
 
+def SFRMstar_GMM(catalog):
+    ''' Test the 2D GMM fit to the SFR-Mstar plane 
+    '''
+    cat = Cat()
+    _logm, _logsfr, w, censat = cat.Read(catalog)  
+    iscen = (censat == 1) 
+    logm = _logm[iscen] 
+    logsfr = _logsfr[iscen]
+
+    gbest = sfr_mstar_gmm(logm, logsfr, n_comp_max=30)
+    
+    fig = plt.figure()
+    sub = fig.add_subplot(111)
+    sub.scatter(logm, logsfr, color='k', s=4) 
+
+    for i, (mean, covar) in enumerate(zip(gbest.means_, gbest.covariances_)):
+        v, w = linalg.eigh(covar)
+        v = 2. * np.sqrt(2.) * np.sqrt(v)
+        u = w[0] / linalg.norm(w[0])
+
+        # Plot an ellipse to show the Gaussian component
+        angle = np.arctan(u[1] / u[0])
+        angle = 180. * angle / np.pi  # convert to degrees
+        ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color='C'+str(i % 10), linewidth=0)
+        ell.set_clip_box(sub.bbox)
+        ell.set_alpha(0.5)
+        sub.add_artist(ell)
+
+    sub.set_xlim([7., 12.]) 
+    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', fontsize=20) 
+    sub.set_ylim([-4., 2.]) 
+    sub.set_ylabel(r'log SFR  $[M_\odot / yr]$', fontsize=20) 
+    fig_name = ''.join([UT.fig_dir(), 'SFRMstar.2D_GMM.', catalog, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None 
+
+
 if __name__=='__main__': 
     #SFR_Mstar_Catalogs('gaussmix', contour='dfm')
-    assess_SFMS_fit_dlogM('eagle_100myr', 'gaussmix', mbin=[9.5, 9.7])
+    for c in ['illustris', 'eagle', 'mufasa']:
+        for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+            try: 
+                SFRMstar_GMM(c+'_'+tscale)
+            except (ValueError, NotImplementedError): 
+                continue 
+    #assess_SFMS_fit_dlogM('eagle_100myr', 'gaussmix', mbin=[9.5, 9.7])
     #assess_SFMS_dMS('nsa_dickey', 'gaussmix')
     #fQ_dMS('gaussmix')
 

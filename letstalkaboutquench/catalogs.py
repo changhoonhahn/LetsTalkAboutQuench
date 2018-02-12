@@ -34,7 +34,7 @@ class Catalog:
 
     def Read(self, name, silent=False): 
         ''' Here we deal with the disparate outputs of the different catalogs and output
-        log(M*), log(SFR), weight 
+        log(M*), log(SFR), weight, censat
 
         name : (string) 
             catalog name e.g. 'santacruz1'

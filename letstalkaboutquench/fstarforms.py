@@ -445,3 +445,30 @@ class fstarforms(object):
             return issf[0]
         else: 
             return issf[0][weights[issf].argmax()]
+
+
+def sfr_mstar_gmm(logmstar, logsfr, n_comp_max=30, silent=False): 
+    ''' Fit a 2D gaussian mixture model to the 
+    log(M*) and log(SFR) sample of galaxies, 
+    '''
+    # only keep sensible logmstar and log sfr
+    sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
+    if (len(logmstar) - np.sum(sense) > 0) and not silent: 
+        warnings.warn(str(len(logmstar) - np.sum(sense))+' galaxies have nonsensical logM* or logSFR values')  
+    logmstar = logmstar[np.where(sense)]
+    logsfr = logsfr[np.where(sense)]
+
+    X = np.array([logmstar, logsfr]).T # (n_sample, n_features) 
+
+    gmms, bics = [], []  
+    for i_n, n in enumerate(range(1, n_comp_max)): 
+        gmm = GMix(n_components=n)
+        gmm.fit(X)
+        gmms.append(gmm)
+        bics.append(gmm.bic(X)) # bayesian information criteria
+    ibest = np.array(bics).argmin() # lower the better!
+    gbest = gmms[ibest]
+
+    if not silent: 
+        print(str(len(gbest.means_))+' components') 
+    return gbest 
