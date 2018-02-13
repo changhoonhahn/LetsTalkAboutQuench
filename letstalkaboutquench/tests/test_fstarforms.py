@@ -445,7 +445,7 @@ def SFMSfrac(catalog):
     return None
 
 
-def SFRMstar_GMM(catalog):
+def SFRMstar_GMM(catalog, n_comp_max=30):
     ''' Test the 2D GMM fit to the SFR-Mstar plane 
     '''
     cat = Cat()
@@ -454,7 +454,7 @@ def SFRMstar_GMM(catalog):
     logm = _logm[iscen] 
     logsfr = _logsfr[iscen]
 
-    gbest = sfr_mstar_gmm(logm, logsfr, n_comp_max=30)
+    gbest = sfr_mstar_gmm(logm, logsfr, n_comp_max=n_comp_max)
     
     fig = plt.figure()
     sub = fig.add_subplot(111)
@@ -477,7 +477,7 @@ def SFRMstar_GMM(catalog):
     sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', fontsize=20) 
     sub.set_ylim([-4., 2.]) 
     sub.set_ylabel(r'log SFR  $[M_\odot / yr]$', fontsize=20) 
-    fig_name = ''.join([UT.fig_dir(), 'SFRMstar.2D_GMM.', catalog, '.png'])
+    fig_name = ''.join([UT.fig_dir(), 'SFRMstar.2D_GMM.', catalog, '.compmax', str(n_comp_max), '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None 
