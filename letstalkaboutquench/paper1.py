@@ -201,6 +201,82 @@ def Catalog_SFMS_fit(tscale):
     return None 
 
 
+def SFMSfit_example(): 
+    ''' Pedagogical example of how the GMM SFMS fitting works. Some P(SSFR) distribution 
+    with the GMM components overplotted on them.
+    '''
+    sim = 'illustris_inst' 
+    mranges = [[9.8, 10.], [10.4, 10.6], [11.0, 11.2]]
+
+    Cat = Cats.Catalog()
+    logMstar, logSFR, weight, censat = Cat.Read(sim)
+    iscen = (censat == 1)
+
+    fig = plt.figure(figsize=(5*len(mranges),4.5)) 
+    bkgd = fig.add_subplot(111, frameon=False)
+
+    # fit the SFMS  
+    fSFMS = fstarforms() 
+    
+    for i_m, mrange in enumerate(mranges): 
+        fit_logm, _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', fit_range=mrange, forTest=True) 
+        i_fit = np.abs(fit_logm - np.mean(mrange)).argmin()
+        #if i_m == 0: 
+        #    subs.text(0.95, 0.1, 'Illustris',
+        #            ha='left', va='center', transform=sub1.transAxes, fontsize=20)
+
+        # P(log SSFR) 
+        sub2 = fig.add_subplot(1,len(mranges),i_m+1)
+        inmbin = np.where((logMstar[iscen] > mrange[0]) & (logMstar[iscen] < mrange[1]))
+
+        _ = sub2.hist((logSFR[iscen] - logMstar[iscen])[inmbin], bins=40, 
+                range=[-14., -8.], normed=True, histtype='step', color='k', linewidth=1.75)
+
+        # overplot GMM component for SFMS
+        gmm_weights = fSFMS._gmix_weights[i_fit]
+        gmm_means = fSFMS._gmix_means[i_fit]
+        gmm_vars = fSFMS._gmix_covariances[i_fit]
+    
+        # colors 
+        if len(gmm_means) == 3: cs = ['C1', 'C2', 'C0'] 
+        elif len(gmm_means) == 2: cs = ['C1', 'C0'] 
+        elif len(gmm_means) == 1: cs = ['C0'] 
+
+        for ii, icomp in enumerate(np.argsort(gmm_means)): 
+            xx = np.linspace(-14., -9, 100)
+            if ii == len(gmm_means)-1: 
+                sub2.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), 
+                        c=cs[ii], linewidth=2)
+            else: 
+                sub2.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), 
+                        c=cs[ii])
+
+        for i_comp in range(len(gmm_vars)): 
+            if i_comp == 0: 
+                gmm_tot = gmm_weights[i_comp]*MNorm.pdf(xx, gmm_means[i_comp], gmm_vars[i_comp])
+            else: 
+                gmm_tot += gmm_weights[i_comp]*MNorm.pdf(xx, gmm_means[i_comp], gmm_vars[i_comp])
+        sub2.plot(xx, gmm_tot, color='k', linestyle=':', linewidth=2)
+
+        sub2.set_xlim([-13.25, -8.75]) 
+        sub2.set_xticks([-9., -10., -11., -12., -13.][::-1])
+        sub2.set_ylim([0.,2.]) 
+        sub2.set_yticks([0., 0.5, 1., 1.5, 2.])
+        # mass bin 
+        sub2.text(0.5, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
+                ha='center', va='center', transform=sub2.transAxes, fontsize=20)
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=15, fontsize=25)
+    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=15, fontsize=25) 
+
+    fig.subplots_adjust(wspace=.2)
+    fig_name = ''.join([UT.fig_dir(), 'SFMSfit_demo.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+
 def _SFMSfit_assess(name, method='gaussmix'):
     ''' Assess the quality of the SFMS fits by comparing to the actual 
     P(sSFR) in mass bins. 
@@ -336,10 +412,12 @@ if __name__=="__main__":
     #Catalogs_SFR_Mstar('100myr')
     #Catalogs_SFR_Mstar('1gyr')
 
+    SFMSfit_example()
+
     #for tscale in ['inst', '10myr', '100myr', '1gyr']: 
     #    Catalog_SFMS_fit(tscale)
-    for c in ['illustris', 'eagle', 'mufasa']:
-        _SFR_tscales(c)
+    #for c in ['illustris', 'eagle', 'mufasa']:
+    #    _SFR_tscales(c)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
     #        try: 
