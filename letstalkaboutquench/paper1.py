@@ -35,24 +35,23 @@ mpl.rcParams['ytick.major.size'] = 5
 mpl.rcParams['ytick.major.width'] = 1.5
 
 
-def Catalogs_SFR_Mstar(tscale): 
+def Catalogs_SFR_Mstar(): 
     ''' Compare SFR vs M* relation of central galaxies from various simlations and 
     observations 
     '''
-    if tscale not in ['inst', '10myr', '100myr', '1gyr']: 
-        raise ValueError
+    tscales = ['inst', '100myr']
     
     Cat = Cats.Catalog()
     # Read in various data sets
     sims_list = ['illustris', 'eagle', 'mufasa'] 
-    obvs_list = ['tinkergroup', 'nsa_dickey', 'nsa_combined', 'nsa_combined_uv'] 
+    obvs_list = ['tinkergroup', 'nsa_dickey']#, 'nsa_combined', 'nsa_combined_uv'] 
 
-    fig = plt.figure(1, figsize=(16,4))
+    fig = plt.figure(1, figsize=(16,7.5))
     bkgd = fig.add_subplot(111, frameon=False)
     plot_range = [[7., 12.], [-4., 2.]]
 
     # plot SFR-M* for the observations 
-    sub0 = fig.add_subplot(141)
+    sub0 = fig.add_subplot(2,4,4)
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
     
@@ -65,34 +64,34 @@ def Catalogs_SFR_Mstar(tscale):
     sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
                 transform=sub0.transAxes, fontsize=20)
 
-    _i = 0 
-    for i_c, cc in enumerate(sims_list): 
-        cat = '_'.join([cc, tscale]) 
-        sub = fig.add_subplot(1,4,2+i_c) 
+    for i_t, tscale in enumerate(tscales): 
+        for i_c, cc in enumerate(sims_list): 
+            cat = '_'.join([cc, tscale]) 
+            sub = fig.add_subplot(2,4,1+i_c+i_t*4) 
 
-        try: 
-            lbl = Cat.CatalogLabel(cat)
-            logMstar, logSFR, weight, censat = Cat.Read(cat)
-        except (ValueError, NotImplementedError): 
-            sub.set_xlim(plot_range[0])
-            sub.set_ylim(plot_range[1])
-            sub.text(0.5, 0.5, r'$\mathtt{'+cc.upper()+'}$', 
-                    ha='center', va='center', transform=sub.transAxes, 
-                    rotation=45, color='red', fontsize=40)
-            continue 
+            try: 
+                lbl = Cat.CatalogLabel(cat)
+                logMstar, logSFR, weight, censat = Cat.Read(cat)
+            except (ValueError, NotImplementedError): 
+                sub.set_xlim(plot_range[0])
+                sub.set_ylim(plot_range[1])
+                sub.text(0.5, 0.5, r'$\mathtt{'+cc.upper()+'}$', 
+                        ha='center', va='center', transform=sub.transAxes, 
+                        rotation=45, color='red', fontsize=40)
+                continue 
 
-        if _i == 0: 
-            sub0.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
-                    ha='left', va='center', transform=sub0.transAxes, fontsize=20)
-            _i += 1 
+            if i_c == 0: 
+                sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='left', va='center', transform=sub.transAxes, fontsize=20)
+            if i_t == 1: 
+                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
+                        transform=sub.transAxes, fontsize=20)
 
-        iscen = (censat == 1)
+            iscen = (censat == 1)
 
-        DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
-                levels=[0.68, 0.95], range=plot_range, 
-                plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
-        sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
-                transform=sub.transAxes, fontsize=20)
+            DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
+                    levels=[0.68, 0.95], range=plot_range, 
+                    plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
@@ -100,7 +99,7 @@ def Catalogs_SFR_Mstar(tscale):
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFR_Mstar_SFR', tscale, '.pdf'])
+    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFR_Mstar_SFR.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -426,12 +425,9 @@ def _SFR_tscales(name):
 
 
 if __name__=="__main__": 
-    #Catalogs_SFR_Mstar('inst')
-    #Catalogs_SFR_Mstar('10myr')
-    #Catalogs_SFR_Mstar('100myr')
-    #Catalogs_SFR_Mstar('1gyr')
+    Catalogs_SFR_Mstar()
 
-    SFMSfit_example()
+    #SFMSfit_example()
 
     #for tscale in ['inst', '10myr', '100myr', '1gyr']: 
     #    Catalog_SFMS_fit(tscale)
