@@ -206,17 +206,36 @@ def SFMSfit_example():
     with the GMM components overplotted on them.
     '''
     sim = 'illustris_inst' 
-    mranges = [[9.8, 10.], [10.4, 10.6], [11.0, 11.2]]
+    mranges = [[10.4, 10.6], [11.0, 11.2]]
+    cols = ['C0', 'C4']
+    panels = ['a)', 'b)']
 
     Cat = Cats.Catalog()
     logMstar, logSFR, weight, censat = Cat.Read(sim)
     iscen = (censat == 1)
-
-    fig = plt.figure(figsize=(5*len(mranges),4.5)) 
-    bkgd = fig.add_subplot(111, frameon=False)
-
+        
     # fit the SFMS  
     fSFMS = fstarforms() 
+    _fit_logm, _fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], fit_range=[9.0, 12.], method='gaussmix') 
+
+    fig = plt.figure(figsize=(5*(len(mranges)+1),4.5)) 
+    
+    sub1 = fig.add_subplot(1,3,1)
+    DFM.hist2d(logMstar[iscen], logSFR[iscen], color='#ee6a50',
+            levels=[0.68, 0.95], range=[[9., 12.], [-3.5, 1.5]], 
+            plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub1) 
+    sub1.scatter(_fit_logm, _fit_logsfr, c='k', marker='x', lw=3, s=40)
+
+    for i_m, mrange in enumerate(mranges): 
+        sub1.fill_between(mrange, [2.,2.], [-5.,-5], color=cols[i_m], linewidth=0, alpha=0.25)
+        sub1.text(mrange[0], -2.75, panels[i_m], ha='left', va='center', fontsize=20)
+    sub1.set_xticks([9., 10., 11., 12.])
+    sub1.set_xlabel('log$(\; M_*\; [M_\odot]\;)$', fontsize=20)
+    sub1.set_ylim([-3.25, 1.75]) 
+    sub1.set_yticks([-3., -2., -1., 0., 1.])
+    sub1.set_ylabel('log$(\; \mathrm{SFR}\; [M_\odot/\mathrm{yr}]\;)$', fontsize=20)
+    sub1.text(0.05, 0.95, 'Illustris',
+            ha='left', va='top', transform=sub1.transAxes, fontsize=25)
     
     for i_m, mrange in enumerate(mranges): 
         fit_logm, _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', fit_range=mrange, forTest=True) 
@@ -226,7 +245,7 @@ def SFMSfit_example():
         #            ha='left', va='center', transform=sub1.transAxes, fontsize=20)
 
         # P(log SSFR) 
-        sub2 = fig.add_subplot(1,len(mranges),i_m+1)
+        sub2 = fig.add_subplot(1,3,i_m+2)
         inmbin = np.where((logMstar[iscen] > mrange[0]) & (logMstar[iscen] < mrange[1]))
 
         _ = sub2.hist((logSFR[iscen] - logMstar[iscen])[inmbin], bins=40, 
@@ -257,20 +276,20 @@ def SFMSfit_example():
             else: 
                 gmm_tot += gmm_weights[i_comp]*MNorm.pdf(xx, gmm_means[i_comp], gmm_vars[i_comp])
         sub2.plot(xx, gmm_tot, color='k', linestyle=':', linewidth=2)
-
-        sub2.set_xlim([-13.25, -8.75]) 
+        
+        if i_m == 0: 
+            sub2.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', fontsize=20)
+        sub2.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', fontsize=20) 
+        sub2.set_xlim([-13.25, -9.]) 
         sub2.set_xticks([-9., -10., -11., -12., -13.][::-1])
-        sub2.set_ylim([0.,2.]) 
+        sub2.set_ylim([0.,2.1]) 
         sub2.set_yticks([0., 0.5, 1., 1.5, 2.])
         # mass bin 
-        sub2.text(0.5, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
-                ha='center', va='center', transform=sub2.transAxes, fontsize=20)
+        sub2.text(0.05, 0.95, panels[i_m], ha='left', va='top', transform=sub2.transAxes, fontsize=25)
+        sub2.text(0.95, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
+                ha='right', va='center', transform=sub2.transAxes, fontsize=18)
 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=15, fontsize=25)
-    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=15, fontsize=25) 
-
-    fig.subplots_adjust(wspace=.2)
+    fig.subplots_adjust(wspace=.3)
     fig_name = ''.join([UT.fig_dir(), 'SFMSfit_demo.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
