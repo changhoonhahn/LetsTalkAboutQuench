@@ -43,15 +43,15 @@ def Catalogs_SFR_Mstar():
     
     Cat = Cats.Catalog()
     # Read in various data sets
-    sims_list = ['illustris', 'eagle', 'mufasa'] 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey']#, 'nsa_combined', 'nsa_combined_uv'] 
 
-    fig = plt.figure(1, figsize=(16,7.5))
+    fig = plt.figure(1, figsize=(20,7.5))
     bkgd = fig.add_subplot(111, frameon=False)
     plot_range = [[7., 12.], [-4., 2.]]
 
     # plot SFR-M* for the observations 
-    sub0 = fig.add_subplot(2,4,4)
+    sub0 = fig.add_subplot(2,5,5)
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
     
@@ -67,7 +67,7 @@ def Catalogs_SFR_Mstar():
     for i_t, tscale in enumerate(tscales): 
         for i_c, cc in enumerate(sims_list): 
             cat = '_'.join([cc, tscale]) 
-            sub = fig.add_subplot(2,4,1+i_c+i_t*4) 
+            sub = fig.add_subplot(2,5,1+i_c+i_t*5) 
 
             try: 
                 lbl = Cat.CatalogLabel(cat)
@@ -113,7 +113,7 @@ def Catalog_SFMS_fit(tscale):
     
     Cat = Cats.Catalog()
     # Read in various data sets
-    sims_list = ['illustris', 'eagle', 'mufasa'] 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
 
     fig = plt.figure(1, figsize=(16,8))
@@ -181,7 +181,7 @@ def Catalog_SFMS_fit(tscale):
                 transform=sub.transAxes, fontsize=20)
         sub.scatter(fit_logm, fit_logsfr, c='k', marker='x', lw=3, s=40)
     
-    sub = fig.add_subplot(2,3,5) 
+    sub = fig.add_subplot(2,3,len(sims_list)+2) 
     for i in range(len(fit_logms)):   
         if fit_logms[i] is not None: 
             sub.scatter(fit_logms[i], fit_logsfrs[i], c='C'+str(i+2), marker='x', lw=3, s=40) 
@@ -425,7 +425,7 @@ def _SFR_tscales(name):
 
 
 if __name__=="__main__": 
-    Catalogs_SFR_Mstar()
+    #Catalogs_SFR_Mstar()
 
     #SFMSfit_example()
 
@@ -433,9 +433,9 @@ if __name__=="__main__":
     #    Catalog_SFMS_fit(tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
-    #for c in ['illustris', 'eagle', 'mufasa']:
-    #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-    #        try: 
-    #            _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
-    #        except (ValueError, NotImplementedError): 
-    #            continue 
+    for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:
+        for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+            try: 
+                _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
+            except (ValueError, NotImplementedError): 
+                continue 
