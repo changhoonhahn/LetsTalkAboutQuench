@@ -433,9 +433,9 @@ if __name__=="__main__":
     #    Catalog_SFMS_fit(tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
-    for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:
-        for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-            try: 
-                _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
-            except (ValueError, NotImplementedError): 
-                continue 
+    #for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:
+    #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+    #        try: 
+    #            _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
+    #        except (ValueError, NotImplementedError): 
+    #            continue 

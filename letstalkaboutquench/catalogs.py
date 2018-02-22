@@ -25,6 +25,10 @@ class Catalog:
                 'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
                 'mufasa_inst': 'MUFASA_GALAXY.txt',
                 'mufasa_1gyr': 'MUFASA_GALAXY.txt',
+                'scsam_inst': 'SCSAMgalprop.dat', 
+                'scsam_10myr': 'SCSAMgalprop.dat', 
+                'scsam_100myr': 'SCSAMgalprop.dat', 
+                'scsam_1gyr': 'SCSAMgalprop.dat', 
                 'nsa_combined': 'NSA_complete_SFRs.cat', 
                 'nsa_combined_uv': 'NSA_complete_SFRs.cat', 
                 'tinkergroup': 'tinker_SDSS_centrals_M9.7.dat',
@@ -49,13 +53,17 @@ class Catalog:
             # header for file 
             # log10(M_*[Msun]),sSFR[1/yr](0Myr),sSFR[1/yr](10Myr),sSFR[1/yr](20Myr),sSFR[1/yr](1Gyr),log10(M_HI[Msun]),sigma_*(<0.8kpc)[km/s],log10(SFing M_HI[Msun]),Z(SFing gas)[metal mass fraction],log10(M_BH[Msun]),iscentral_SUBFIND
             if name == 'illustris_inst': # instantaneous SFRs
-                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,1,-1])
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, 
+                        skiprows=1, delimiter=',', usecols=[0,1,-1])
             elif name == 'illustris_10myr': # 10 Myr SFRs 
-                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,2,-1])
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, 
+                        skiprows=1, delimiter=',', usecols=[0,2,-1])
             elif name == 'illustris_100myr': # 100 Myr SFRs
-                raise NotImplementedError("100 Myr SSFR currently not included in Illustris data; Somebody bother Shy")
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, 
+                        skiprows=1, delimiter=',', usecols=[0,4,-1])
             elif name == 'illustris_1gyr': # 1 Gyr SFRs
-                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, skiprows=1, delimiter=',', usecols=[0,4,-1])
+                logM, _ssfr, censat = np.loadtxt(f_name, unpack=True, 
+                        skiprows=1, delimiter=',', usecols=[0,5,-1])
             else: 
                 raise ValueError(name+" not found")
             logSFR = np.log10(_ssfr) + logM # calculate log SFR from sSFR
@@ -90,6 +98,31 @@ class Catalog:
             else: 
                 raise ValueError(name+" not found")
             w = np.ones(len(logM)) # uniform weights
+
+        elif 'scsam' in name: # Santa Cruz Semi-Analytic model
+            # 0 hosthaloid (long long) 1 birthhaloid (long long) 2 redshift 3 sat_type 0= central 4 mhalo total halo mass [1.0E09 Msun] 5 m_strip stripped mass [1.0E09 Msun] 
+            # 6 rhalo halo virial radius [Mpc)] 7 mstar stellar mass [1.0E09 Msun] 8 mbulge stellar mass of bulge [1.0E09 Msun] 9 mstar_merge stars entering via mergers] [1.0E09 Msun] 
+            # 10 v_disk rotation velocity of disk [km/s] 11 sigma_bulge velocity dispersion of bulge [km/s] 12 r_disk exponential scale radius of stars+gas disk [kpc] 
+            # 13 r_bulge 3D effective radius of bulge [kpc] 14 mcold cold gas mass [1.0E09 Msun] 15 Metal_star metal mass in stars [Zsun*Msun] 16 Metal_cold metal mass in cold gas [Zsun*Msun] 
+            # 17 sfr instantaneous SFR [Msun/yr] 18 sfrave10myr SFR averaged over 10 Myr [Msun/yr] 19 sfrave20myr SFR averaged over 20 Myr [Msun/yr] 
+            # 20 sfrave100myr SFR averaged over 100 Myr [Msun/yr] 21 sfrave1gyr SFR averaged over 1 Gyr [Msun/yr] 22 mass_outflow_rate [Msun/yr] 23 mBH black hole mass [1.0E09 Msun] 
+            # 24 maccdot accretion rate onto BH [Msun/yr] 25 maccdot_radio accretion rate in radio mode [Msun/yr] 26 tmerge time since last merger [Gyr] 
+            # 27 tmajmerge time since last major merger [Gyr] 28 mu_merge mass ratio of last merger [] 29 t_sat time since galaxy became a satellite in this halo [Gyr] 
+            # 30 r_fric distance from halo center [Mpc] 31 x_position x coordinate [cMpc] 32 y_position y coordinate [cMpc] 33 z_position z coordinate [cMpc] 34 vx x component of velocity [km/s] 
+            # 35 vy y component of velocity [km/s] 36 vz z component of velocity [km/s]
+            if name == 'scsam_inst': 
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,17,3]) 
+            elif name == 'scsam_10myr': 
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,18,3]) 
+            elif name == 'scsam_100myr': 
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,20,3]) 
+            elif name == 'scsam_1gyr': 
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,21,3]) 
+            logM = np.log10(_M) + 9.
+            logSFR = np.log10(_SFR)
+            w = np.ones(len(logM))
+            censat = np.ones(len(logM))
+            censat[_censat != 0] = 0. # cen/sat is reversed where centrals = 1
 
         elif name == 'nsa_combined': # NSA + SDSS combined, run through a group catalog 
             logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0,1])
@@ -150,6 +183,8 @@ class Catalog:
             name_cat = 'EAGLE'
         elif 'mufasa' in name: 
             name_cat = 'MUFASA'
+        elif 'scsam' in name: 
+            name_cat = 'Santa Cruz SAM'
         elif 'tinkergroup' in name: 
             return 'SDSS DR7 Group Catalog'
         elif 'nsa_dickey' in name: 
