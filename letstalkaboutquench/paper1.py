@@ -9,6 +9,7 @@ Author(s): ChangHoon Hahn
 '''
 import numpy as np 
 import corner as DFM 
+from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
 
 import matplotlib.pyplot as plt 
@@ -19,6 +20,7 @@ import util as UT
 import catalogs as Cats
 import galprop as Gprop
 from fstarforms import fstarforms
+from fstarforms import sfr_mstar_gmm
 
 from ChangTools.plotting import prettycolors
 import matplotlib as mpl
@@ -295,6 +297,56 @@ def SFMSfit_example():
     return None
 
 
+def SFRMstar_2Dgmm(n_comp_max=30): 
+    ''' Compare the bestfit 2D GMM of the SFR-M* relation
+    '''
+    Cat = Cats.Catalog()
+
+    fig = plt.figure(1,figsize=(4,4))
+    plot_range = [[7., 12.], [-4., 2.]]
+
+    sim = 'eagle_inst'
+    sub = fig.add_subplot(111)
+    lbl = Cat.CatalogLabel(sim)
+    _logm, _logsfr, weight, censat = Cat.Read(sim)
+    iscen = (censat == 1)
+    logm = _logm[iscen] 
+    logsfr = _logsfr[iscen]
+
+    gbest = sfr_mstar_gmm(logm, logsfr, n_comp_max=n_comp_max)
+    
+    DFM.hist2d(logm, logsfr, color='k', levels=[0.68, 0.95], range=plot_range, 
+            plot_datapoints=True, fill_contours=False, plot_density=False, 
+            contour_kwargs={'linewidths':1, 'linestyles':'dashed'}, 
+            ax=sub) 
+    #sub.scatter(logm, logsfr, color='k', s=4) 
+
+    for i, (mean, covar) in enumerate(zip(gbest.means_, gbest.covariances_)):
+        v, w = linalg.eigh(covar)
+        v = 2. * np.sqrt(2.) * np.sqrt(v)
+        u = w[0] / linalg.norm(w[0])
+
+        # Plot an ellipse to show the Gaussian component
+        angle = np.arctan(u[1] / u[0])
+        angle = 180. * angle / np.pi  # convert to degrees
+        ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color='C'+str(i % 10), linewidth=0)
+        ell.set_clip_box(sub.bbox)
+        ell.set_alpha(0.5)
+        sub.add_artist(ell)
+
+    sub.set_xlim([7.5, 12.]) 
+    sub.set_xticks([8., 10., 12.]) 
+    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
+    sub.set_ylim([-4., 2.]) 
+    sub.set_yticks([-4., -2., 0., 2.]) 
+    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=25) 
+
+    fig_name = ''.join([UT.fig_dir(), 'SFRMstar_2Dgmm.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None 
+
+
 def _SFMSfit_assess(name, method='gaussmix'):
     ''' Assess the quality of the SFMS fits by comparing to the actual 
     P(sSFR) in mass bins. 
@@ -425,6 +477,7 @@ def _SFR_tscales(name):
 
 
 if __name__=="__main__": 
+    SFRMstar_2Dgmm(n_comp_max=30)
     #Catalogs_SFR_Mstar()
 
     #SFMSfit_example()
