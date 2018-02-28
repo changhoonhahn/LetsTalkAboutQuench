@@ -23,8 +23,10 @@ class Catalog:
                 'eagle_10myr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
                 'eagle_100myr': 'EAGLE_RefL0100_MstarSFR100Myr_allabove1.8e8Msun.txt', 
                 'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
-                'mufasa_inst': 'MUFASA_GALAXY.txt',
-                'mufasa_1gyr': 'MUFASA_GALAXY.txt',
+                'mufasa_inst': 'MUFASA_combined.txt',
+                'mufasa_10myr': 'MUFASA_combined.txt',
+                'mufasa_100myr': 'MUFASA_combined.txt',
+                'mufasa_1gyr': 'MUFASA_combined.txt',
                 'scsam_inst': 'SCSAMgalprop.dat', 
                 'scsam_10myr': 'SCSAMgalprop.dat', 
                 'scsam_100myr': 'SCSAMgalprop.dat', 
@@ -88,13 +90,15 @@ class Catalog:
             w = np.ones(len(logM)) # uniform weights 
 
         elif 'mufasa' in name: # MUFASA simulation 
-            # header: positionx[kpc](0), positiony[kpc](1), positionz[kpc](2), velocityx[km/s](3), velocityy[km/s](4), velocityz[km/s](5), 
-            # log10(Mstar_gal/Msun)(6), log10(SFR_10M[Msun/yr](7), log10(SFR_1G[Msun/yr])(8), log10(coldgasmass[Msun])(9), log10(Z/sfr[yr/Msun])(10), cen(1)/sat(0)(11)
+            # header: logM*, logSFR (isnt), logSFR (10Myr), logSFR (100Myr), logSFR (1Gyr), central/satellite
             if name == 'mufasa_inst': 
-                # 10 Myr is actually instantaneous (ask Romeel for details) 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,7,11])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,1,-1])
+            elif name == 'mufasa_10myr': 
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,2,-1])
+            elif name == 'mufasa_100myr': 
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,3,-1])
             elif name == 'mufasa_1gyr': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[6,8,11])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,4,-1])
             else: 
                 raise ValueError(name+" not found")
             w = np.ones(len(logM)) # uniform weights
