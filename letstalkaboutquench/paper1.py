@@ -480,13 +480,13 @@ def _SFR_tscales(name):
 
 
 if __name__=="__main__": 
-    SFRMstar_2Dgmm(n_comp_max=50)
+    #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
 
     #SFMSfit_example()
 
-    #for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-    #    Catalog_SFMS_fit(tscale)
+    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+        Catalog_SFMS_fit(tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
     #for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:

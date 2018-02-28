@@ -48,8 +48,11 @@ def SFR_Mstar(name, xrange=None, yrange=None):
     read works.
     '''
     cat = Cat() 
-    logM, logSFR, w = cat.Read(name)
-    
+    _logM, _logSFR, w, censat = cat.Read(name)
+    iscen = (censat == 1) 
+    logM = _logM[iscen]
+    logSFR = _logSFR[iscen]
+
     prettyplot() 
     fig = plt.figure() 
     sub = fig.add_subplot(111)
@@ -58,10 +61,11 @@ def SFR_Mstar(name, xrange=None, yrange=None):
     if yrange is None:
         yrange = [-4., 2.]
     
-    DFM.hist2d(logM, logSFR, color='#1F77B4', 
-                levels=[0.68, 0.95], range=[xrange, yrange], 
-                plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
-    #plt.scatter(logM, logSFR, s=2)
+    #DFM.hist2d(logM, logSFR, color='#1F77B4', 
+    #            levels=[0.68, 0.95], range=[xrange, yrange], 
+    #            plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
+    print logSFR
+    sub.scatter(logM, logSFR, s=2)
     sub.set_xlim(xrange)
     sub.set_ylim(yrange)
     sub.set_xlabel(r'$\mathtt{log \; M_* \;\;[M_\odot]}$', labelpad=10, fontsize=25) 
@@ -100,4 +104,4 @@ def pssfr(name, Mrange=[10.,10.5], xrange=None):
 
 
 if __name__=='__main__': 
-    SFR_Mstar_SSFRcut('illustris_10myr', xrange=[7.5, 12.])
+    SFR_Mstar('mufasa_inst', xrange=[7.5, 12.])
