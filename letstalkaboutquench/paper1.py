@@ -209,7 +209,7 @@ def SFMSfit_example():
     sim = 'illustris_inst' 
     mranges = [[10.4, 10.6], [11.0, 11.2]]
     cols = ['C0', 'C4']
-    panels = ['a)', 'b)']
+    #panels = ['a)', 'b)']
 
     Cat = Cats.Catalog()
     logMstar, logSFR, weight, censat = Cat.Read(sim)
@@ -225,11 +225,11 @@ def SFMSfit_example():
     DFM.hist2d(logMstar[iscen], logSFR[iscen], color='#ee6a50',
             levels=[0.68, 0.95], range=[[9., 12.], [-3.5, 1.5]], 
             plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub1) 
-    sub1.scatter(_fit_logm, _fit_logsfr, c='k', marker='x', lw=3, s=40)
+    #sub1.scatter(_fit_logm, _fit_logsfr, c='k', marker='x', lw=3, s=40)
 
     for i_m, mrange in enumerate(mranges): 
         sub1.fill_between(mrange, [2.,2.], [-5.,-5], color=cols[i_m], linewidth=0, alpha=0.25)
-        sub1.text(mrange[0], -2.75, panels[i_m], ha='left', va='center', fontsize=20)
+        #sub1.text(mrange[0], -2.75, panels[i_m], ha='left', va='center', fontsize=20)
     sub1.set_xticks([9., 10., 11., 12.])
     sub1.set_xlabel('log$(\; M_*\; [M_\odot]\;)$', fontsize=20)
     sub1.set_ylim([-3.25, 1.75]) 
@@ -286,9 +286,9 @@ def SFMSfit_example():
         sub2.set_ylim([0.,2.1]) 
         sub2.set_yticks([0., 0.5, 1., 1.5, 2.])
         # mass bin 
-        sub2.text(0.05, 0.95, panels[i_m], ha='left', va='top', transform=sub2.transAxes, fontsize=25)
-        sub2.text(0.95, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
-                ha='right', va='center', transform=sub2.transAxes, fontsize=18)
+        #sub2.text(0.05, 0.95, panels[i_m], ha='left', va='top', transform=sub2.transAxes, fontsize=25)
+        sub2.text(0.5, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
+                ha='center', va='center', transform=sub2.transAxes, fontsize=18)
 
     fig.subplots_adjust(wspace=.3)
     fig_name = ''.join([UT.fig_dir(), 'SFMSfit_demo.pdf'])
@@ -305,7 +305,7 @@ def SFRMstar_2Dgmm(n_comp_max=30):
     fig = plt.figure(1,figsize=(4,4))
     plot_range = [[7., 12.], [-4., 2.]]
 
-    sim = 'eagle_inst'
+    sim = 'eagle_100myr'
     sub = fig.add_subplot(111)
     lbl = Cat.CatalogLabel(sim)
     _logm, _logsfr, weight, censat = Cat.Read(sim)
@@ -336,10 +336,13 @@ def SFRMstar_2Dgmm(n_comp_max=30):
 
     sub.set_xlim([7.5, 12.]) 
     sub.set_xticks([8., 10., 12.]) 
-    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
+    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=20) 
     sub.set_ylim([-4., 2.]) 
     sub.set_yticks([-4., -2., 0., 2.]) 
-    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=25) 
+    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=20) 
+    
+    sub.text(0.1, 0.9, 'EAGLE',
+            ha='left', va='top', transform=sub.transAxes, fontsize=20)
 
     fig_name = ''.join([UT.fig_dir(), 'SFRMstar_2Dgmm.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
@@ -477,7 +480,7 @@ def _SFR_tscales(name):
 
 
 if __name__=="__main__": 
-    SFRMstar_2Dgmm(n_comp_max=30)
+    SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
 
     #SFMSfit_example()
