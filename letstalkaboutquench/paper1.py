@@ -616,6 +616,102 @@ def _SFR_tscales(name):
     plt.close() 
 
 
+def _GMM_comp_test(name): 
+    ''' Test GMM with more than 3 components. More specifically 
+    plot the P(SSFR) for stellar mass bins where BIC prefers
+    more than 3 components.
+    '''
+    Cat = Cats.Catalog()
+    # Read in various data sets
+        
+    logMstar, logSFR, weight, censat = Cat.Read(name)
+    iscen = (censat == 1)
+    logm = logMstar[iscen]
+    logsfr = logSFR[iscen]
+
+    # fit the SFMS  
+    fSFMS = fstarforms()
+    _, _ = fSFMS.fit(logm, logsfr, method='gaussmix', forTest=True) 
+    
+    fSFMS_more = fstarforms()
+    _, _ = fSFMS_more.fit(logm, logsfr, method='gaussmix', max_comp=30, forTest=True) 
+    
+    assert fSFMS._tests['mbin_mid'] == fSFMS_more._tests['mbin_mid']
+
+    bins = [] 
+    for im in range(len(fSFMS._tests['mbin_mid'])): 
+        if len(fSFMS_more._tests['gbests'][im].means_) > 3: 
+            bins.append(im) 
+    if len(bins) == 0: return None 
+
+    fig = plt.figure(1, figsize=(4*len(bins),8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    xx = np.linspace(-14., -9, 100)
+
+    for ii, im in enumerate(bins): 
+        sub1 = fig.add_subplot(2,len(bins),ii+1)
+        sub2 = fig.add_subplot(2,len(bins),ii+1+len(bins))
+        # within mass bin 
+        mbin_mid = fSFMS._tests['mbin_mid'][im]
+        in_mbin = np.where(
+                (logm > mbin_mid-0.5*fSFMS._dlogm) & 
+                (logm < mbin_mid+0.5*fSFMS._dlogm))
+        sub1.text(0.5, 0.9, ''.join([str(round(mbin_mid-0.5*fSFMS._dlogm,1)), 
+                    '$<$ log$\,M_* <$', str(round(mbin_mid+0.5*fSFMS._dlogm,1))]), 
+                ha='center', va='center', transform=sub1.transAxes, fontsize=20)
+        sub1.text(0.9, 0.5, '$k = '+str(len(fSFMS._tests['gbests'][im].means_))+'$', 
+                ha='right', va='center', transform=sub1.transAxes, fontsize=20)
+        sub2.text(0.9, 0.5, '$k = '+str(len(fSFMS_more._tests['gbests'][im].means_))+'$', 
+                ha='right', va='center', transform=sub2.transAxes, fontsize=20)
+        
+        # P(SSFR) histogram 
+        _ = sub1.hist(logsfr[in_mbin] - logm[in_mbin], bins=32, 
+                range=[-14., -8.], normed=True, histtype='step', color='k', linewidth=1.75)
+        _ = sub2.hist(logsfr[in_mbin] - logm[in_mbin], bins=32, 
+                range=[-14., -8.], normed=True, histtype='step', color='k', linewidth=1.75)
+        # plot the fits 
+        gmm_weights = fSFMS._tests['gbests'][im].weights_
+        gmm_means = fSFMS._tests['gbests'][im].means_.flatten() 
+        gmm_vars = fSFMS._tests['gbests'][im].covariances_.flatten() 
+        for ii, icomp in enumerate(gmm_means.argsort()[::-1]): 
+            if ii == 0: 
+                sub1.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=2, ls='--')
+                gmm_tot = gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
+            else: 
+                sub1.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=1.5, ls='--')
+                gmm_tot += gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
+        #sub.plot(xx, gmm_tot, c='r', lw=2, ls='-')
+        gmm_weights = fSFMS_more._tests['gbests'][im].weights_
+        gmm_means = fSFMS_more._tests['gbests'][im].means_.flatten() 
+        gmm_vars = fSFMS_more._tests['gbests'][im].covariances_.flatten() 
+        for ii, icomp in enumerate(gmm_means.argsort()[::-1]): 
+            if ii == 0: 
+                sub2.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=2, ls='--')
+                gmm_tot = gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
+            else: 
+                sub2.plot(xx, gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp]), lw=1.5, ls='--')
+                gmm_tot += gmm_weights[icomp]*MNorm.pdf(xx, gmm_means[icomp], gmm_vars[icomp])
+
+        sub1.set_xlim([-13, -8]) # x-axis
+        sub1.set_xticks([-13, -12, -11, -10, -9, -8])
+        sub2.set_xlim([-13, -8]) # x-axis
+        sub2.set_xticks([-13, -12, -11, -10, -9, -8])
+        sub1.set_ylim([0., 1.4]) # y-axis
+        sub1.set_yticks([0., 0.5, 1.])
+        sub2.set_ylim([0., 1.4]) # y-axis
+        sub2.set_yticks([0., 0.5, 1.])
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'P(log SSFR  $[yr^{-1}])$', labelpad=10, fontsize=20) 
+    bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20) 
+    
+    fig.subplots_adjust(wspace=0.2, hspace=0.2)
+    fig_name = ''.join([UT.fig_dir(), 'GMMcomp.test.', name, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None
+
+
 if __name__=="__main__": 
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
@@ -624,7 +720,10 @@ if __name__=="__main__":
 
     #for tscale in ['inst', '10myr', '100myr', '1gyr']: 
     #    Catalog_SFMS_fit(tscale)
-    Catalog_GMMcomps()
+    #Catalog_GMMcomps()
+    for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
+        for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+            _GMM_comp_test(c+'_'+tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
     #for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:

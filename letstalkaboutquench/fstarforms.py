@@ -30,7 +30,8 @@ class fstarforms(object):
         self._sfms_fit = None 
 
     def fit(self, logmstar, logsfr, method=None, fit_range=None, dlogm=0.2,
-            Nbin_thresh=100, SSFR_cut=None, forTest=False, silent=False, **kwargs): 
+            Nbin_thresh=100, SSFR_cut=None, max_comp=3, 
+            forTest=False, silent=False, **kwargs): 
         '''Given log SFR and log Mstar values of a galaxy population, 
         return the power-law best fit to the SFMS. After some initial 
         common sense cuts, P(log SSFR) in bins of stellar mass are fit 
@@ -256,7 +257,7 @@ class fstarforms(object):
                 if len(in_mbin[0]) <= Nbin_thresh: 
                     continue
 
-                n_comps = [1,2,3]
+                n_comps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
                 gmms, bics = [], []  
                 for i_n, n in enumerate(n_comps): 
                     gmm = GMix(n_components=n)
@@ -281,75 +282,23 @@ class fstarforms(object):
                     continue 
 
                 if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
-                    # if best fit has more than one component make sure that it's not
-                    # 'overfitting' the sfms. Check whether the two gaussians with
-                    # means log SSFR > -11 have comparable weights
+                    # if best fit has more than one component with high SFR, it's likely 
+                    # 'overfitting' the sfms or the SFMS is not log-normal. Check whether 
+                    # the two gaussians with means log SSFR > -11 have comparable weights. 
+                    # If they do, send out a warning and use the mode for the SFMS component
                     in_sf = np.where(gbest.means_.flatten() > -11)
-                    _gbest = gbest
-                    _in_sf = in_sf 
-                    _w_sf_mean = np.sum(gbest.weights_[in_sf] * gbest.means_.flatten()[in_sf])/np.sum(gbest.weights_[in_sf])
-                    _w_sf = np.sum(gbest.weights_[in_sf])
-                    _w_sf_cov = np.sum(gbest.weights_[in_sf] * gbest.covariances_.flatten()[in_sf])/np.sum(gbest.weights_[in_sf])
 
                     if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.90: 
-                        continue 
-                        # there are two components that contribute significantly 
-                        # to the SF population distribution and the second component 
-                        # cannot be considered a nuissance component.  
+                        warnings.warn('the SFMS in the M* bin'+\
+                                str(mbin_low[i])+'-'+(str(mbin_high[i]))+\
+                                'is best described by two comparable Gaussians') 
 
-                        # try the next best fit GMM
-                        bics[i_best] = np.inf 
-                        i_best = np.array(bics).argmin() # next best fit 
-                        gbest = gmms[i_best]
-                        if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
-                            in_sf = np.where(gbest.means_.flatten() > -11)
-                            if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.45: 
-                                warnings.warn('GMM does not provide a sensible fit to the SFMS '+\
-                                        'in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
-                                continue 
-                                fit_logm.append(np.median(logmstar[in_mbin])) 
-                                fit_logssfr.append(_w_sf_mean)
-                                
-                                gmix_weights_.append(_gbest.weights_)
-                                gmix_means_.append(_gbest.means_.flatten())
-                                gmix_covariances_.append(_gbest.covariances_.flatten())
-                                
-                                #gmix_weights_.append(
-                                #        np.append(np.delete(gbest.weights_, in_sf), _w_sf))
-                                #gmix_means_.append(
-                                #        np.append(np.delete(gbest.means_.flatten(), in_sf), 
-                                #            _w_sf_mean)) 
-                                #gmix_covariances_.append(
-                                #        np.append(np.delete(gbest.means_.flatten(), in_sf), 
-                                #            _w_sf_cov)) 
-                                #continue 
-                            else: 
-                                fit_logm.append(np.median(logmstar[in_mbin])) 
-                                sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
-                                fit_logssfr.append(gbest.means_.flatten()[sf_comp])
-                                gmix_weights_.append(gbest.weights_)
-                                gmix_means_.append(gbest.means_.flatten())
-                                gmix_covariances_.append(gbest.covariances_.flatten())
-                        elif gbest.means_.flatten().max() < -11.:
-                            warnings.warn('SFMS is not well defined in the M* bin'+str(mbin_low[i])+'-'+(str(mbin_high[i])))
-                            continue 
-                        else: 
-                            fit_logm.append(np.median(logmstar[in_mbin])) 
-                            sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
-                            fit_logssfr.append(gbest.means_.flatten()[sf_comp])
-                            gmix_weights_.append(gbest.weights_)
-                            gmix_means_.append(gbest.means_.flatten())
-                            gmix_covariances_.append(gbest.covariances_.flatten())
-                    else: 
-                        # there are two components that contribute to the SF population 
-                        # distribution. hOwever, the second component does not contribute
-                        # significantly to the distribution. 
-                        fit_logm.append(np.median(logmstar[in_mbin])) 
-                        sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
-                        fit_logssfr.append(gbest.means_.flatten()[sf_comp])
-                        gmix_weights_.append(gbest.weights_)
-                        gmix_means_.append(gbest.means_.flatten())
-                        gmix_covariances_.append(gbest.covariances_.flatten())
+                    fit_logm.append(np.median(logmstar[in_mbin])) 
+                    sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                    fit_logssfr.append(gbest.means_.flatten()[sf_comp])
+                    gmix_weights_.append(gbest.weights_)
+                    gmix_means_.append(gbest.means_.flatten())
+                    gmix_covariances_.append(gbest.covariances_.flatten())
                 else: 
                     fit_logm.append(np.median(logmstar[in_mbin])) 
                     sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
