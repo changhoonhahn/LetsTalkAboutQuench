@@ -43,10 +43,19 @@ def assess_SFMS_fit(catalog, fit_method):
     # fit the SFMS using whatever method 
     fSFMS = fstarforms()
     if fit_method != 'gaussmix_err':
-        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method) 
+        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method, forTest=True) 
     else: 
-        logsfr_err = 0.434*(2.e-2)/(10.**logsfr) # hardcoded sfr uncertainty
-        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, logsfr_err=logsfr_err, method=fit_method) 
+        # hardcoded sfr uncertainty based on star-particle mass
+        if catalog.split('_')[0] == 'mufasa':   
+            logsfr_err = 0.434*(0.182)/(10.**logsfr) 
+        elif catalog.split('_')[0] == 'illustris':   
+            logsfr_err = 0.434*(0.016)/(10.**logsfr) 
+        elif catalog.split('_')[0] == 'eagle':   
+            logsfr_err = 0.434*(0.018)/(10.**logsfr) 
+        else: 
+            raise ValueError('logSFR errors unavailable') 
+        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, logsfr_err=logsfr_err, 
+                method=fit_method, forTest=True) 
 
     # common sense cuts imposed in fSFMS
     logm = logm[fSFMS._sensecut]
@@ -65,14 +74,14 @@ def assess_SFMS_fit(catalog, fit_method):
             ha='right', va='center', transform=sub.transAxes, fontsize=20)
     sub.set_ylabel(r'log SFR  $[M_\odot / yr]$', fontsize=20) 
     sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', fontsize=20) 
-
+    
     for i_m in range(len(fit_logm)):  
         sub = fig.add_subplot(2, n_col, i_m+2)
-
-        in_mbin = np.where((logm > fit_logm[i_m]-0.5*fSFMS._dlogm) & 
-                (logm < fit_logm[i_m]+0.5*fSFMS._dlogm))
+        mbinmid = fSFMS._tests['mbin_mid'][np.abs(np.array(fSFMS._tests['mbin_mid']) - fit_logm[i_m]).argmin()]
+        in_mbin = np.where((logm > mbinmid-0.5*fSFMS._dlogm) & 
+                (logm < mbinmid+0.5*fSFMS._dlogm))
         sub.text(0.1, 0.9, 
-                str(round(fit_logm[i_m]-0.5*fSFMS._dlogm,1))+'$<$ log$\,M_* <$'+str(round(fit_logm[i_m]+0.5*fSFMS._dlogm,1)), 
+                str(round(fit_logm[i_m]-0.5*fSFMS._dlogm,2))+'$<$ log$\,M_* <$'+str(round(fit_logm[i_m]+0.5*fSFMS._dlogm,2)), 
                 ha='left', va='center', transform=sub.transAxes, fontsize=20)
 
         _ = sub.hist(logsfr[in_mbin] - logm[in_mbin], bins=32, 
@@ -597,5 +606,6 @@ if __name__=='__main__':
     #fQ_dMS('gaussmix')
 
     #assess_SFMS_fit('tinkergroup', 'gaussmix')
-    assess_SFMS_fit('illustris_100myr', 'gaussmix_err')
+    for c in ['illustris', 'eagle', 'mufasa']:
+        assess_SFMS_fit(c+'_100myr', 'gaussmix')
     #SFMSfrac('tinkergroup')

@@ -132,7 +132,6 @@ def Catalog_SFMS_fit(tscale):
         fSFMS = fstarforms()
         fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                 method='gaussmix', forTest=True) 
-        F_sfms = fSFMS.powerlaw()
 
         DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
@@ -165,13 +164,24 @@ def Catalog_SFMS_fit(tscale):
 
         iscen = (censat == 1)
 
+        # including SFR uncertainties for 100Myr 
+        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']): 
+            if cc == 'mufasa': sfrerr = 0.182
+            elif cc == 'illustris': sfrerr = 0.016
+            elif cc == 'eagle': sfrerr = 0.018
+            logsfr_err = 0.434*sfrerr/(10.**logSFR[iscen]) 
+
         # fit the SFMS  
         fSFMS = fstarforms()
-        fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
-                method='gaussmix', forTest=True) 
+        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']): 
+            # extreme-deconvolution
+            fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
+                    logsfr_err=logsfr_err, method='gaussmix_err', forTest=True) 
+        else: 
+            fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
+                    method='gaussmix', forTest=True) 
         fit_logms[i_c] = fit_logm 
         fit_logsfrs[i_c] = fit_logsfr
-        F_sfms = fSFMS.powerlaw()
 
         DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
                 levels=[0.68, 0.95], range=plot_range, 
@@ -716,9 +726,9 @@ if __name__=="__main__":
 
     #SFMSfit_example()
 
-    #for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-    #    Catalog_SFMS_fit(tscale)
-    Catalog_GMMcomps()
+    for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
+        Catalog_SFMS_fit(tscale)
+    #Catalog_GMMcomps()
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
