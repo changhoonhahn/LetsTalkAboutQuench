@@ -7,6 +7,8 @@ import numpy as np
 import warnings 
 from scipy.optimize import curve_fit
 from astroML.density_estimation import XDGMM
+from extreme_deconvolution import extreme_deconvolution
+from sklearn.mixture import GMM 
 from sklearn.mixture import GaussianMixture as GMix
 
 import util as UT 
@@ -30,7 +32,7 @@ class fstarforms(object):
         self._fit_logsfr = None
         self._sfms_fit = None 
 
-    def fit(self, logmstar, logsfr, method=None, fit_range=None, dlogm=0.2,
+    def fit(self, logmstar, logsfr, logsfr_err=None, method=None, fit_range=None, dlogm=0.2,
             Nbin_thresh=100, SSFR_cut=None, max_comp=3, 
             forTest=False, silent=False, **kwargs): 
         '''Given log SFR and log Mstar values of a galaxy population, 
@@ -48,7 +50,7 @@ class fstarforms(object):
 
         method : (str)
             string specifying the method of the fit. Options are
-            ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix'].
+            ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err'].
 
         fit_range : (list) 
             Optional. 2 element list specifying the fitting stellar
@@ -92,16 +94,22 @@ class fstarforms(object):
         if len(logmstar) != len(logsfr): 
             raise ValueError("logmstar and logsfr are not the same length arrays") 
 
-        if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix']: 
+        if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err']: 
             raise ValueError(method+" is not one of the methods!") 
 
         # only keep sensible logmstar and log sfr
-        sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
+        if logsfr_err is None: 
+            sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
+        else: 
+            sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False) & \
+                    (np.isfinite(logsfr_err))
         if (len(logmstar) - np.sum(sense) > 0) and not silent: 
             warnings.warn(str(len(logmstar) - np.sum(sense))+' galaxies have nonsensical logM* or logSFR values')  
         self._sensecut = sense
         logmstar = logmstar[np.where(sense)]
         logsfr = logsfr[np.where(sense)]
+        if logsfr_err is not None: 
+            logsfr_err = logsfr_err[np.where(sense)]
 
         # fitting M* range
         if fit_range is None: 
@@ -320,6 +328,94 @@ class fstarforms(object):
             self._gmix_weights = gmix_weights_ 
             self._gmix_means = gmix_means_
             self._gmix_covariances = gmix_covariances_
+        
+        elif method == 'gaussmix_err':
+            # same as 'gaussmix' but takes SFR errors into account. 
+            # consequently, it uses extreme-deconvolution instead of just gmm
+            if logsfr_err is None: 
+                raise ValueError("This method requires logSFR errors") 
+
+            fit_logm, fit_logssfr = [], []
+            gmix_weights_, gmix_means_, gmix_covariances_ = [], [], []
+            frac_sfms = [] 
+            if forTest: # for testing purposes, store all componenets of the best fit gmm
+                self._tests = {} 
+                self._tests['mbin_mid'] = [] 
+                self._tests['gbests'] = []  
+
+            for i in range(len(mbin_low)): 
+                in_mbin = np.where(
+                        (logmstar > mbin_low[i]) & 
+                        (logmstar < mbin_high[i])) 
+                X = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+                X = np.reshape(X, (-1,1)) 
+                Xerr = logsfr_err[in_mbin] # error bars on of logSFR
+                Xerr = np.reshape(Xerr, (-1,1,1))
+                if len(in_mbin[0]) <= Nbin_thresh: 
+                    continue
+
+                n_comps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
+                gmms, bics = [], []  
+                for i_n, n in enumerate(n_comps): 
+                    gmm =xdGMM(n_components=n)
+                    gmm.fit(X, Xerr)
+                    gmms.append(gmm)
+                    bics.append(gmm.bic(X, Xerr)) # bayesian information criteria
+
+                # components with the lowest BIC (preferred)
+                i_best = np.array(bics).argmin()
+                gbest = gmms[i_best]
+            
+                if forTest: # for testing purposes, store all componenets of the best fit gmm
+                    self._tests['mbin_mid'].append(0.5*(mbin_low[i] + mbin_high[i]))  
+                    self._tests['gbests'].append(gbest)  
+
+                if (gbest.means_.flatten().max() < -11.) and not silent:
+                    # this means that the bestfitting GMM does not find a gaussian with 
+                    # log SSFR > -11. we take this to mean that SFMS is not well 
+                    # defined in this mass bin 
+                    warnings.warn('SFMS is not well defined in the M* bin'+\
+                            str(mbin_low[i])+'-'+(str(mbin_high[i])))
+                    continue 
+
+                if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
+                    # if best fit has more than one component with high SFR, it's likely 
+                    # 'overfitting' the sfms or the SFMS is not log-normal. Check whether 
+                    # the two gaussians with means log SSFR > -11 have comparable weights. 
+                    # If they do, send out a warning and use the mode for the SFMS component
+                    in_sf = np.where(gbest.means_.flatten() > -11)
+
+                    if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.90: 
+                        warnings.warn('the SFMS in the M* bin'+\
+                                str(mbin_low[i])+'-'+(str(mbin_high[i]))+\
+                                'is best described by two comparable Gaussians') 
+
+                    fit_logm.append(np.median(logmstar[in_mbin])) 
+                    sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                    fit_logssfr.append(gbest.means_.flatten()[sf_comp])
+                    gmix_weights_.append(gbest.weights_)
+                    gmix_means_.append(gbest.means_.flatten())
+                    gmix_covariances_.append(gbest.covariances_.flatten())
+                else: 
+                    fit_logm.append(np.median(logmstar[in_mbin])) 
+                    sf_comp = self._GMM_SFMS_logSSFR(gbest.means_.flatten(), gbest.weights_)
+                    fit_logssfr.append(gbest.means_.flatten()[sf_comp])
+                    gmix_weights_.append(gbest.weights_)
+                    gmix_means_.append(gbest.means_.flatten())
+                    gmix_covariances_.append(gbest.covariances_.flatten())
+
+                # calculate the star formation main sequence fraction 
+                # an estimate of the fraction of galaxies in this mass bin that are 
+                # on the star formation main sequence 
+                try: 
+                    frac_sfms.append(gbest.weights_[sf_comp])
+                except UnboundLocalError: 
+                    frac_sfms.append(_w_sf)
+
+            # save the gmix fit values 
+            self._gmix_weights = gmix_weights_ 
+            self._gmix_means = gmix_means_
+            self._gmix_covariances = gmix_covariances_
 
         self._frac_sfms = np.array(frac_sfms)
 
@@ -397,7 +493,68 @@ class fstarforms(object):
             return issf[0][weights[issf].argmax()]
 
 
-class xdGMM(XDGMM): 
+class xdGMM(object): 
+    ''' Wrapper for extreme_deconovolution
+    '''
+    def __init__(self, n_components): 
+        '''
+        '''
+        self.n_components = n_components
+        self.l = None
+        self.weights_ = None
+        self.means_ = None
+        self.covariances_ = None
+
+    def fit(self, X, Xerr): 
+        '''
+        '''
+        X, Xerr = self._X_check(X, Xerr)
+        self._X = X 
+        self._Xerr = Xerr
+        gmm = GMM(self.n_components, n_iter=10, covariance_type='full').fit(X)
+        w, m, c = gmm.weights_.copy(), gmm.means_.copy(), gmm.covars_.copy()
+        l = extreme_deconvolution(X, Xerr, w, m, c)
+        self.l = l 
+        self.weights_ = w 
+        self.means_ = m
+        self.covariances_ = c
+        return None
+
+    def logL(self, X, Xerr): 
+        ''' log Likelihood 
+        '''
+        if (self.l is None) or (not np.array_equal(X, self._X)) or (not np.array_equal(Xerr, self._Xerr)): 
+            self.fit(X, Xerr)
+        X, Xerr = self._X_check(X, Xerr)
+
+        return self.l * X.shape[0]
+
+    def _X_check(self, X, Xerr): 
+        ''' correct array shape for astroML.density_estimation.XDGMM 
+        '''
+        if len(X.shape) == 1: 
+            X = np.reshape(X, (-1,1))
+        if len(Xerr.shape) == 1:   
+            Xerr = np.reshape(Xerr, (-1,1,1))
+        return X, Xerr
+    
+    def bic(self, X, Xerr): 
+        '''
+        '''
+        if (self.l is None) or (not np.array_equal(X, self._X)) or (not np.array_equal(Xerr, self._Xerr)): 
+            self.fit(X, Xerr)
+        X, Xerr = self._X_check(X, Xerr)
+        assert np.array_equal(X, self._X)  
+        return (-2 * self.l * X.shape[0] + self._n_parameters() * np.log(X.shape[0])) 
+    
+    def _n_parameters(self): 
+        _, n_features = self.means_.shape
+        cov_params = self.n_components * n_features * (n_features + 1) / 2.
+        mean_params = n_features  * self.n_components
+        return int(cov_params + mean_params + self.n_components - 1)
+
+
+class xdGMM_aml(XDGMM): 
     ''' Wrapper for astroML.density_estimation.XDGMM for consistent use 
     '''
     def __init__(self, n_components, n_iter=100, tol=1e-05, verbose=False): 
@@ -416,7 +573,7 @@ class xdGMM(XDGMM):
     def bic(self, X, Xerr): 
         ''' Calculate the Bayesian Information Criteria
         '''
-        return (-2. * self.logL(X, Xerr) + self._n_parameters() * np.log(X.shape[0])) 
+        return (-2 * self.logL(X, Xerr) + self._n_parameters() * np.log(X.shape[0])) 
 
     def _X_check(self, X, Xerr): 
         ''' correct array shape for astroML.density_estimation.XDGMM 

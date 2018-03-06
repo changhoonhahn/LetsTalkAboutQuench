@@ -3,6 +3,7 @@
 import numpy as np 
 from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
+from sklearn.mixture import GaussianMixture as GMix
 import corner as DFM 
 
 import env
@@ -34,13 +35,19 @@ def assess_SFMS_fit(catalog, fit_method):
     '''
     # read in catalogs
     cat = Cat()
-    logm, logsfr, w = cat.Read(catalog)  
+    _logm, _logsfr, w, censat = cat.Read(catalog)  
+    iscen = (censat == 1) 
+    logm = _logm[iscen]
+    logsfr = _logsfr[iscen]
     
     # fit the SFMS using whatever method 
     fSFMS = fstarforms()
-    fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method) 
-    F_sfms = fSFMS.powerlaw()
-    
+    if fit_method != 'gaussmix_err':
+        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method) 
+    else: 
+        logsfr_err = 0.434*(2.e-2)/(10.**logsfr) # hardcoded sfr uncertainty
+        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, logsfr_err=logsfr_err, method=fit_method) 
+
     # common sense cuts imposed in fSFMS
     logm = logm[fSFMS._sensecut]
     logsfr = logsfr[fSFMS._sensecut]
@@ -86,7 +93,6 @@ def assess_SFMS_fit(catalog, fit_method):
             gmm_weights = fSFMS._gmix_weights[i_m]
             gmm_means = fSFMS._gmix_means[i_m]
             gmm_vars = fSFMS._gmix_covariances[i_m]
-
 
             for ii, icomp in enumerate(gmm_means.argsort()[::-1]): 
                 if ii == 0: 
@@ -496,27 +502,27 @@ def xd_GMM(name, mbin=[10., 10.2]):
     # SFR uncertainty from star particle mass 
     logSFR_err = 0.434*(2.e-2)/(10.**logSFR)
 
-    mlim = (logM > 10.0) & (logM < 10.2) & (np.isfinite(logSFR_err))
+    mlim = (logM > mbin[0]) & (logM < mbin[1]) & (np.isfinite(logSFR_err))
     
     ncomps = range(1, 6)
     fig = plt.figure(figsize=(4*len(ncomps), 4))
     xx = np.linspace(-14., -9., 100)
     bics = [] 
     for i in ncomps: 
-        xdg = xdGMM(i, n_iter=500) 
-        xdg.Fit(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
+        xdg = xdGMM(i)#, n_iter=500) 
+        xdg.fit(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
         X, Xerr = xdg._X_check(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
         bics.append(xdg.bic(X, Xerr))
 
         sub = fig.add_subplot(1,len(ncomps),i)
         _ = sub.hist(logSFR[mlim] - logM[mlim], normed=True, 
                 histtype='step', range=[-13., -9], bins=32)
-        for icomp in range(len(xdg.mu)):
-            sub.plot(xx, xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp]))
+        for icomp in range(len(xdg.means_)):
+            sub.plot(xx, xdg.weights_[icomp]*MNorm.pdf(xx, xdg.means_[icomp], xdg.covariances_[icomp]))
             if icomp == 0:
-                gtot = xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp])
+                gtot = xdg.weights_[icomp]*MNorm.pdf(xx, xdg.means_[icomp], xdg.covariances_[icomp])
             else:
-                gtot += xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp])
+                gtot += xdg.weights_[icomp]*MNorm.pdf(xx, xdg.means_[icomp], xdg.covariances_[icomp])
         sub.plot(xx, gtot, c='k', ls='--')
         sub.set_xlim([-13., -9])
         if i < np.max(ncomps):  
@@ -530,9 +536,56 @@ def xd_GMM(name, mbin=[10., 10.2]):
     return None 
 
 
+def xd_GMM_like(name, mbin=[10., 10.2]): 
+    '''
+    '''
+    Cata = Cat()
+    _logM, _logSFR, w, censat = Cata.Read(name)
+    iscen = (censat == 1)
+    logM = _logM[iscen]
+    logSFR = _logSFR[iscen]
+    
+    # SFR uncertainty from star particle mass 
+    logSFR_err = 0.434*(2.e-2)/(10.**logSFR)
+
+    mlim = (logM > 10.0) & (logM < 10.2) & (np.isfinite(logSFR_err))
+    
+    ncomps = range(1, 6)
+    #fig = plt.figure(figsize=(4*len(ncomps), 4))
+    xx = np.linspace(-14., -9., 100)
+    bics = [] 
+    for i in ncomps: 
+        xdg = xdGMM(i)#, n_iter=500) 
+        xdg.fit(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
+        X, Xerr = xdg._X_check(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
+        print xdg._n_parameters() 
+        print xdg.logL(X, Xerr)
+        print 'XDGMM BIC= ', xdg.bic(X, Xerr)
+        
+        gmm = GMix(n_components=i) 
+        gmm.fit(X)
+        print gmm._n_parameters()
+        print gmm.score(X) * X.shape[0]
+        print 'GMM BIC= ', gmm.bic(X)
+        #xdg.mu = gmm.means_
+        #xdg.alpha = gmm.weights_
+        #xdg.V = gmm.covariances_
+        #print xdg._n_parameters()
+        #print xdg.logprob_a(X, Xerr)[:10].flatten()
+        #print xdg.logprob_a(X, np.zeros((X.shape[0], 1,1)))[:10].flatten()
+        #print xdg.logL(X, Xerr)
+        #print xdg.logL(X, np.zeros((X.shape[0], 1,1)))#Xerr)
+        #print 'XDGMM BIC= ', xdg.bic(X, np.tile(0.0, (X.shape[0], 1,1)) )
+        #print 'XDGMM BIC= ', xdg.bic(X, np.tile(0.1, (X.shape[0], 1,1)) )
+        #print 'XDGMM BIC= ', xdg.bic(X, np.tile(0.01, (X.shape[0], 1,1)) )
+        #print 'XDGMM BIC= ', xdg.bic(X, np.tile(0.001, (X.shape[0], 1,1)) )
+    
+    return None 
+
+
 if __name__=='__main__': 
     #SFR_Mstar_Catalogs('gaussmix', contour='dfm')
-    xd_GMM('illustris_100myr') 
+    #xd_GMM('illustris_100myr', mbin=[9., 9.2]) 
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
     #        try: 
@@ -544,5 +597,5 @@ if __name__=='__main__':
     #fQ_dMS('gaussmix')
 
     #assess_SFMS_fit('tinkergroup', 'gaussmix')
-    #assess_SFMS_fit('illustris_10myr', 'gaussmix')
+    assess_SFMS_fit('illustris_100myr', 'gaussmix_err')
     #SFMSfrac('tinkergroup')
