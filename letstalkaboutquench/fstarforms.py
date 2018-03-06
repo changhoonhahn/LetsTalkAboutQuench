@@ -6,6 +6,7 @@ fStarForMS = fitting the STAR FORming Main Sequence
 import numpy as np 
 import warnings 
 from scipy.optimize import curve_fit
+from astroML.density_estimation import XDGMM
 from sklearn.mixture import GaussianMixture as GMix
 
 import util as UT 
@@ -394,6 +395,43 @@ class fstarforms(object):
             return issf[0]
         else: 
             return issf[0][weights[issf].argmax()]
+
+
+class xdGMM(XDGMM): 
+    ''' Wrapper for astroML.density_estimation.XDGMM for consistent use 
+    '''
+    def __init__(self, n_components, n_iter=100, tol=1e-05, verbose=False): 
+
+        super(xdGMM, self).__init__(n_components, n_iter=n_iter, tol=tol, verbose=verbose) 
+        self.n_components = n_components 
+
+    def Fit(self, X, Xerr): 
+        ''' Wrapper for XDGMM.fit(X, Xerr)
+        '''
+        X, Xerr = self._X_check(X, Xerr)
+        
+        self.fit(X, Xerr)
+        return None 
+
+    def bic(self, X, Xerr): 
+        ''' Calculate the Bayesian Information Criteria
+        '''
+        return (-2. * self.logL(X, Xerr) + self._n_parameters() * np.log(X.shape[0])) 
+
+    def _X_check(self, X, Xerr): 
+        ''' correct array shape for astroML.density_estimation.XDGMM 
+        '''
+        if len(X.shape) == 1: 
+            X = np.reshape(X, (-1,1))
+        if len(Xerr.shape) == 1:   
+            Xerr = np.reshape(Xerr, (-1,1,1))
+        return X, Xerr
+
+    def _n_parameters(self): 
+        _, n_features = self.mu.shape
+        cov_params = self.n_components * n_features * (n_features + 1) / 2.
+        mean_params = n_features  * self.n_components
+        return int(cov_params + mean_params + self.n_components - 1)
 
 
 def sfr_mstar_gmm(logmstar, logsfr, n_comp_max=30, silent=False): 

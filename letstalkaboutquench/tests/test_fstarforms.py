@@ -8,6 +8,7 @@ import corner as DFM
 import env
 from catalogs import Catalog as Cat
 from fstarforms import fstarforms
+from fstarforms import xdGMM 
 from fstarforms import sfr_mstar_gmm
 import util as UT
 import corner as DFM 
@@ -483,14 +484,61 @@ def SFRMstar_GMM(catalog, n_comp_max=30):
     return None 
 
 
+def xd_GMM(name, mbin=[10., 10.2]): 
+    '''
+    '''
+    Cata = Cat()
+    _logM, _logSFR, w, censat = Cata.Read(name)
+    iscen = (censat == 1)
+    logM = _logM[iscen]
+    logSFR = _logSFR[iscen]
+    
+    # SFR uncertainty from star particle mass 
+    logSFR_err = 0.434*(2.e-2)/(10.**logSFR)
+
+    mlim = (logM > 10.0) & (logM < 10.2) & (np.isfinite(logSFR_err))
+    
+    ncomps = range(1, 6)
+    fig = plt.figure(figsize=(4*len(ncomps), 4))
+    xx = np.linspace(-14., -9., 100)
+    bics = [] 
+    for i in ncomps: 
+        xdg = xdGMM(i, n_iter=500) 
+        xdg.Fit(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
+        X, Xerr = xdg._X_check(logSFR[mlim]-logM[mlim], logSFR_err[mlim]) 
+        bics.append(xdg.bic(X, Xerr))
+
+        sub = fig.add_subplot(1,len(ncomps),i)
+        _ = sub.hist(logSFR[mlim] - logM[mlim], normed=True, 
+                histtype='step', range=[-13., -9], bins=32)
+        for icomp in range(len(xdg.mu)):
+            sub.plot(xx, xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp]))
+            if icomp == 0:
+                gtot = xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp])
+            else:
+                gtot += xdg.alpha[icomp]*MNorm.pdf(xx, xdg.mu[icomp], xdg.V[icomp])
+        sub.plot(xx, gtot, c='k', ls='--')
+        sub.set_xlim([-13., -9])
+        if i < np.max(ncomps):  
+            sub.set_xticklabels([])
+    print ncomps
+    print bics 
+    str_mbin = '_'.join([str(mm) for mm in mbin])
+    fig_name = ''.join([UT.fig_dir(), 'XDGMM.', name, '.', str_mbin, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None 
+
+
 if __name__=='__main__': 
     #SFR_Mstar_Catalogs('gaussmix', contour='dfm')
-    for c in ['illustris', 'eagle', 'mufasa']:
-        for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-            try: 
-                SFRMstar_GMM(c+'_'+tscale)
-            except (ValueError, NotImplementedError): 
-                continue 
+    xd_GMM('illustris_100myr') 
+    #for c in ['illustris', 'eagle', 'mufasa']:
+    #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+    #        try: 
+    #            SFRMstar_GMM(c+'_'+tscale)
+    #        except (ValueError, NotImplementedError): 
+    #            continue 
     #assess_SFMS_fit_dlogM('eagle_100myr', 'gaussmix', mbin=[9.5, 9.7])
     #assess_SFMS_dMS('nsa_dickey', 'gaussmix')
     #fQ_dMS('gaussmix')
