@@ -29,7 +29,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def assess_SFMS_fit(catalog, fit_method):
+def assess_SFMS_fit(catalog, fit_method, silent=False):
     ''' Assess the quality of the SFMS fits by comparing 
     to the actual P(SFR) at each of the mass bins. 
     '''
@@ -43,7 +43,8 @@ def assess_SFMS_fit(catalog, fit_method):
     # fit the SFMS using whatever method 
     fSFMS = fstarforms()
     if fit_method != 'gaussmix_err':
-        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method, forTest=True) 
+        fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=fit_method, forTest=True, 
+                silent=silent) 
     else: 
         # hardcoded sfr uncertainty based on star-particle mass
         if catalog.split('_')[0] == 'mufasa':   
@@ -55,7 +56,7 @@ def assess_SFMS_fit(catalog, fit_method):
         else: 
             raise ValueError('logSFR errors unavailable') 
         fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, logsfr_err=logsfr_err, 
-                method=fit_method, forTest=True) 
+                method=fit_method, forTest=True, silent=silent) 
 
     # common sense cuts imposed in fSFMS
     logm = logm[fSFMS._sensecut]
@@ -606,6 +607,6 @@ if __name__=='__main__':
     #fQ_dMS('gaussmix')
 
     #assess_SFMS_fit('tinkergroup', 'gaussmix')
-    for c in ['illustris', 'eagle', 'mufasa']:
-        assess_SFMS_fit(c+'_100myr', 'gaussmix')
+    for c in ['illustris']:#, 'eagle', 'mufasa']:
+        assess_SFMS_fit(c+'_100myr', 'gaussmix', silent=True)
     #SFMSfrac('tinkergroup')

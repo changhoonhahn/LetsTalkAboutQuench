@@ -297,12 +297,13 @@ class fstarforms(object):
                     self._tests['mbin_mid'].append(0.5*(mbin_low[i] + mbin_high[i]))  
                     self._tests['gbests'].append(gbest)  
 
-                if (gbest.means_.flatten().max() < -11.) and not silent:
+                if (gbest.means_.flatten().max() < -11.):
                     # this means that the bestfitting GMM does not find a gaussian with 
                     # log SSFR > -11. we take this to mean that SFMS is not well 
                     # defined in this mass bin 
-                    warnings.warn('SFMS is not well defined in the M* bin'+\
-                            str(mbin_low[i])+'-'+(str(mbin_high[i])))
+                    if not silent: 
+                        warnings.warn('SFMS is not well defined in the M* bin'+\
+                                str(mbin_low[i])+'-'+(str(mbin_high[i])))
                     continue 
 
                 if n_comps[i_best] > 1 and np.sum(gbest.means_.flatten() > -11) > 1: 
