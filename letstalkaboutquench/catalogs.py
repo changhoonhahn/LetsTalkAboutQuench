@@ -38,12 +38,16 @@ class Catalog:
                 }
         self.catalog_list = self.catalog_dict.keys()
 
-    def Read(self, name, silent=False): 
+    def Read(self, name, keepzeros=False, silent=False): 
         ''' Here we deal with the disparate outputs of the different catalogs and output
         log(M*), log(SFR), weight, censat
 
         name : (string) 
             catalog name e.g. 'santacruz1'
+
+        keepzeros : (bool) 
+            If True, keeps galaxies with zero SFR in the catalog. If False
+            authomatically removes them.
         
         Notes
         -----
@@ -70,6 +74,7 @@ class Catalog:
                 raise ValueError(name+" not found")
             logSFR = np.log10(_ssfr) + logM # calculate log SFR from sSFR
             w = np.ones(len(logM)) # uniform weights 
+            zerosfr = (_ssfr == 0.) # galaxies with zero SFRs
 
         elif 'eagle' in name: # EAGLE simulation 
             if name == 'eagle_inst': # instantaneous SFRs
@@ -88,6 +93,7 @@ class Catalog:
                 raise ValueError(name+" not found")
             logSFR = np.log10(_SFR) # log SFRs
             w = np.ones(len(logM)) # uniform weights 
+            zerosfr = (_SFR == 0.) # galaxies with zero SFRs
 
         elif 'mufasa' in name: # MUFASA simulation 
             # header: logM*, logSFR (isnt), logSFR (10Myr), logSFR (100Myr), logSFR (1Gyr), central/satellite
@@ -102,6 +108,7 @@ class Catalog:
             else: 
                 raise ValueError(name+" not found")
             w = np.ones(len(logM)) # uniform weights
+            zerosfr = np.invert(np.isfinite(logSFR))
 
         elif 'scsam' in name: # Santa Cruz Semi-Analytic model
             # 0 hosthaloid (long long) 1 birthhaloid (long long) 2 redshift 3 sat_type 0= central 4 mhalo total halo mass [1.0E09 Msun] 5 m_strip stripped mass [1.0E09 Msun] 
@@ -127,17 +134,20 @@ class Catalog:
             w = np.ones(len(logM))
             censat = np.ones(len(logM))
             censat[_censat != 0] = 0. # cen/sat is reversed where centrals = 1
+            zerosfr = (_SFR == 0.) 
 
         elif name == 'nsa_combined': # NSA + SDSS combined, run through a group catalog 
             logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0,1])
             w = np.ones(len(logM)) 
             censat = np.ones(len(logM)) 
-        
+            zerosfr = np.zeros(len(logM), dtype=bool)  
+
         elif name == 'nsa_combined_uv': # NSA + SDSS combined, run through a group catalog
             # but with UV photometry star formation rate 
             logM, logSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0,2])
             w = np.ones(len(logM)) 
             censat = np.ones(len(logM)) 
+            zerosfr = np.zeros(len(logM), dtype=bool)  
 
         elif name == 'tinkergroup': # SDSS DR7 Tinker group catalog 
             tink_Mstar, tink_logSSFR = np.loadtxt(f_name, unpack=True, skiprows=2, usecols=[0, 7])
@@ -145,6 +155,7 @@ class Catalog:
             logSFR = tink_logSSFR + logM
             w = np.ones(len(logM))
             censat = np.ones(len(logM)) # all centrals
+            zerosfr = np.zeros(len(logM), dtype=bool)  
 
         elif name == 'nsa_dickey': 
             dic_logM, dic_logSFR =  np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[1,5]) 
@@ -152,23 +163,26 @@ class Catalog:
             logSFR = dic_logSFR 
             w = np.ones(len(logM))
             censat = np.ones(len(logM)) # all centrals (since isolation criteria is more stringent)  
+            zerosfr = np.zeros(len(logM), dtype=bool)  
         else: 
             raise ValueError(name+' not found')
 
-        # deal with sfr = 0 or other non finite numbers 
-        sfr_zero = np.where((np.isfinite(logSFR) == False) | (logSFR < -5))
-        msg_warn = '\n'.join(['', 
-            ''.join(['------ ', name, ' ------']), 
-            ''.join([str(len(sfr_zero[0])), ' of ', str(len(logM)), 
-                ' galaxies have 0/non-finite SFRs']), 
-            'logSFR of these galaxies will be -999.']) 
+        self.zero_sfr = zerosfr
 
         if not silent: 
+            # deal with sfr = 0 or other non finite numbers 
+            #sfr_zero = np.where((np.isfinite(logSFR) == False) | (logSFR < -5))
+            msg_warn = '\n'.join(['', 
+                ''.join(['------ ', name, ' ------']), 
+                ''.join([str(np.sum(zerosfr)), ' of ', str(len(logM)), 
+                    ' galaxies have 0/non-finite SFRs'])]) 
             warnings.warn(msg_warn) 
 
-        logSFR[sfr_zero] = -999.
-
-        return [logM, logSFR, w, censat]
+        if keepzeros: 
+            return [logM, logSFR, w, censat]
+        else: 
+            logSFR[zerosfr] = -999.
+            return [logM, logSFR, w, censat]
 
     def _File(self, name): 
         ''' catalog file names
