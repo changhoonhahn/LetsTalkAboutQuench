@@ -14,6 +14,7 @@ from scipy.stats import multivariate_normal as MNorm
 
 import matplotlib.pyplot as plt 
 from matplotlib import lines as mlines
+from matplotlib.patches import Rectangle
 
 # -- Local --
 import util as UT
@@ -495,6 +496,166 @@ def Catalog_GMMcomps():
     return None 
 
 
+def GMMcomp_composition(cat_name): 
+    ''' Plot the fractional composition of the different GMM components 
+    along with galaxies with zero SFRs for a given `catname` catalog
+    '''
+    Cat = Cats.Catalog()
+    logM, logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
+    iscen = (censat == 1)
+    iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
+    iscen_z = iscen & Cat.zero_sfr # SFR == 0 
+    assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
+
+    # fit the SFMS using GMM fitting
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
+            method='gaussmix', forTest=True) 
+    
+    mbin = fSFMS._tests['mbin_mid'] 
+    
+    f_zero  = np.zeros(len(fit_logm))
+    f_sfms  = np.zeros(len(fit_logm))
+    f_q     = np.zeros(len(fit_logm))
+    f_other = np.zeros(len(fit_logm))
+
+    for i_m in range(len(fit_logm)): 
+        # sfms component 
+        sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
+        f_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
+
+        # "quenched" component 
+        quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & \
+                (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
+        if np.sum(quenched) > 0: 
+            f_q[i_m] = np.sum(fSFMS._gmix_weights[i_m][quenched])
+
+        # other component 
+        other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & \
+                (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
+        if np.sum(other) > 0: 
+            f_other[i_m] = np.sum(fSFMS._gmix_weights[i_m][other])
+        
+        mmid_i = mbin[np.argmin(np.abs(mbin - fit_logm[i_m]))]
+        mbin_iscen_z = iscen & Cat.zero_sfr & \
+                (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+        mbin_iscen = iscen & \
+                (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+    
+        f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
+    f_sfms  *= (1. - f_zero) 
+    f_q     *= (1. - f_zero) 
+    f_other *= (1. - f_zero) 
+
+    fig = plt.figure(figsize=(5,5)) 
+    sub = fig.add_subplot(111)  
+    sub.fill_between(fit_logm, np.zeros(len(fit_logm)), f_zero, # SFR = 0 
+            linewidth=0, color='C3') 
+    sub.fill_between(fit_logm, f_zero, f_zero+f_q,              # Quenched
+            linewidth=0, color='C1') 
+    sub.fill_between(fit_logm, f_zero+f_q, f_zero+f_q+f_other,   # other 
+            linewidth=0, color='C2') 
+    sub.fill_between(fit_logm, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
+            linewidth=0, color='C0') 
+    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', fontsize=20) 
+    sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
+    sub.set_ylim([0., 1.]) 
+
+    p1 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C3")
+    p2 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C1")
+    p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
+    p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
+    sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
+            bbox_to_anchor=(1.1, 1.05))
+    
+    lbl = Cat.CatalogLabel(cat_name)
+    sub.text(0.05, 0.95, lbl, ha='left', va='top', color='white', 
+            transform=sub.transAxes, fontsize=20)
+    fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition_', cat_name, '.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
+def Pssfr_res_impact(): 
+    ''' Plot illustrating the impact of star-particle resolution  
+    on the P(SSFR) distribution. 
+    '''
+    n_mc = 100
+    fig = plt.figure(figsize=(12,4))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_c, cat_name in enumerate(['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']):
+        if cat_name == 'illustris_100myr':
+            mbin = [8.2, 8.4]
+            dsfr = 0.016
+        elif cat_name == 'eagle_100myr':
+            mbin = [8.4, 8.6]
+            dsfr = 0.018
+        elif cat_name == 'mufasa_100myr':
+            mbin = [9.2, 9.4]
+            dsfr = 0.182
+        # read in SFR and M* 
+        Cat = Cats.Catalog()
+        _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
+        _SFR = 10**_logSFR
+
+        sub = fig.add_subplot(1,3,i_c+1)
+        iscen = (censat == 1)
+        iscen_nz_mbin = iscen & np.invert(Cat.zero_sfr) & (_logM > mbin[0]) & (_logM < mbin[1])
+        iscen_z_mbin  = iscen & Cat.zero_sfr & (_logM > mbin[0]) & (_logM < mbin[1])
+        ngal_bin = float(np.sum(iscen & (_logM > mbin[0]) & (_logM < mbin[1])))
+
+        hs, hs_nz = [], []
+        for ii in range(n_mc):
+            sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+            sfr_z = dsfr * np.random.uniform(size=np.sum(iscen_z_mbin))
+
+            logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
+            logssfr_z = np.log10(sfr_z) - _logM[iscen_z_mbin]
+            logssfr = np.concatenate([logssfr_nz, logssfr_z])
+
+            h0, h1 = np.histogram(logssfr, bins=40, range=[-16., -8.])
+            hs.append(h0)
+
+        for ii in range(n_mc):
+            sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+            logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
+            h0_nz, _ = np.histogram(logssfr_nz, bins=40, range=[-16., -8.])
+            hs_nz.append(h0_nz)
+
+        hs = np.array(hs)/ngal_bin
+        hs_nz = np.array(hs_nz)/ngal_bin
+
+        bar_x, bar_y = UT.bar_plot(h1, np.mean(hs,axis=0))
+        sub.plot(bar_x, bar_y, c='C0', label='w/ SFR $=0$')#/ngal_bin)
+        sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs, axis=0), yerr=np.std(hs, axis=0),
+                     fmt='.C0', markersize=.5)
+        
+        bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_nz,axis=0))
+        sub.plot(bar_x, bar_y, c='k', ls='--', label='w/o SFR $=0$')
+        sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
+                yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
+
+        sub.set_xlim([-13.25, -8.8])
+        sub.set_ylim([0., 0.25]) 
+        if i_c == 0: sub.set_yticks([0., 0.1, 0.2]) 
+        else: sub.set_yticks([]) 
+        lbl = Cat.CatalogLabel(cat_name).split('[')[0]
+        sub.text(0.5, 0.92, lbl+': $'+str(mbin[0])+'< \log M_* <'+str(mbin[1])+'$',
+            ha='center', va='top', transform=sub.transAxes, fontsize=15)
+
+    sub.legend(bbox_to_anchor=(0.725, 0.875), frameon=False, prop={'size':15}) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'P(log SSFR  $[yr^{-1}])$', labelpad=10, fontsize=20)
+    bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20)
+
+    fig.subplots_adjust(wspace=0.05)
+    fig_name = ''.join([UT.fig_dir(), 'Pssfr_res_impact.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+
 def _SFMSfit_assess(name, method='gaussmix'):
     ''' Assess the quality of the SFMS fits by comparing to the actual 
     P(sSFR) in mass bins. 
@@ -726,13 +887,15 @@ if __name__=="__main__":
 
     #SFMSfit_example()
 
-    for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
-        Catalog_SFMS_fit(tscale)
+    #for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
+    #    Catalog_SFMS_fit(tscale)
     #Catalog_GMMcomps()
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
+    Pssfr_res_impact()
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
-    #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
+    #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
+    #        GMMcomp_composition(c+'_'+tscale)
     #        _GMM_comp_test(c+'_'+tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)

@@ -93,25 +93,15 @@ class fstarforms(object):
         - Dempster, Laird, Rubin, 1977 (EM algoritmh) 
         - Wu, 1983 (EM convergence) 
         '''
-        if len(logmstar) != len(logsfr): 
-            raise ValueError("logmstar and logsfr are not the same length arrays") 
-
-        if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err']: 
-            raise ValueError(method+" is not one of the methods!") 
-
-        # only keep sensible logmstar and log sfr
-        if logsfr_err is None: 
-            sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False)
-        else: 
-            sense = (logmstar > 0.) & (logmstar < 13) & (logsfr > -5) & (logsfr < 4) & (np.isnan(logsfr) == False) & \
-                    (np.isfinite(logsfr_err))
-        if (len(logmstar) - np.sum(sense) > 0) and not silent: 
-            warnings.warn(str(len(logmstar) - np.sum(sense))+' galaxies have nonsensical logM* or logSFR values')  
-        self._sensecut = sense
-        logmstar = logmstar[np.where(sense)]
-        logsfr = logsfr[np.where(sense)]
+        # check the logmstar and logsfr inputs 
+        self._check_input(logmstar, logsfr)
         if logsfr_err is not None: 
-            logsfr_err = logsfr_err[np.where(sense)]
+            if np.sum(np.invert(np.isfinite(logsfr_err))) > 0: 
+                raise ValueError("There are non-finite log SFR error values")  
+
+        if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 
+                'gaussmix', 'gaussmix_err']: 
+            raise ValueError(method+" is not one of the methods!") 
 
         # fitting M* range
         if fit_range is None: 
@@ -119,7 +109,8 @@ class fstarforms(object):
             if method == 'lowMbin_extrap': 
                 warnings.warn('Specify fitting range of lowMbin_extrap '+\
                         'fit method will return garbage') 
-            fit_range = [logmstar.min(), logmstar.max()]
+            fit_range = [int(logmstar.min()/dlogm)*dlogm, np.ceil(logmstar.max()/dlogm)*dlogm]
+
         mass_cut = (logmstar > fit_range[0]) & (logmstar < fit_range[1])
         if np.sum(mass_cut) == 0: 
             raise ValueError("no galaxies within that cut!")
@@ -419,6 +410,19 @@ class fstarforms(object):
             return issf[0]
         else: 
             return issf[0][weights[issf].argmax()]
+    
+    def _check_input(self, logmstar, logsfr): 
+        ''' check that input logMstar or logSFR values do not make sense!
+        '''
+        if len(logmstar) != len(logsfr): 
+            raise ValueError("logmstar and logsfr are not the same length arrays") 
+        if np.sum(logmstar < 0.) > 0: 
+            raise ValueError("There are negative values of log M*")  
+        if np.sum(logmstar > 13.) > 0: 
+            warnings.warn("There are galaxies with log M* > 13. ... that's weird") 
+        if np.sum(np.invert(np.isfinite(logsfr))) > 0: 
+            raise ValueError("There are non-finite log SFR values")  
+        return None 
 
 
 class xdGMM(object): 
