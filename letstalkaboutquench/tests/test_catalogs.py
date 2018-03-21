@@ -7,10 +7,63 @@ import env
 from catalogs import Catalog as Cat
 import util as UT
  
-import matplotlib.pyplot as plt 
 import corner as DFM 
-from ChangTools.plotting import prettyplot
-from ChangTools.plotting import prettycolors
+import matplotlib as mpl
+import matplotlib.pyplot as plt 
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['axes.linewidth'] = 1.5
+mpl.rcParams['axes.xmargin'] = 1
+mpl.rcParams['xtick.labelsize'] = 'x-large'
+mpl.rcParams['xtick.major.size'] = 5
+mpl.rcParams['xtick.major.width'] = 1.5
+mpl.rcParams['ytick.labelsize'] = 'x-large'
+mpl.rcParams['ytick.major.size'] = 5
+mpl.rcParams['ytick.major.width'] = 1.5
+mpl.rcParams['legend.frameon'] = False
+
+
+def GroupFinder_purity(): 
+    ''' Test Catalog.GroupFinder by reproducing the purity plots 
+    that Tjitske generated
+    '''
+    names = ['illustris_100myr']#, 'mufasa_100myr']
+    fig = plt.figure(figsize=(4*len(names),4)) 
+    bkgd = fig.add_subplot(111, frameon=False) 
+    Cata = Cat()
+    for i_n, name in enumerate(names): 
+        logM, _, _, censat = Cata.Read(name, keepzeros=True) 
+        psat = Cata.GroupFinder(name)
+        
+        assert len(psat) == len(logM)
+
+        ispurecen = (psat < 0.01) 
+        iscen = (psat < 0.5) 
+
+        mbin = np.linspace(8., 12., 17) 
+        fp_pc, fp_c = [], []  # purity fraction for pure central (pc) and central (c)
+        for im in range(len(mbin)-1): 
+            inmbin = (logM > mbin[im]) & (logM < mbin[im+1])
+            fp_pc.append(float(np.sum(censat[ispurecen & inmbin] == 1))/float(np.sum(ispurecen & inmbin)))
+            fp_c.append(float(np.sum(censat[iscen & inmbin] == 1))/float(np.sum(iscen & inmbin)))
+        
+        sub = fig.add_subplot(1,len(names),i_n+1) 
+        sub.plot(0.5*(mbin[1:] + mbin[:-1]), fp_pc, 
+                label='Pure Centrals '+str(round(np.mean(fp_pc),2)))
+        sub.plot(0.5*(mbin[1:] + mbin[:-1]), fp_c, 
+                label='Centrals '+str(round(np.mean(fp_c),2))) 
+        sub.set_xlim([8., 12.]) 
+        sub.set_ylim([0., 1.]) 
+
+        if i_n == len(names)-1: 
+            sub.legend(loc='lower left', prop={'size':15}) 
+        
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$f_\mathrm{purity}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    fig.savefig(''.join([UT.fig_dir(), 'groupfinder.purity.png']), bbox_inches='tight') 
+    plt.close() 
+    return None 
 
 
 def SFR_Mstar_SSFRcut(name, xrange=None, yrange=None): 
@@ -104,4 +157,4 @@ def pssfr(name, Mrange=[10.,10.5], xrange=None):
 
 
 if __name__=='__main__': 
-    SFR_Mstar('mufasa_inst', xrange=[7.5, 12.])
+    GroupFinder_purity()

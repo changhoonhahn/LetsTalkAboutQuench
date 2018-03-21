@@ -184,6 +184,26 @@ class Catalog:
             logSFR[zerosfr] = -999.
             return [logM, logSFR, w, censat]
 
+    def GroupFinder(self, name): 
+        ''' read in satellite probabilities from Jeremy's group finder
+        '''
+        cat_name = name.split('_')[0] # name of catalog
+        if cat_name not in ['illustris', 'eagle', 'mufasa']: 
+            raise NotImplementedError("Group finder values not yet available for catalog") 
+            
+        # dictionary group catalog files 
+        groupfind_dict = { 
+                'illustris': 'illustris_groups_Mall.prob', 
+                'eagle': 'EAGLE_groups_all.prob', 
+                'mufasa': 'MUFASA_groups_all.prob'
+                }
+        # group finder file name
+        f_name = ''.join([UT.dat_dir(), 'group_finder/', groupfind_dict[cat_name]]) 
+        psat = np.loadtxt(f_name, unpack=True, usecols=[5]) 
+        assert psat.min() >= 0.
+        assert psat.max() <= 1. 
+        return psat
+
     def _File(self, name): 
         ''' catalog file names
         '''
