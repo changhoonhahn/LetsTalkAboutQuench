@@ -582,75 +582,165 @@ def Pssfr_res_impact():
     on the P(SSFR) distribution. 
     '''
     n_mc = 100
-    fig = plt.figure(figsize=(12,4))
+    fig = plt.figure(figsize=(12,6))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_c, cat_name in enumerate(['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']):
-        if cat_name == 'illustris_100myr':
-            mbin = [8.2, 8.4]
-            dsfr = 0.016
-        elif cat_name == 'eagle_100myr':
-            mbin = [8.4, 8.6]
-            dsfr = 0.018
-        elif cat_name == 'mufasa_100myr':
-            mbin = [9.2, 9.4]
-            dsfr = 0.182
-        # read in SFR and M* 
-        Cat = Cats.Catalog()
-        _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
-        _SFR = 10**_logSFR
+        for i_m in range(2):  
+            if cat_name == 'illustris_100myr':
+                if i_m == 0: mbin = [8.2, 8.4]
+                else: mbin = [10.6, 10.8]
+                dsfr = 0.016
+            elif cat_name == 'eagle_100myr':
+                if i_m == 0: mbin = [8.4, 8.6]
+                else: mbin = [10.6, 10.8]
+                dsfr = 0.018
+            elif cat_name == 'mufasa_100myr':
+                if i_m == 0: mbin = [9.2, 9.4]
+                else: mbin = [10.6, 10.8]
+                dsfr = 0.182
+            # read in SFR and M* 
+            Cat = Cats.Catalog()
+            _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
+            _SFR = 10**_logSFR
 
-        sub = fig.add_subplot(1,3,i_c+1)
-        iscen = (censat == 1)
-        iscen_nz_mbin = iscen & np.invert(Cat.zero_sfr) & (_logM > mbin[0]) & (_logM < mbin[1])
-        iscen_z_mbin  = iscen & Cat.zero_sfr & (_logM > mbin[0]) & (_logM < mbin[1])
-        ngal_bin = float(np.sum(iscen & (_logM > mbin[0]) & (_logM < mbin[1])))
+            sub = fig.add_subplot(2,3,i_c+1+3*i_m)
+            iscen = (censat == 1)
+            iscen_nz_mbin = iscen & np.invert(Cat.zero_sfr) & (_logM > mbin[0]) & (_logM < mbin[1])
+            iscen_z_mbin  = iscen & Cat.zero_sfr & (_logM > mbin[0]) & (_logM < mbin[1])
+            ngal_bin = float(np.sum(iscen & (_logM > mbin[0]) & (_logM < mbin[1])))
 
-        hs, hs_nz = [], []
-        for ii in range(n_mc):
-            sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
-            sfr_z = dsfr * np.random.uniform(size=np.sum(iscen_z_mbin))
+            hs, hs_nz = [], []
+            for ii in range(n_mc):
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+                sfr_z = dsfr * np.random.uniform(size=np.sum(iscen_z_mbin))
 
-            logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
-            logssfr_z = np.log10(sfr_z) - _logM[iscen_z_mbin]
-            logssfr = np.concatenate([logssfr_nz, logssfr_z])
+                logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
+                logssfr_z = np.log10(sfr_z) - _logM[iscen_z_mbin]
+                logssfr = np.concatenate([logssfr_nz, logssfr_z])
 
-            h0, h1 = np.histogram(logssfr, bins=40, range=[-16., -8.])
-            hs.append(h0)
+                h0, h1 = np.histogram(logssfr, bins=40, range=[-16., -8.])
+                hs.append(h0)
 
-        for ii in range(n_mc):
-            sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
-            logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
-            h0_nz, _ = np.histogram(logssfr_nz, bins=40, range=[-16., -8.])
-            hs_nz.append(h0_nz)
+            for ii in range(n_mc):
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+                logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
+                h0_nz, _ = np.histogram(logssfr_nz, bins=40, range=[-16., -8.])
+                hs_nz.append(h0_nz)
 
-        hs = np.array(hs)/ngal_bin
-        hs_nz = np.array(hs_nz)/ngal_bin
+            hs = np.array(hs)/ngal_bin
+            hs_nz = np.array(hs_nz)/ngal_bin
 
-        bar_x, bar_y = UT.bar_plot(h1, np.mean(hs,axis=0))
-        sub.plot(bar_x, bar_y, c='C0', label='w/ SFR $=0$')#/ngal_bin)
-        sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs, axis=0), yerr=np.std(hs, axis=0),
-                     fmt='.C0', markersize=.5)
-        
-        bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_nz,axis=0))
-        sub.plot(bar_x, bar_y, c='k', ls='--', label='w/o SFR $=0$')
-        sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
-                yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
+            bar_x, bar_y = UT.bar_plot(h1, np.mean(hs,axis=0))
+            sub.plot(bar_x, bar_y, c='C0', label='w/ SFR $=0$')#/ngal_bin)
+            sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs, axis=0), yerr=np.std(hs, axis=0),
+                         fmt='.C0', markersize=.5)
+            
+            bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_nz,axis=0))
+            sub.plot(bar_x, bar_y, c='k', ls='--', label='w/o SFR $=0$')
+            sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
+                    yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
 
-        sub.set_xlim([-13.25, -8.8])
-        sub.set_ylim([0., 0.25]) 
-        if i_c == 0: sub.set_yticks([0., 0.1, 0.2]) 
-        else: sub.set_yticks([]) 
-        lbl = Cat.CatalogLabel(cat_name).split('[')[0]
-        sub.text(0.5, 0.92, lbl+': $'+str(mbin[0])+'< \log M_* <'+str(mbin[1])+'$',
-            ha='center', va='top', transform=sub.transAxes, fontsize=15)
-
-    sub.legend(bbox_to_anchor=(0.725, 0.875), frameon=False, prop={'size':15}) 
+            sub.set_xlim([-13.25, -8.8])
+            if i_m == 0: sub.set_xticks([])
+            else: sub.set_xticks([-13., -11., -9.]) 
+            sub.set_ylim([0., 0.25]) 
+            if i_c == 0: sub.set_yticks([0., 0.1, 0.2]) 
+            else: sub.set_yticks([]) 
+            lbl = Cat.CatalogLabel(cat_name).split('[')[0]
+            if i_m == 0: sub.set_title(lbl, fontsize=20) 
+            sub.text(0.5, 0.92, '$'+str(mbin[0])+'< \log M_* <'+str(mbin[1])+'$',
+                ha='center', va='top', transform=sub.transAxes, fontsize=15)
+    
+            if (i_c == 2) and (i_m == 0): sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.48), frameon=False, prop={'size':15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_ylabel(r'P(log SSFR  $[yr^{-1}])$', labelpad=10, fontsize=20)
     bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20)
 
-    fig.subplots_adjust(wspace=0.05)
+    fig.subplots_adjust(wspace=0.05, hspace=0.05)
     fig_name = ''.join([UT.fig_dir(), 'Pssfr_res_impact.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+
+def Mlim_res_impact(n_mc=20): 
+    '''
+    '''
+    catalogs = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
+    fig = plt.figure(figsize=(4*len(catalogs),4))
+    bkgd = fig.add_subplot(111, frameon=False)
+
+    Cat = Cats.Catalog()
+    for i_n, name in enumerate(catalogs): 
+        _logm, _logsfr, _, censat = Cat.Read(name, keepzeros=True, silent=True)
+        iscen_nz = (censat == 1) & np.invert(Cat.zero_sfr)
+        iscen_z  = (censat == 1) & Cat.zero_sfr
+        ngal_nz = np.sum(iscen_nz)
+        ngal_z = np.sum(iscen_z) 
+
+        _sfr = 10**_logsfr
+        dsfr = Cat._SFR_resolution(name) # SFR resolution 
+            
+        logm = np.concatenate([_logm[iscen_nz], _logm[iscen_z]]) # all log M*
+    
+        # fit with scattered SFR 
+        fSFMS_s = fstarforms()
+        fit_logsfr_s = [] 
+        for i in range(n_mc): 
+            sfr_low = _sfr[iscen_nz] - dsfr
+            sfr_low = np.clip(sfr_low, 0., None) 
+            logsfr_nz = np.log10(np.random.uniform(sfr_low, _sfr[iscen_nz]+dsfr, size=ngal_nz))
+            logsfr_z = np.log10(dsfr * np.random.uniform(size=ngal_z))
+            logsfr = np.concatenate([logsfr_nz, logsfr_z]) # scattered log SFR
+        
+            fit_logm_s, fit_logsfr_s_i = fSFMS_s.fit(logm, logsfr, method='gaussmix', 
+                    dlogm=0.2, fit_range=[8.,11.], maxcomp=4, forTest=True, silent=True) 
+            fit_logsfr_s.append(fit_logsfr_s_i)
+    
+        sig_fit_logsfr_s = np.std(np.array(fit_logsfr_s), axis=0) # scatter in the fits
+        fit_logsfr_s = np.mean(fit_logsfr_s, axis=0) # mean fit
+
+        # fit without scatter
+        fSFMS = fstarforms()
+        fit_logm_ns, fit_logsfr_ns = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
+                dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
+
+        # check that the mbins are equal between the fit w/ scatter and fit w/o scatter
+        assert np.array_equal(fSFMS._tests['mbin_mid'], fSFMS_s._tests['mbin_mid'])
+
+        dfit = fit_logsfr_ns - fit_logsfr_s # change in SFMS fit caused by resolution limit 
+
+        # log M* where resolution limit causes the SFMS to shift by 0.1 dex
+        mbin_mid = np.array(fSFMS._tests['mbin_mid'])
+        mlim = (mbin_mid[(np.abs(dfit) > 0.1)]).max() + 0.5*fSFMS._dlogm 
+        
+        # lets plot this stuff 
+        sub = fig.add_subplot(1,len(catalogs),i_n+1)
+        DFM.hist2d(_logm[iscen_nz], _logsfr[iscen_nz], color='k',
+                levels=[0.68, 0.95], range= [[7., 12.], [-4., 2.]],
+                plot_datapoints=False, fill_contours=False, plot_density=False, 
+                contour_kwargs={'linewidths':1, 'linestyles':'dotted'}, ax=sub) 
+
+        sub.scatter(fit_logm_s, fit_logsfr_s, marker='x', color='C1', lw=1, s=40, 
+                label='SFR resamp.')
+        sub.scatter(fit_logm_ns, fit_logsfr_ns, marker='x', color='k', lw=1, s=40, 
+                label='SFR no resamp.')
+        sub.text(0.95, 0.05, '$\log\,M_{\lim}='+str(round(mlim,2))+'$', 
+                 ha='right', va='bottom', transform=sub.transAxes, fontsize=15)
+        sub.vlines(mlim, -4., 2., color='k', linestyle='--', linewidth=0.5)
+        sub.fill_between([7.5, mlim], [-3., -3.], [2., 2.], color='k', alpha=0.2)
+        sub.set_xlim([7.5, 11.8])
+        sub.set_xticks([8., 9., 10., 11.]) 
+        sub.set_ylim([-3., 2.])
+        if i_n != 0: sub.set_yticks([]) 
+        if i_n == len(catalogs)-1: sub.legend(loc='upper left', bbox_to_anchor=(-0.075, 1.), 
+                handletextpad=-0.02, frameon=False, prop={'size':15}) 
+    
+    bkgd.set_xlabel(r'log $M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'log SFR $[M_\odot \, yr^{-1}]$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    fig.subplots_adjust(wspace=0.05)
+    fig_name = ''.join([UT.fig_dir(), 'Mlim_res_impact.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
@@ -892,7 +982,8 @@ if __name__=="__main__":
     #Catalog_GMMcomps()
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    Pssfr_res_impact()
+    #Pssfr_res_impact()
+    Mlim_res_impact(n_mc=100)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        GMMcomp_composition(c+'_'+tscale)

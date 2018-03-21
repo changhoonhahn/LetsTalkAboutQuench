@@ -252,7 +252,20 @@ class Catalog:
             return 100.**3
         elif 'mufasa' in name: # mufasa (50 Mpc/h)^3
             return 50.**3
-    
+   
+    def _SFR_resolution(self, name): 
+        ''' SFR resolution for simulations 
+        '''
+        if name not in ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']: 
+            raise ValueError("other catalogs do not have well defined SFR resolutions")  
+        elif name == 'illustris_100myr': 
+            dsfr = 0.016
+        elif name == 'eagle_100myr': 
+            dsfr = 0.018
+        elif name == 'mufasa_100myr': 
+            dsfr = 0.182
+        return dsfr
+
     def _default_Mstar_range(self, name): 
         ''' stellar mass range of catalog where the SFR-M* relation
         is well defined. This is determined by eye and *conservatively*

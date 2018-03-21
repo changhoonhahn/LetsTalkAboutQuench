@@ -304,7 +304,7 @@ class fstarforms(object):
                     # If they do, send out a warning and use the mode for the SFMS component
                     in_sf = np.where(gbest.means_.flatten() > -11)
 
-                    if gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.90: 
+                    if (gbest.weights_[in_sf].min()/gbest.weights_[in_sf].max() > 0.90) and (not silent): 
                         warnings.warn('the SFMS in the M* bin'+\
                                 str(mbin_low[i])+'-'+(str(mbin_high[i]))+\
                                 'is best described by two comparable Gaussians') 
