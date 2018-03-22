@@ -98,13 +98,13 @@ class Catalog:
         elif 'mufasa' in name: # MUFASA simulation 
             # header: logM*, logSFR (isnt), logSFR (10Myr), logSFR (100Myr), logSFR (1Gyr), central/satellite
             if name == 'mufasa_inst': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,1,-1])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,1,-1])
             elif name == 'mufasa_10myr': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,2,-1])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,2,-1])
             elif name == 'mufasa_100myr': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,3,-1])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,3,-1])
             elif name == 'mufasa_1gyr': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=13, usecols=[0,4,-1])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,4,-1])
             else: 
                 raise ValueError(name+" not found")
             w = np.ones(len(logM)) # uniform weights
@@ -194,8 +194,8 @@ class Catalog:
         # dictionary group catalog files 
         groupfind_dict = { 
                 'illustris': 'illustris_groups_Mall.prob', 
-                'eagle': 'EAGLE_groups_all.prob', 
-                'mufasa': 'MUFASA_groups_all.prob'
+                'eagle': 'EAGLE_groups_allabove1.8e8.prob', 
+                'mufasa': 'MUFASA_groups.prob10.prob'
                 }
         # group finder file name
         f_name = ''.join([UT.dat_dir(), 'group_finder/', groupfind_dict[cat_name]]) 
@@ -348,8 +348,30 @@ def Build_Illustris_SFH():
     return None  
 
 
+def _mufasa_groupfinder_pre(): 
+    ''' pre-process MUFASA groupfinder data  
+    '''
+    # read in group finder data for MUFASA
+    f_name = ''.join([UT.dat_dir(), 'group_finder/', 'MUFASA_groups_all.prob']) 
+    prob_str = np.loadtxt(f_name, unpack=True, usecols=[0], dtype='S') 
+    data = np.loadtxt(f_name, unpack=True, usecols=range(1,14)) 
+    
+    # only keep ones with first column == PROB10  
+    prob10 = (prob_str == 'PROB10') 
+    data_out = [np.zeros(np.sum(prob10))] 
+    for i in range(len(data)): 
+        data_out.append(data[i][prob10]) 
+
+    # write it out 
+    out_name = ''.join([UT.dat_dir(), 'group_finder/', 'MUFASA_groups.prob10.prob']) 
+    np.savetxt(out_name, np.array(data_out).T) 
+    return None
+
+
+
 if __name__=='__main__': 
-    Build_Illustris_SFH()
+    _mufasa_groupfinder_pre()
+    #Build_Illustris_SFH()
     '''
     Cat = Catalog()
     

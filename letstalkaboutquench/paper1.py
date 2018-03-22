@@ -497,7 +497,7 @@ def Catalog_GMMcomps():
     return None 
 
 
-def GMMcomp_composition(): 
+def GMMcomp_composition(n_mc=10): 
     ''' Plot the fractional composition of the different GMM components 
     along with galaxies with zero SFRs for the different catalogs
     '''
@@ -515,67 +515,85 @@ def GMMcomp_composition():
             iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
             iscen_z = iscen & Cat.zero_sfr # SFR == 0 
             assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
-
-            # fit the SFMS using GMM fitting
-            fSFMS = fstarforms()
-            fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-                    method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=0, 
-                    forTest=True, silent=True) 
             
-            mbins = fSFMS._tests['mbin_mid'] 
-            gbests = fSFMS._tests['gbests'] 
-            
-            f_zero  = np.zeros(len(mbins))
-            f_sfms  = np.zeros(len(mbins))
-            f_q     = np.zeros(len(mbins))
-            f_other = np.zeros(len(mbins))
-            
-            for i_m, mbin, gbest in zip(range(len(mbins)), mbins, gbests): 
-                means_i = gbest.means_.flatten() 
-                weights_i = gbest.weights_
-                ncomp_i = len(weights_i) 
+            f_zeros, f_sfmss, f_qs, f_other0s, f_other1s= [], [], [], [], []  
+            for i in range(n_mc): 
+                # fit the SFMS using GMM fitting
+                fSFMS = fstarforms()
+                fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
+                        method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=0, 
+                        forTest=True, silent=True) 
                 
-                sfthresh = (means_i > -11.) 
-
-                # sfms component 
-                if np.sum(sfthresh) > 1: 
-                    sfms = (means_i == (means_i[sfthresh])[weights_i[sfthresh].argmax()])
-                else: 
-                    sfms = sfthresh.copy()
-                if np.sum(sfms): f_sfms[i_m] = np.sum(weights_i[sfms])
-                elif np.sum(sfms) > 1: raise ValueError
-
-                # "quenched" component 
-                quenched = np.zeros(ncomp_i, dtype=bool) 
-                quenched[means_i.argmin()] = True 
-                quenched = quenched & np.invert(sfthresh)
-                if np.sum(quenched): f_q[i_m] = np.sum(weights_i[quenched])
-
-                # other component 
-                other = np.invert(sfms) & np.invert(quenched)  
-                if np.sum(other): f_other[i_m] = np.sum(weights_i[other])
-
-                assert ncomp_i == np.sum(sfms) + np.sum(quenched) + np.sum(other)
+                mbins = fSFMS._tests['mbin_mid'] 
+                gbests = fSFMS._tests['gbests'] 
                 
-                mbin_iscen_z = iscen & Cat.zero_sfr & \
-                        (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
-                mbin_iscen = iscen & \
-                        (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
+                f_zero  = np.zeros(len(mbins))
+                f_sfms  = np.zeros(len(mbins))
+                f_q     = np.zeros(len(mbins))
+                f_other0= np.zeros(len(mbins))
+                f_other1= np.zeros(len(mbins))
+                
+                for i_m, mbin, gbest in zip(range(len(mbins)), mbins, gbests): 
+                    means_i = gbest.means_.flatten() 
+                    weights_i = gbest.weights_
+                    ncomp_i = len(weights_i) 
+                    
+                    sfthresh = (means_i > -11.) 
+
+                    # sfms component 
+                    if np.sum(sfthresh) > 1: sfms = (means_i == (means_i[sfthresh])[weights_i[sfthresh].argmax()])
+                    else: sfms = sfthresh.copy()
+                    if np.sum(sfms): 
+                        f_sfms[i_m] = np.sum(weights_i[sfms])
+                        mu_sfms = means_i[sfms]
+                    elif np.sum(sfms) > 1: raise ValueError
+
+                    # "quenched" component 
+                    quenched = np.zeros(ncomp_i, dtype=bool) 
+                    quenched[means_i.argmin()] = True 
+                    quenched = quenched & np.invert(sfthresh)
+                    f_q[i_m] = np.sum(weights_i[quenched])
+
+                    # other in between the SFMS and quenched components
+                    if np.sum(sfms): other0 = np.invert(sfms) & np.invert(quenched) & (means_i < mu_sfms)
+                    else: other0 = np.invert(sfms) & np.invert(quenched)
+                    if np.sum(other0): f_other0[i_m] = np.sum(weights_i[other0])
+                    
+                    # other above the SFMS
+                    if np.sum(sfms): other1 = np.invert(sfms) & np.invert(quenched) & (means_i > mu_sfms)
+                    else: other1 = np.zeros(len(means_i), dtype=bool) 
+                    if np.sum(other1): f_other1[i_m] = np.sum(weights_i[other1])
+
+                    assert ncomp_i == np.sum(sfms) + np.sum(quenched) + np.sum(other0) + np.sum(other1)
+                    
+                    mbin_iscen_z = iscen & Cat.zero_sfr & \
+                            (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
+                    mbin_iscen = iscen & \
+                            (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
+                    f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
+                f_zeros.append(f_zero)
+                f_sfmss.append((1.-f_zero)*f_sfms)
+                f_qs.append((1.-f_zero)*f_q)
+                f_other0s.append((1.-f_zero)*f_other0)
+                f_other1s.append((1.-f_zero)*f_other1)
             
-                f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
-            f_sfms  *= (1. - f_zero) 
-            f_q     *= (1. - f_zero) 
-            f_other *= (1. - f_zero) 
+            f_zero = np.mean(f_zeros, axis=0) 
+            f_sfms = np.mean(f_sfmss, axis=0) 
+            f_q = np.mean(f_qs, axis=0) 
+            f_other0 = np.mean(f_other0s, axis=0) 
+            f_other1 = np.mean(f_other1s, axis=0) 
 
             sub = fig.add_subplot(len(tscales), len(cats), 1+i_c+len(cats)*i_t)  
             sub.fill_between(mbins, np.zeros(len(mbins)), f_zero, # SFR = 0 
                     linewidth=0, color='C3') 
             sub.fill_between(mbins, f_zero, f_zero+f_q,              # Quenched
                     linewidth=0, color='C1') 
-            sub.fill_between(mbins, f_zero+f_q, f_zero+f_q+f_other,   # other 
+            sub.fill_between(mbins, f_zero+f_q, f_zero+f_q+f_other0,   # other0
                     linewidth=0, color='C2') 
-            sub.fill_between(mbins, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
+            sub.fill_between(mbins, f_zero+f_q+f_other0, f_zero+f_q+f_other0+f_sfms, # SFMS 
                     linewidth=0, color='C0') 
+            sub.fill_between(mbins, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # SFMS 
+                    linewidth=0, color='C2') 
             #sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
             sub.set_xlim([8.8, 11.5])#fit_logm.min(), fit_logm.max()]) 
             sub.set_xticks([9., 10., 11.]) 
@@ -602,7 +620,7 @@ def GMMcomp_composition():
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
                 sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
-                        loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
+                        loc='upper right', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
     bkgd.set_ylabel(r'GMM components', labelpad=10, fontsize=25) 
@@ -736,7 +754,7 @@ def Mlim_res_impact(n_mc=20, seed=10):
                     dlogm=0.2, fit_range=[8.,11.], maxcomp=4, forTest=True, silent=True) 
             fit_logsfr_s.append(fit_logsfr_s_i)
     
-        sig_fit_logsfr_s = np.std(np.array(fit_logsfr_s), axis=0) # scatter in the fits
+        sig_fit_logsfr_s = np.std(np.array(fit_logsfr_s), ddof=1, axis=0) # scatter in the fits
         fit_logsfr_s = np.mean(fit_logsfr_s, axis=0) # mean fit
 
         # fit without scatter
@@ -746,12 +764,16 @@ def Mlim_res_impact(n_mc=20, seed=10):
             fit_logm_ns, fit_logsfr_ns_i = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
                     dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
             fit_logsfr_ns.append(fit_logsfr_ns_i)
+        sig_fit_logsfr_ns = np.std(np.array(fit_logsfr_ns), ddof=1, axis=0) # scatter in the fits
         fit_logsfr_ns = np.mean(fit_logsfr_ns, axis=0) # mean fit
+        sig_tot = np.clip(sig_fit_logsfr_s + sig_fit_logsfr_ns, 0.1, None) 
+        #print 'sig=', sig_tot
 
         # check that the mbins are equal between the fit w/ scatter and fit w/o scatter
         assert np.array_equal(fSFMS._tests['mbin_mid'], fSFMS_s._tests['mbin_mid'])
 
         dfit = fit_logsfr_ns - fit_logsfr_s # change in SFMS fit caused by resolution limit 
+        #print np.abs(dfit)/sig_tot 
 
         # log M* where resolution limit causes the SFMS to shift by 0.1 dex
         mbin_mid = np.array(fSFMS._tests['mbin_mid'])
@@ -1027,8 +1049,8 @@ if __name__=="__main__":
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
-    #Mlim_res_impact(n_mc=100)
-    GMMcomp_composition()
+    #Mlim_res_impact(n_mc=10)
+    GMMcomp_composition(n_mc=50)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)

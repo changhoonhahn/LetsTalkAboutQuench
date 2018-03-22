@@ -27,7 +27,7 @@ def GroupFinder_purity():
     ''' Test Catalog.GroupFinder by reproducing the purity plots 
     that Tjitske generated
     '''
-    names = ['illustris_100myr']#, 'mufasa_100myr']
+    names = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
     fig = plt.figure(figsize=(4*len(names),4)) 
     bkgd = fig.add_subplot(111, frameon=False) 
     Cata = Cat()
@@ -35,28 +35,33 @@ def GroupFinder_purity():
         logM, _, _, censat = Cata.Read(name, keepzeros=True) 
         psat = Cata.GroupFinder(name)
         
-        assert len(psat) == len(logM)
+        if len(psat) != len(logM): 
+            print name 
+            print 'N_gal group finder = ', len(psat)
+            print 'N_gal = ', len(logM)
+            raise ValueError
 
         ispurecen = (psat < 0.01) 
         iscen = (psat < 0.5) 
 
         mbin = np.linspace(8., 12., 17) 
-        fp_pc, fp_c = [], []  # purity fraction for pure central (pc) and central (c)
+        mmids, fp_pc, fp_c = [], [], []  # purity fraction for pure central (pc) and central (c)
         for im in range(len(mbin)-1): 
             inmbin = (logM > mbin[im]) & (logM < mbin[im+1])
-            fp_pc.append(float(np.sum(censat[ispurecen & inmbin] == 1))/float(np.sum(ispurecen & inmbin)))
-            fp_c.append(float(np.sum(censat[iscen & inmbin] == 1))/float(np.sum(iscen & inmbin)))
+            if np.sum(inmbin) > 0: 
+                mmids.append(0.5*(mbin[im] + mbin[im+1]))
+                fp_pc.append(float(np.sum(censat[ispurecen & inmbin] == 1))/float(np.sum(ispurecen & inmbin)))
+                fp_c.append(float(np.sum(censat[iscen & inmbin] == 1))/float(np.sum(iscen & inmbin)))
         
         sub = fig.add_subplot(1,len(names),i_n+1) 
-        sub.plot(0.5*(mbin[1:] + mbin[:-1]), fp_pc, 
+        sub.plot(mmids, fp_pc, 
                 label='Pure Centrals '+str(round(np.mean(fp_pc),2)))
-        sub.plot(0.5*(mbin[1:] + mbin[:-1]), fp_c, 
+        sub.plot(mmids, fp_c, 
                 label='Centrals '+str(round(np.mean(fp_c),2))) 
         sub.set_xlim([8., 12.]) 
         sub.set_ylim([0., 1.]) 
 
-        if i_n == len(names)-1: 
-            sub.legend(loc='lower left', prop={'size':15}) 
+        sub.legend(loc='lower left', prop={'size':15}) 
         
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
     bkgd.set_ylabel(r'$f_\mathrm{purity}$', labelpad=10, fontsize=25) 
