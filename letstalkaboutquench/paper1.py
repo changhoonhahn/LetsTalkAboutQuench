@@ -519,37 +519,48 @@ def GMMcomp_composition():
             # fit the SFMS using GMM fitting
             fSFMS = fstarforms()
             fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-                    method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, forTest=True, silent=True) 
+                    method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=0, 
+                    forTest=True, silent=True) 
             
-            mbin = fSFMS._tests['mbin_mid'] 
+            mbins = fSFMS._tests['mbin_mid'] 
+            gbests = fSFMS._tests['gbests'] 
             
-            f_zero  = np.zeros(len(fit_logm))
-            f_sfms  = np.zeros(len(fit_logm))
-            f_q     = np.zeros(len(fit_logm))
-            f_other = np.zeros(len(fit_logm))
+            f_zero  = np.zeros(len(mbins))
+            f_sfms  = np.zeros(len(mbins))
+            f_q     = np.zeros(len(mbins))
+            f_other = np.zeros(len(mbins))
+            
+            for i_m, mbin, gbest in zip(range(len(mbins)), mbins, gbests): 
+                means_i = gbest.means_.flatten() 
+                weights_i = gbest.weights_
+                ncomp_i = len(weights_i) 
+                
+                sfthresh = (means_i > -11.) 
 
-            for i_m in range(len(fit_logm)): 
                 # sfms component 
-                sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
-                f_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
+                if np.sum(sfthresh) > 1: 
+                    sfms = (means_i == (means_i[sfthresh])[weights_i[sfthresh].argmax()])
+                else: 
+                    sfms = sfthresh.copy()
+                if np.sum(sfms): f_sfms[i_m] = np.sum(weights_i[sfms])
+                elif np.sum(sfms) > 1: raise ValueError
 
                 # "quenched" component 
-                quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & \
-                        (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
-                if np.sum(quenched) > 0: 
-                    f_q[i_m] = np.sum(fSFMS._gmix_weights[i_m][quenched])
+                quenched = np.zeros(ncomp_i, dtype=bool) 
+                quenched[means_i.argmin()] = True 
+                quenched = quenched & np.invert(sfthresh)
+                if np.sum(quenched): f_q[i_m] = np.sum(weights_i[quenched])
 
                 # other component 
-                other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & \
-                        (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
-                if np.sum(other) > 0: 
-                    f_other[i_m] = np.sum(fSFMS._gmix_weights[i_m][other])
+                other = np.invert(sfms) & np.invert(quenched)  
+                if np.sum(other): f_other[i_m] = np.sum(weights_i[other])
+
+                assert ncomp_i == np.sum(sfms) + np.sum(quenched) + np.sum(other)
                 
-                mmid_i = mbin[np.argmin(np.abs(mbin - fit_logm[i_m]))]
                 mbin_iscen_z = iscen & Cat.zero_sfr & \
-                        (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+                        (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
                 mbin_iscen = iscen & \
-                        (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+                        (logM > mbin-0.5*fSFMS._dlogm) & (logM < mbin+0.5*fSFMS._dlogm)
             
                 f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
             f_sfms  *= (1. - f_zero) 
@@ -557,16 +568,16 @@ def GMMcomp_composition():
             f_other *= (1. - f_zero) 
 
             sub = fig.add_subplot(len(tscales), len(cats), 1+i_c+len(cats)*i_t)  
-            sub.fill_between(fit_logm, np.zeros(len(fit_logm)), f_zero, # SFR = 0 
+            sub.fill_between(mbins, np.zeros(len(mbins)), f_zero, # SFR = 0 
                     linewidth=0, color='C3') 
-            sub.fill_between(fit_logm, f_zero, f_zero+f_q,              # Quenched
+            sub.fill_between(mbins, f_zero, f_zero+f_q,              # Quenched
                     linewidth=0, color='C1') 
-            sub.fill_between(fit_logm, f_zero+f_q, f_zero+f_q+f_other,   # other 
+            sub.fill_between(mbins, f_zero+f_q, f_zero+f_q+f_other,   # other 
                     linewidth=0, color='C2') 
-            sub.fill_between(fit_logm, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
+            sub.fill_between(mbins, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
                     linewidth=0, color='C0') 
             #sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
-            sub.set_xlim([8.8, 11.2])#fit_logm.min(), fit_logm.max()]) 
+            sub.set_xlim([8.8, 11.5])#fit_logm.min(), fit_logm.max()]) 
             sub.set_xticks([9., 10., 11.]) 
             if i_t == 0: sub.set_xticklabels([]) 
             sub.set_ylim([0., 1.]) 
@@ -591,10 +602,10 @@ def GMMcomp_composition():
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
                 sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
-                        loc='upper left') #bbox_to_anchor=(1.1, 1.05))
+                        loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
-    #bkgd.set_ylabel(r'', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'GMM components', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.05, hspace=0.1)
     fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition.pdf'])
