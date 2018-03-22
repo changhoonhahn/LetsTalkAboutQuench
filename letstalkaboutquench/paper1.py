@@ -15,6 +15,7 @@ from scipy.stats import multivariate_normal as MNorm
 import matplotlib.pyplot as plt 
 from matplotlib import lines as mlines
 from matplotlib.patches import Rectangle
+#import matplotlib.patheffects as path_effects
 
 # -- Local --
 import util as UT
@@ -496,82 +497,107 @@ def Catalog_GMMcomps():
     return None 
 
 
-def GMMcomp_composition(cat_name): 
+def GMMcomp_composition(): 
     ''' Plot the fractional composition of the different GMM components 
-    along with galaxies with zero SFRs for a given `catname` catalog
+    along with galaxies with zero SFRs for the different catalogs
     '''
-    Cat = Cats.Catalog()
-    logM, logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
-    iscen = (censat == 1)
-    iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
-    iscen_z = iscen & Cat.zero_sfr # SFR == 0 
-    assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
+    cats = ['illustris', 'eagle', 'mufasa', 'scsam']
+    tscales = ['inst', '100myr']
 
-    # fit the SFMS using GMM fitting
-    fSFMS = fstarforms()
-    fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-            method='gaussmix', forTest=True) 
-    
-    mbin = fSFMS._tests['mbin_mid'] 
-    
-    f_zero  = np.zeros(len(fit_logm))
-    f_sfms  = np.zeros(len(fit_logm))
-    f_q     = np.zeros(len(fit_logm))
-    f_other = np.zeros(len(fit_logm))
+    fig = plt.figure(figsize=(4*len(cats),4*len(tscales)))
+    bkgd = fig.add_subplot(111, frameon=False)
 
-    for i_m in range(len(fit_logm)): 
-        # sfms component 
-        sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
-        f_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
+    for i_c, c in enumerate(cats): 
+        for i_t, tscale in enumerate(tscales):
+            Cat = Cats.Catalog()
+            logM, logSFR, w, censat = Cat.Read(c+'_'+tscale, keepzeros=True, silent=True)
+            iscen = (censat == 1)
+            iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
+            iscen_z = iscen & Cat.zero_sfr # SFR == 0 
+            assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
 
-        # "quenched" component 
-        quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & \
-                (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
-        if np.sum(quenched) > 0: 
-            f_q[i_m] = np.sum(fSFMS._gmix_weights[i_m][quenched])
+            # fit the SFMS using GMM fitting
+            fSFMS = fstarforms()
+            fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
+                    method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, forTest=True, silent=True) 
+            
+            mbin = fSFMS._tests['mbin_mid'] 
+            
+            f_zero  = np.zeros(len(fit_logm))
+            f_sfms  = np.zeros(len(fit_logm))
+            f_q     = np.zeros(len(fit_logm))
+            f_other = np.zeros(len(fit_logm))
 
-        # other component 
-        other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & \
-                (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
-        if np.sum(other) > 0: 
-            f_other[i_m] = np.sum(fSFMS._gmix_weights[i_m][other])
-        
-        mmid_i = mbin[np.argmin(np.abs(mbin - fit_logm[i_m]))]
-        mbin_iscen_z = iscen & Cat.zero_sfr & \
-                (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
-        mbin_iscen = iscen & \
-                (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
-    
-        f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
-    f_sfms  *= (1. - f_zero) 
-    f_q     *= (1. - f_zero) 
-    f_other *= (1. - f_zero) 
+            for i_m in range(len(fit_logm)): 
+                # sfms component 
+                sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
+                f_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
 
-    fig = plt.figure(figsize=(5,5)) 
-    sub = fig.add_subplot(111)  
-    sub.fill_between(fit_logm, np.zeros(len(fit_logm)), f_zero, # SFR = 0 
-            linewidth=0, color='C3') 
-    sub.fill_between(fit_logm, f_zero, f_zero+f_q,              # Quenched
-            linewidth=0, color='C1') 
-    sub.fill_between(fit_logm, f_zero+f_q, f_zero+f_q+f_other,   # other 
-            linewidth=0, color='C2') 
-    sub.fill_between(fit_logm, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
-            linewidth=0, color='C0') 
-    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', fontsize=20) 
-    sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
-    sub.set_ylim([0., 1.]) 
+                # "quenched" component 
+                quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & \
+                        (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
+                if np.sum(quenched) > 0: 
+                    f_q[i_m] = np.sum(fSFMS._gmix_weights[i_m][quenched])
 
-    p1 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C3")
-    p2 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C1")
-    p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
-    p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
-    sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
-            bbox_to_anchor=(1.1, 1.05))
-    
-    lbl = Cat.CatalogLabel(cat_name)
-    sub.text(0.05, 0.95, lbl, ha='left', va='top', color='white', 
-            transform=sub.transAxes, fontsize=20)
-    fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition_', cat_name, '.pdf'])
+                # other component 
+                other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & \
+                        (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
+                if np.sum(other) > 0: 
+                    f_other[i_m] = np.sum(fSFMS._gmix_weights[i_m][other])
+                
+                mmid_i = mbin[np.argmin(np.abs(mbin - fit_logm[i_m]))]
+                mbin_iscen_z = iscen & Cat.zero_sfr & \
+                        (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+                mbin_iscen = iscen & \
+                        (logM > mmid_i - 0.5 * fSFMS._dlogm) & (logM < mmid_i + 0.5 * fSFMS._dlogm)
+            
+                f_zero[i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
+            f_sfms  *= (1. - f_zero) 
+            f_q     *= (1. - f_zero) 
+            f_other *= (1. - f_zero) 
+
+            sub = fig.add_subplot(len(tscales), len(cats), 1+i_c+len(cats)*i_t)  
+            sub.fill_between(fit_logm, np.zeros(len(fit_logm)), f_zero, # SFR = 0 
+                    linewidth=0, color='C3') 
+            sub.fill_between(fit_logm, f_zero, f_zero+f_q,              # Quenched
+                    linewidth=0, color='C1') 
+            sub.fill_between(fit_logm, f_zero+f_q, f_zero+f_q+f_other,   # other 
+                    linewidth=0, color='C2') 
+            sub.fill_between(fit_logm, f_zero+f_q+f_other, f_zero+f_q+f_other+f_sfms, # SFMS 
+                    linewidth=0, color='C0') 
+            #sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
+            sub.set_xlim([8.8, 11.2])#fit_logm.min(), fit_logm.max()]) 
+            sub.set_xticks([9., 10., 11.]) 
+            if i_t == 0: sub.set_xticklabels([]) 
+            sub.set_ylim([0., 1.]) 
+            if i_c != 0: sub.set_yticks([]) 
+
+            lbl = Cat.CatalogLabel(c+'_'+tscale)
+            if i_c == 0: 
+                sub.text(0.1, 0.875, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', color='white', 
+                        ha='left', va='center', transform=sub.transAxes, fontsize=20)
+            if i_t == 1: 
+                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='white', 
+                        transform=sub.transAxes, fontsize=20)#, path_effects=[path_effects.withSimplePatchShadow()])
+            #if i_c == 0: 
+            #    sub.text(0.05, 0.95, lbl.split('[')[0]+'\n ['+lbl.split('[')[-1], ha='left', va='top', color='white', 
+            #            transform=sub.transAxes, fontsize=15)
+            #else: 
+            #    sub.text(0.05, 0.95, lbl.split('[')[0], ha='left', va='top', color='white', 
+            #            transform=sub.transAxes, fontsize=15)
+            if (i_t == 0) and (i_c == len(cats)-1):  
+                p1 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C3")
+                p2 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C1")
+                p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
+                p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
+                sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
+                        loc='upper left') #bbox_to_anchor=(1.1, 1.05))
+
+    bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
+    #bkgd.set_ylabel(r'', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    fig.subplots_adjust(wspace=0.05, hspace=0.1)
+    fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -663,10 +689,11 @@ def Pssfr_res_impact():
     return None
 
 
-def Mlim_res_impact(n_mc=20): 
+def Mlim_res_impact(n_mc=20, seed=10): 
     '''
     '''
     catalogs = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
+    catnames = ['Illustris', 'EAGLE', 'MUFASA']
     fig = plt.figure(figsize=(4*len(catalogs),4))
     bkgd = fig.add_subplot(111, frameon=False)
 
@@ -686,6 +713,7 @@ def Mlim_res_impact(n_mc=20):
         # fit with scattered SFR 
         fSFMS_s = fstarforms()
         fit_logsfr_s = [] 
+        np.random.seed(seed)
         for i in range(n_mc): 
             sfr_low = _sfr[iscen_nz] - dsfr
             sfr_low = np.clip(sfr_low, 0., None) 
@@ -702,8 +730,12 @@ def Mlim_res_impact(n_mc=20):
 
         # fit without scatter
         fSFMS = fstarforms()
-        fit_logm_ns, fit_logsfr_ns = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
-                dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
+        fit_logsfr_ns = [] 
+        for i in range(n_mc): 
+            fit_logm_ns, fit_logsfr_ns_i = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
+                    dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
+            fit_logsfr_ns.append(fit_logsfr_ns_i)
+        fit_logsfr_ns = np.mean(fit_logsfr_ns, axis=0) # mean fit
 
         # check that the mbins are equal between the fit w/ scatter and fit w/o scatter
         assert np.array_equal(fSFMS._tests['mbin_mid'], fSFMS_s._tests['mbin_mid'])
@@ -732,6 +764,7 @@ def Mlim_res_impact(n_mc=20):
         sub.set_xlim([7.5, 11.8])
         sub.set_xticks([8., 9., 10., 11.]) 
         sub.set_ylim([-3., 2.])
+        sub.set_title(catnames[i_n], fontsize=20)
         if i_n != 0: sub.set_yticks([]) 
         if i_n == len(catalogs)-1: sub.legend(loc='upper left', bbox_to_anchor=(-0.075, 1.), 
                 handletextpad=-0.02, frameon=False, prop={'size':15}) 
@@ -983,10 +1016,10 @@ if __name__=="__main__":
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
-    Mlim_res_impact(n_mc=100)
+    #Mlim_res_impact(n_mc=100)
+    GMMcomp_composition()
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
-    #        GMMcomp_composition(c+'_'+tscale)
     #        _GMM_comp_test(c+'_'+tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
