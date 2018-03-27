@@ -344,7 +344,7 @@ class fstarforms(object):
         self._fit_logsfr = self._fit_logm + self._fit_logssfr
         return [self._fit_logm, self._fit_logsfr]
 
-    def powerlaw(self, logMfid=None): 
+    def powerlaw(self, logMfid=None, silent=True): 
         ''' Find the best-fit power-law parameterization of the 
         SFMS from the logM* and log SFR_SFMS fit from the `fit` 
         method above. This is the simplest fit possible
@@ -380,7 +380,8 @@ class fstarforms(object):
         
         sfms_fit = lambda mm: m * (mm - logMfid) + c
         self._sfms_fit = sfms_fit 
-        print 'logSFR_SFMS = '+str(round(m, 3))+' (logM* - '+str(round(logMfid,3))+') + '+str(round(c, 3))
+        if not silent: 
+            print('logSFR_SFMS = %s (logM* - %s) + %s' % (str(round(m, 3)), str(round(logMfid,3)), str(round(c, 3))))
         return sfms_fit 
     
     def d_MS(self, logmstar, logsfr): 

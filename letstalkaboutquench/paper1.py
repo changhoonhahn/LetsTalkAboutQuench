@@ -271,11 +271,11 @@ def Catalogs_SFMS_powerlawfit():
     '''
     Cat = Cats.Catalog()
     # tscales 
-    tscales = ['inst.', '100myr']
+    tscales = ['inst', '100myr']
     # simulations 
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
 
-    fig = plt.figure(1, figsize=(16,8))
+    fig = plt.figure(1, figsize=(8,4))
     bkgd = fig.add_subplot(111, frameon=False)
     m_arr = np.linspace(8., 12., 100) 
 
@@ -305,15 +305,14 @@ def Catalogs_SFMS_powerlawfit():
             f_sfms = fSFMS.powerlaw(logMfid=10.5) 
 
             sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
-        sub.set_xlim([8., 12.]) 
-        #sub.set_xticks([8., 10., 12.]) 
-        sub.set_ylim([-4., 2.]) 
+        sub.set_xlim([8.2, 11.8]) 
+        sub.set_xticks([9., 10., 11.]) 
+        sub.set_ylim([-2., 2.]) 
         sub.set_yticks([-4., -2., 0., 2.]) 
-        sub.legend(loc='upper left', prop={'size': 15}) 
-    
+    sub.legend(loc='lower right', frameon=False, prop={'size': 15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
-    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=20) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=20) 
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
