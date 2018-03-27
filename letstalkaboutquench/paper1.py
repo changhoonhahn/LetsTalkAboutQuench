@@ -109,6 +109,57 @@ def Catalogs_SFR_Mstar():
     return None 
 
 
+def Catalogs_Pssfr(mbin=[10.4, 10.6]): 
+    ''' Compare the SSFR distribution for central galaxies from various simulations for
+    specified stellar mass bin. This is to further emphasize the challenge of fitting 
+    the different simulations
+    '''
+    Cat = Cats.Catalog()
+    tscales = ['inst', '100myr'] # timescales 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # various data sets
+    sims_label = ['Illustris', 'EAGLE', 'MUFASA', 'SC SAM'] 
+
+    fig = plt.figure(1, figsize=(8,4))
+    bkgd = fig.add_subplot(111, frameon=False)
+    # plot p(SSFR) for the simulations 
+    for i_t, tscale in enumerate(tscales): 
+        sub = fig.add_subplot(1,2,1+i_t)
+
+        for i_c, cat in enumerate(sims_list): 
+            logMstar, logSFR, weight, censat = Cat.Read(cat+'_'+tscale, keepzeros=True)
+            #psat = Cat.GroupFinder(cat+'_'+tscale)
+            #iscen = ((psat < cut) & np.invert(Cat.zero_sfr))
+            iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+            inmbin = (iscen & (logMstar > mbin[0]) & (logMstar < mbin[1]))   
+
+            ssfr_i = logSFR[inmbin] - logMstar[inmbin]
+            _ = sub.hist(ssfr_i, bins=40, 
+                    range=[-14., -8.], normed=True, histtype='step', color='C'+str(i_c+2), linewidth=1.75, 
+                    label=sims_label[i_c])
+
+        sub.set_xlim([-13.25, -9.]) 
+        sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
+        sub.set_ylim([0.,2.4]) 
+        sub.set_yticks([0., 0.5, 1., 1.5, 2.])
+        
+        lbl = Cat.CatalogLabel(cat+'_'+tscale)
+        sub.text(0.075, 0.93, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                ha='left', va='top', transform=sub.transAxes, fontsize=18)
+        if i_t == 0: 
+            sub.text(0.075, 0.77,'$'+str(mbin[0])+'< \mathrm{log}\, M_* <'+str(mbin[1])+'$',
+                    ha='left', va='top', transform=sub.transAxes, fontsize=15)
+
+    sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.4), frameon=False, prop={'size': 15})
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=20) 
+    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=20)
+    fig.subplots_adjust(wspace=0.15)
+    fig_name = ''.join([UT.fig_dir(), 'Catalogs_pSSFR.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
 def Catalog_SFMS_fit(tscale): 
     ''' Compare the GMM fits to the SFMS 
     '''
@@ -210,6 +261,63 @@ def Catalog_SFMS_fit(tscale):
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
     fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFMSfit_SFR', tscale, '.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
+def Catalogs_SFMS_powerlawfit(): 
+    ''' Compare the power-law fit of the GMM SFMS fits 
+    '''
+    Cat = Cats.Catalog()
+    # tscales 
+    tscales = ['inst.', '100myr']
+    # simulations 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+
+    fig = plt.figure(1, figsize=(16,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    m_arr = np.linspace(8., 12., 100) 
+
+    for i_t, tscale in enumerate(tscales): 
+        sub = fig.add_subplot(1,2,1+i_t)
+        for i_c, cc in enumerate(sims_list): 
+            cat = '_'.join([cc, tscale]) 
+
+            try: 
+                lbl = Cat.CatalogLabel(cat)
+                logMstar, logSFR, weight, censat = Cat.Read(cat, keepzeros=True)
+                #psat = Cat.GroupFinder(cat+'_'+tscale)
+            except (ValueError, NotImplementedError): 
+                continue 
+
+            if i_c == 0: 
+                sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+
+            # only keep centrals
+            #iscen = ((psat < cut) & np.invert(Cat.zero_sfr))
+            iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+
+            fSFMS = fstarforms() # fit the SFMS  
+            _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', forTest=True) 
+            # power-law fit of the SFMS fit 
+            f_sfms = fSFMS.powerlaw(logMfid=10.5) 
+
+            sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
+        sub.set_xlim([8., 12.]) 
+        #sub.set_xticks([8., 10., 12.]) 
+        sub.set_ylim([-4., 2.]) 
+        sub.set_yticks([-4., -2., 0., 2.]) 
+        sub.legend(loc='upper left', prop={'size': 15}) 
+    
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    
+    fig.subplots_adjust(wspace=0.15, hspace=0.15)
+    
+    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFMS_powerlawfit.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -1040,7 +1148,8 @@ def _GMM_comp_test(name):
 if __name__=="__main__": 
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
-
+    #Catalogs_Pssfr()
+    Catalogs_SFMS_powerlawfit()
     #SFMSfit_example()
 
     #for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
@@ -1050,7 +1159,7 @@ if __name__=="__main__":
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
     #Mlim_res_impact(n_mc=10)
-    GMMcomp_composition(n_mc=50)
+    #GMMcomp_composition(n_mc=50)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
