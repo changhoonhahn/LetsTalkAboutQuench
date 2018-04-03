@@ -25,7 +25,7 @@ class Catalog:
                 'eagle_1gyr': 'EAGLE_RefL0100_MstarSFR_allabove1.8e8Msun.txt',
                 'mufasa_inst': 'MUFASA_combined.dat',
                 'mufasa_10myr': 'MUFASA_combined.dat',
-                'mufasa_100myr': 'MUFASA_combined.dat',
+                'mufasa_100myr': 'MUFASA_GALAXY_extra.txt', 
                 'mufasa_1gyr': 'MUFASA_combined.dat',
                 'scsam_inst': 'SCSAMgalprop.dat', 
                 'scsam_10myr': 'SCSAMgalprop.dat', 
@@ -102,7 +102,8 @@ class Catalog:
             elif name == 'mufasa_10myr': 
                 logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,2,-1])
             elif name == 'mufasa_100myr': 
-                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,3,-1])
+                #logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,3,-1])
+                logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=17, usecols=[6,8,12])
             elif name == 'mufasa_1gyr': 
                 logM, logSFR, censat = np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[0,4,-1])
             else: 
@@ -188,14 +189,15 @@ class Catalog:
         ''' read in satellite probabilities from Jeremy's group finder
         '''
         cat_name = name.split('_')[0] # name of catalog
-        if cat_name not in ['illustris', 'eagle', 'mufasa']: 
+        if cat_name not in ['illustris', 'eagle', 'mufasa', 'scsam']: 
             raise NotImplementedError("Group finder values not yet available for catalog") 
             
         # dictionary group catalog files 
         groupfind_dict = { 
                 'illustris': 'illustris_groups_Mall.prob', 
                 'eagle': 'EAGLE_groups_allabove1.8e8.prob', 
-                'mufasa': 'MUFASA_groups.prob10.prob'
+                'mufasa': 'MUFASA_groups.prob10.prob',
+                'scsam': 'SCSAM_groups.prob'
                 }
         # group finder file name
         f_name = ''.join([UT.dat_dir(), 'group_finder/', groupfind_dict[cat_name]]) 

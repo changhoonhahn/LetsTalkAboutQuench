@@ -27,7 +27,7 @@ def GroupFinder_purity():
     ''' Test Catalog.GroupFinder by reproducing the purity plots 
     that Tjitske generated
     '''
-    names = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
+    names = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr', 'scsam_100myr']
     fig = plt.figure(figsize=(4*len(names),4)) 
     bkgd = fig.add_subplot(111, frameon=False) 
     Cata = Cat()
