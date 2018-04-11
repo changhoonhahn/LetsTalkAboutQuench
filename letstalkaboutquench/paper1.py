@@ -161,6 +161,73 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
     return None 
 
 
+def GroupFinder(): 
+    ''' plot the purity and completeness of "pure centrals" from Jeremy's group finder 
+    for all of the simulations 
+    
+    Purity is defined as follows
+        P_cen = N_{cen|cen}/(N_{cen|cen} + N_{cen|sat}) 
+
+    Completeness is defined as follows 
+        C_cen = N_{cen|cen}/(N_{cen|cen} + N_{sat|cen}) 
+
+    '''
+    names = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr', 'scsam_100myr']
+    fig = plt.figure(figsize=(4*len(names),4)) 
+    bkgd = fig.add_subplot(111, frameon=False) 
+    Cata = Cats.Catalog()
+    for i_n, name in enumerate(names): 
+        logM, _, _, censat = Cata.Read(name, keepzeros=True) 
+        psat = Cata.GroupFinder(name)
+        
+        if len(psat) != len(logM): 
+            print name 
+            print 'N_gal group finder = ', len(psat)
+            print 'N_gal = ', len(logM)
+            raise ValueError
+
+        ispurecen = (psat < 0.01) 
+        isnotpure = (psat >= 0.01) 
+        iscen = (psat < 0.5) 
+
+        mbin = np.linspace(8., 12., 17) 
+        mmids, fp_pc = [], []  # purity fraction for pure central (pc) and central (c)
+        fcomp_pc = []  # completeness fraction 
+        for im in range(len(mbin)-1): 
+            inmbin = (logM > mbin[im]) & (logM < mbin[im+1])
+
+            if np.sum(inmbin) > 0: 
+                mmids.append(0.5*(mbin[im] + mbin[im+1]))
+                # fraction of pure centrals that are also identified as centrals 
+                # by the simulation 
+                N_cencen = float(np.sum(censat[ispurecen & inmbin] == 1))
+                N_censat = float(np.sum(censat[ispurecen & inmbin] == 0))
+                N_satcen = float(np.sum(censat[isnotpure & inmbin] == 1)) 
+            
+                # purity
+                fp_pc.append(N_cencen/(N_cencen + N_censat))
+                # completeness
+                fcomp_pc.append(N_cencen/(N_cencen + N_satcen))
+        
+        sub = fig.add_subplot(1,len(names),i_n+1) 
+        sub.plot(mmids, fp_pc, 
+                label='Purity: '+str(round(np.mean(fp_pc),2)))
+        sub.plot(mmids, fcomp_pc, 
+                label='Completeness: '+str(round(np.mean(fcomp_pc),2))) 
+        sub.set_xlim([8., 12.]) 
+        sub.set_ylim([0., 1.]) 
+        lbl = Cata.CatalogLabel(name)
+        sub.set_title(lbl.split('[')[0], fontsize=20) 
+        sub.legend(loc='lower left', frameon=False, prop={'size':15}) 
+        
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'Purity and Completeness', labelpad=10, fontsize=20) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    fig.savefig(''.join([UT.fig_dir(), 'groupfinder.pdf']), bbox_inches='tight') 
+    plt.close() 
+    return None 
+
+
 def Catalog_SFMS_fit(tscale): 
     ''' Compare the GMM fits to the SFMS 
     '''
@@ -1149,7 +1216,8 @@ if __name__=="__main__":
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
-    Catalogs_SFMS_powerlawfit()
+    GroupFinder()
+    #Catalogs_SFMS_powerlawfit()
     #SFMSfit_example()
 
     #for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
