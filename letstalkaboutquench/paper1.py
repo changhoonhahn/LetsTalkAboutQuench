@@ -141,6 +141,7 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
         sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
         sub.set_ylim([0.,2.4]) 
         sub.set_yticks([0., 0.5, 1., 1.5, 2.])
+        if i_t != 0: sub.set_yticklabels([]) 
         
         lbl = Cat.CatalogLabel(cat+'_'+tscale)
         sub.text(0.075, 0.93, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
@@ -149,10 +150,10 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
             sub.text(0.075, 0.77,'$'+str(mbin[0])+'< \mathrm{log}\, M_* <'+str(mbin[1])+'$',
                     ha='left', va='top', transform=sub.transAxes, fontsize=15)
 
-    sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.4), frameon=False, prop={'size': 15})
+            sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.25), frameon=False, prop={'size': 15})
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=20) 
-    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=20)
+    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
+    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25)
     fig.subplots_adjust(wspace=0.15)
     fig_name = ''.join([UT.fig_dir(), 'Catalogs_pSSFR.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
@@ -311,8 +312,8 @@ def Catalogs_SFMS_powerlawfit():
         sub.set_yticks([-4., -2., 0., 2.]) 
     sub.legend(loc='lower right', frameon=False, prop={'size': 15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=20) 
-    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=20) 
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=25) 
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
@@ -729,8 +730,8 @@ def GMMcomp_composition(n_mc=10):
                 sub.legend([p1, p2, p3, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'SFMS'][::-1], 
                         loc='upper right', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
-    bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
-    bkgd.set_ylabel(r'GMM components', labelpad=10, fontsize=25) 
+    bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=30) 
+    bkgd.set_ylabel(r'GMM component fractions', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.05, hspace=0.1)
     fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition.pdf'])
