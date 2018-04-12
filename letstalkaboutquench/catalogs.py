@@ -109,7 +109,7 @@ class Catalog:
             else: 
                 raise ValueError(name+" not found")
             w = np.ones(len(logM)) # uniform weights
-            zerosfr = np.invert(np.isfinite(logSFR))
+            zerosfr = (np.invert(np.isfinite(logSFR)) | (logSFR <= -99.))
 
         elif 'scsam' in name: # Santa Cruz Semi-Analytic model
             # 0 hosthaloid (long long) 1 birthhaloid (long long) 2 redshift 3 sat_type 0= central 4 mhalo total halo mass [1.0E09 Msun] 5 m_strip stripped mass [1.0E09 Msun] 
@@ -157,6 +157,7 @@ class Catalog:
             w = np.ones(len(logM))
             censat = np.ones(len(logM)) # all centrals
             zerosfr = np.zeros(len(logM), dtype=bool)  
+            zerosfr[np.invert(np.isfinite(logSFR))] = True
 
         elif name == 'nsa_dickey': 
             dic_logM, dic_logSFR =  np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[1,5]) 
@@ -165,6 +166,7 @@ class Catalog:
             w = np.ones(len(logM))
             censat = np.ones(len(logM)) # all centrals (since isolation criteria is more stringent)  
             zerosfr = np.zeros(len(logM), dtype=bool)  
+            zerosfr[np.invert(np.isfinite(logSFR))] = True
         else: 
             raise ValueError(name+' not found')
 

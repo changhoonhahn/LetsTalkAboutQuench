@@ -91,7 +91,9 @@ def Catalogs_SFR_Mstar():
                 sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
                         transform=sub.transAxes, fontsize=20)
 
-            iscen = (censat == 1)
+            psat = Cat.GroupFinder(cat)
+            iscen = (psat < 0.01) # only pure central galaxies identified from the group catalog 
+            #iscen = (censat == 1)
 
             DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
@@ -103,7 +105,7 @@ def Catalogs_SFR_Mstar():
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFR_Mstar_SFR.pdf'])
+    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFR_Mstar.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -127,9 +129,9 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
 
         for i_c, cat in enumerate(sims_list): 
             logMstar, logSFR, weight, censat = Cat.Read(cat+'_'+tscale, keepzeros=True)
-            #psat = Cat.GroupFinder(cat+'_'+tscale)
-            #iscen = ((psat < cut) & np.invert(Cat.zero_sfr))
-            iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+            psat = Cat.GroupFinder(cat+'_'+tscale)
+            iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
+            #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
             inmbin = (iscen & (logMstar > mbin[0]) & (logMstar < mbin[1]))   
 
             ssfr_i = logSFR[inmbin] - logMstar[inmbin]
@@ -228,11 +230,10 @@ def GroupFinder():
     return None 
 
 
-def Catalog_SFMS_fit(tscale): 
+def Catalog_SFMS_fit(tscale, extdecon=False): 
     ''' Compare the GMM fits to the SFMS 
     '''
-    if tscale not in ['inst', '10myr', '100myr', '1gyr']: 
-        raise ValueError
+    if tscale not in ['inst', '10myr', '100myr', '1gyr']: raise ValueError
     
     Cat = Cats.Catalog()
     # Read in various data sets
@@ -247,13 +248,11 @@ def Catalog_SFMS_fit(tscale):
     sub0 = fig.add_subplot(233)
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
-        iscen = (censat == 1)
-
+        iscen = ((censat == 1) & np.invert(Cat.zero_sfr))
         # fit the SFMS  
         fSFMS = fstarforms()
         fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                 method='gaussmix', forTest=True) 
-
         DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, alpha=0.5, 
@@ -283,10 +282,12 @@ def Catalog_SFMS_fit(tscale):
             sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                     ha='left', va='top', transform=sub.transAxes, fontsize=20)
 
-        iscen = (censat == 1)
-
+        psat = Cat.GroupFinder(cat)
+        iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
+        #iscen = (censat == 1)
+            
         # including SFR uncertainties for 100Myr 
-        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']): 
+        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']) and extdecon: 
             if cc == 'mufasa': sfrerr = 0.182
             elif cc == 'illustris': sfrerr = 0.016
             elif cc == 'eagle': sfrerr = 0.018
@@ -294,7 +295,7 @@ def Catalog_SFMS_fit(tscale):
 
         # fit the SFMS  
         fSFMS = fstarforms()
-        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']): 
+        if (tscale == '100myr') and (cc in ['mufasa', 'illustris', 'eagle']) and extdecon: 
             # extreme-deconvolution
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                     logsfr_err=logsfr_err, method='gaussmix_err', forTest=True) 
@@ -355,7 +356,7 @@ def Catalogs_SFMS_powerlawfit():
             try: 
                 lbl = Cat.CatalogLabel(cat)
                 logMstar, logSFR, weight, censat = Cat.Read(cat, keepzeros=True)
-                #psat = Cat.GroupFinder(cat+'_'+tscale)
+                psat = Cat.GroupFinder(cat+'_'+tscale)
             except (ValueError, NotImplementedError): 
                 continue 
 
@@ -364,8 +365,8 @@ def Catalogs_SFMS_powerlawfit():
                         ha='left', va='top', transform=sub.transAxes, fontsize=20)
 
             # only keep centrals
-            #iscen = ((psat < cut) & np.invert(Cat.zero_sfr))
-            iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+            iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
+            #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
 
             fSFMS = fstarforms() # fit the SFMS  
             _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', forTest=True) 
@@ -397,23 +398,23 @@ def SFMSfit_example():
     sim = 'illustris_inst' 
     mranges = [[10.4, 10.6], [11.0, 11.2]]
     cols = ['C0', 'C4']
-    #panels = ['a)', 'b)']
 
     Cat = Cats.Catalog()
     logMstar, logSFR, weight, censat = Cat.Read(sim)
-    iscen = (censat == 1)
+    psat = Cat.GroupFinder(sim)
+    iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr)) 
+    #iscen = (censat == 1)
         
     # fit the SFMS  
     fSFMS = fstarforms() 
     _fit_logm, _fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], fit_range=[9.0, 12.], method='gaussmix') 
 
-    fig = plt.figure(figsize=(5*(len(mranges)+1),4.5)) 
+    fig = plt.figure(figsize=(4*(len(mranges)+1),4)) 
     
     sub1 = fig.add_subplot(1,3,1)
     DFM.hist2d(logMstar[iscen], logSFR[iscen], color='#ee6a50',
             levels=[0.68, 0.95], range=[[9., 12.], [-3.5, 1.5]], 
             plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub1) 
-    #sub1.scatter(_fit_logm, _fit_logsfr, c='k', marker='x', lw=3, s=40)
 
     for i_m, mrange in enumerate(mranges): 
         sub1.fill_between(mrange, [2.,2.], [-5.,-5], color=cols[i_m], linewidth=0, alpha=0.25)
@@ -444,7 +445,7 @@ def SFMSfit_example():
         gmm_weights = fSFMS._gmix_weights[i_fit]
         gmm_means = fSFMS._gmix_means[i_fit]
         gmm_vars = fSFMS._gmix_covariances[i_fit]
-    
+
         # colors 
         if len(gmm_means) == 3: cs = ['C1', 'C2', 'C0'] 
         elif len(gmm_means) == 2: cs = ['C1', 'C0'] 
@@ -467,7 +468,7 @@ def SFMSfit_example():
         sub2.plot(xx, gmm_tot, color='k', linestyle=':', linewidth=2)
         
         if i_m == 0: 
-            sub2.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', fontsize=20)
+            sub2.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\;)$', fontsize=20)
         sub2.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', fontsize=20) 
         sub2.set_xlim([-13.25, -9.]) 
         sub2.set_xticks([-9., -10., -11., -12., -13.][::-1])
@@ -478,7 +479,8 @@ def SFMSfit_example():
         sub2.text(0.5, 0.9, '$'+str(mrange[0])+'< \mathrm{log}\, M_* <'+str(mrange[1])+'$',
                 ha='center', va='center', transform=sub2.transAxes, fontsize=18)
 
-    fig.subplots_adjust(wspace=.3)
+    #fig.subplots_adjust(wspace=.3)
+    fig.tight_layout() 
     fig_name = ''.join([UT.fig_dir(), 'SFMSfit_demo.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
@@ -557,7 +559,7 @@ def Catalog_GMMcomps():
     sub0 = fig.add_subplot(2,5,5)
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
-        iscen = (censat == 1)
+        iscen = ((censat == 1) & np.invert(Cat.zero_sfr))
 
         # fit the SFMS  
         fSFMS = fstarforms()
@@ -614,7 +616,9 @@ def Catalog_GMMcomps():
                         ha='center', va='center', transform=sub.transAxes, 
                         rotation=45, color='red', fontsize=40)
                 continue 
-            iscen = (censat == 1)
+            psat = Cat.GroupFinder(cat) 
+            iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
+            #iscen = (censat == 1)
             if i_c == 0: 
                 sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='center', transform=sub.transAxes, fontsize=20)
@@ -640,7 +644,8 @@ def Catalog_GMMcomps():
                 sig_sfms[i_m] = np.sqrt(fSFMS._gmix_covariances[i_m][sfms])
                 w_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
                 # "quenched" component 
-                quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
+                quenched = ((range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & 
+                        (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])) 
                 if np.sum(quenched) > 0: 
                     sub.errorbar([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, 
                                  yerr=np.sqrt(fSFMS._gmix_covariances[i_m][quenched]), 
@@ -648,7 +653,8 @@ def Catalog_GMMcomps():
                     #sub.scatter([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, #s=40.*np.array(fSFMS._gmix_weights[i_m][quenched]), 
                     #             color='C1')
                 # other component 
-                other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
+                other = ((fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & 
+                        (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min()))
                 if np.sum(other) > 0: 
                     sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], 
                                  fSFMS._gmix_means[i_m][other]+fitlogm, 
@@ -659,13 +665,11 @@ def Catalog_GMMcomps():
                     #            color='C2')
             sub.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
             #sub.scatter(fit_logm, fit_logsfr, #s=40.*np.array(w_sfms), color='C0')
-    
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
-    
     fig_name = ''.join([UT.fig_dir(), 'Catalogs_GMMcomps.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
@@ -686,7 +690,9 @@ def GMMcomp_composition(n_mc=10):
         for i_t, tscale in enumerate(tscales):
             Cat = Cats.Catalog()
             logM, logSFR, w, censat = Cat.Read(c+'_'+tscale, keepzeros=True, silent=True)
-            iscen = (censat == 1)
+            psat = Cat.GroupFinder(c+'_'+tscale) 
+            iscen = (psat < 0.01)
+            #iscen = (censat == 1)
             iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
             iscen_z = iscen & Cat.zero_sfr # SFR == 0 
             assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
@@ -696,7 +702,7 @@ def GMMcomp_composition(n_mc=10):
                 # fit the SFMS using GMM fitting
                 fSFMS = fstarforms()
                 fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-                        method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=0, 
+                        method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=5, 
                         forTest=True, silent=True) 
                 
                 mbins = fSFMS._tests['mbin_mid'] 
@@ -726,7 +732,7 @@ def GMMcomp_composition(n_mc=10):
                     # "quenched" component 
                     quenched = np.zeros(ncomp_i, dtype=bool) 
                     quenched[means_i.argmin()] = True 
-                    quenched = quenched & np.invert(sfthresh)
+                    quenched = quenched & np.invert(sfms)
                     f_q[i_m] = np.sum(weights_i[quenched])
 
                     # other in between the SFMS and quenched components
@@ -993,8 +999,9 @@ def _SFMSfit_assess(name, method='gaussmix'):
     '''
     cat = Cats.Catalog() # read in catalog
     _logm, _logsfr, _, censat = cat.Read(name)  
-
-    iscen = (censat == 1) # centrals only 
+    psat = cat.GroupFinder(name)
+    iscen = ((psat < 0.01) & np.invert(cat.zero_sfr))
+    #iscen = (censat == 1) # centrals only 
     logm = _logm[iscen]
     logsfr = _logsfr[iscen]
     
@@ -1003,10 +1010,6 @@ def _SFMSfit_assess(name, method='gaussmix'):
     fit_logm, fit_logsfr = fSFMS.fit(logm, logsfr, method=method, forTest=True) 
     F_sfms = fSFMS.powerlaw()
     
-    # common sense cuts imposed in fSFMS
-    logm = logm[fSFMS._sensecut]
-    logsfr = logsfr[fSFMS._sensecut]
-
     n_col = int(np.ceil(float(len(fSFMS._tests['gbests'])+1)/3))
     fig = plt.figure(1, figsize=(5*n_col, 12))
     xx = np.linspace(-14, -8, 50) 
@@ -1213,29 +1216,25 @@ def _GMM_comp_test(name):
 
 
 if __name__=="__main__": 
-    #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
-    GroupFinder()
-    #Catalogs_SFMS_powerlawfit()
+    #GroupFinder()
     #SFMSfit_example()
-
-    #for tscale in ['100myr']:# 'inst', '10myr', '100myr', '1gyr']: 
-    #    Catalog_SFMS_fit(tscale)
+    #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
+    #    Catalog_SFMS_fit(tt)
+    #Catalogs_SFMS_powerlawfit()
     #Catalog_GMMcomps()
+    GMMcomp_composition(n_mc=50)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
     #Mlim_res_impact(n_mc=10)
-    #GMMcomp_composition(n_mc=50)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
-    #for c in ['scsam']: #'illustris', 'eagle', 'mufasa']:
-    #    for tscale in ['inst', '10myr', '100myr', '1gyr']: 
-    #        try: 
-    #            _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
-    #        except (ValueError, NotImplementedError): 
-    #            continue 
+    #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
+    #    for tscale in ['inst', '100myr']: 
+    #        _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
+    #SFRMstar_2Dgmm(n_comp_max=50)
