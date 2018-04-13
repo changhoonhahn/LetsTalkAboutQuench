@@ -372,12 +372,15 @@ def Catalogs_SFMS_powerlawfit():
             _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', forTest=True) 
             # power-law fit of the SFMS fit 
             f_sfms = fSFMS.powerlaw(logMfid=10.5) 
+            print('%s' % cat) 
+            print('power-law m: %f' % fSFMS._powerlaw_m) 
+            print('power-law b: %f' % fSFMS._powerlaw_c) 
 
             sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
         sub.set_xlim([8.2, 11.8]) 
         sub.set_xticks([9., 10., 11.]) 
         sub.set_ylim([-2., 2.]) 
-        sub.set_yticks([-4., -2., 0., 2.]) 
+        sub.set_yticks([-4., -3., -2., -1., 0., 1., 2.]) 
     sub.legend(loc='lower right', frameon=False, prop={'size': 15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
@@ -1222,9 +1225,9 @@ if __name__=="__main__":
     #SFMSfit_example()
     #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
     #    Catalog_SFMS_fit(tt)
-    #Catalogs_SFMS_powerlawfit()
+    Catalogs_SFMS_powerlawfit()
     #Catalog_GMMcomps()
-    GMMcomp_composition(n_mc=50)
+    #GMMcomp_composition(n_mc=50)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
