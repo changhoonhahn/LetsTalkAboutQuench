@@ -10,22 +10,29 @@ from scipy.stats import nbinom as nbinom
 from scipy import interpolate
 
 
-def code_dir(): 
-    ''' Directory where all the code is located (the directory that this file is in!)
-    '''
-    return os.path.dirname(os.path.realpath(__file__))
+def check_env(): 
+    if os.environ.get('IQUENCH_DIR') is None: 
+        raise ValueError("set $IQUENCH_DIR environment varaible!") 
+    return None
 
 
 def dat_dir(): 
-    ''' dat directory is symlinked to a local path where the data files are located
+    ''' directory that contains all the data files, defined by environment 
+    variable $IQUENCH_DIR
     '''
-    return os.path.dirname(os.path.realpath(__file__)).split('letstalkaboutquench')[0]+'dat/'
+    return os.environ.get('IQUENCH_DIR') 
 
 
 def fig_dir(): 
-    ''' dat directory is symlinked to a local path where the data files are located
+    ''' directory to dump all the figure files 
     '''
-    return os.path.dirname(os.path.realpath(__file__)).split('letstalkaboutquench')[0]+'figs/'
+    if os.environ.get('IQUENCH_FIGDIR') is None: 
+        if os.path.isdir(dat_dir()+'/figs/'):
+            return dat_dir()+'/figs/'
+        else: 
+            raise ValueError("create figs/ folder in $IQUENCH_DIR directory for figures; or specify $IQUENCH_FIGDIR")
+    else: 
+        return os.environ.get('IQUENCH_FIGDIR')
 
 
 def gaussianKDE_contour(x, y, xmin=None, xmax=None, ymin=None, ymax=None):
