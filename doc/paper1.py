@@ -106,7 +106,7 @@ def Catalogs_SFR_Mstar():
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
     
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFR_Mstar.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -158,7 +158,7 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
     bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
     bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25)
     fig.subplots_adjust(wspace=0.15)
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_pSSFR.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_pSSFR.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -318,8 +318,20 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                     logsfr_err=logsfr_err, method='gaussmix_err', forTest=True) 
         else: 
-            fitrange = None
-            if cc == 'scsam': fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+            if cc == 'scsam': 
+                fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.5)
+            elif cat == 'illustris_100myr': 
+                fitrange = [8.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.4)
+            elif cat == 'eagle_100myr': 
+                fitrange = [8.6, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.6)
+            elif cat == 'mufasa_100myr': 
+                fitrange = [9.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 9.4)
+            else: 
+                fitrange = None
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                     method='gaussmix', fit_range=fitrange, forTest=True) 
         fit_logms[i_c] = fit_logm 
@@ -396,9 +408,20 @@ def Catalogs_SFMS_powerlawfit():
             iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
             #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
             
-            fitrange = None
-            if cc == 'scsam': fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
-
+            if cc == 'scsam': 
+                fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.5) 
+            elif cat == 'illustris_100myr': 
+                fitrange = [8.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.4) 
+            elif cat == 'eagle_100myr': 
+                fitrange = [8.6, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.6) 
+            elif cat == 'mufasa_100myr': 
+                fitrange = [9.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 9.4) 
+            else: 
+                fitrange = None
             fSFMS = fstarforms() # fit the SFMS  
             _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', 
                     fit_range=fitrange, forTest=True) 
@@ -516,7 +539,7 @@ def SFMSfit_example():
 
     #fig.subplots_adjust(wspace=.3)
     fig.tight_layout() 
-    fig_name = ''.join([UT.fig_dir(), 'SFMSfit_demo.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/SFMSfit_demo.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
@@ -569,7 +592,7 @@ def SFRMstar_2Dgmm(n_comp_max=30):
     sub.text(0.1, 0.9, 'EAGLE',
             ha='left', va='top', transform=sub.transAxes, fontsize=20)
 
-    fig_name = ''.join([UT.fig_dir(), 'SFRMstar_2Dgmm.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/SFRMstar_2Dgmm.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None 
@@ -661,7 +684,17 @@ def Catalog_GMMcomps():
             
             # fit range
             if cc == 'scsam': 
-                fitrange = [8.5, logMstar[iscen].max()]
+                fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.5)
+            elif cat == 'illustris_100myr': 
+                fitrange = [8.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.4)
+            elif cat == 'eagle_100myr': 
+                fitrange = [8.6, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 8.6)
+            elif cat == 'mufasa_100myr': 
+                fitrange = [9.4, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+                iscen = iscen & (logMstar > 9.4)
             else: 
                 fitrange = None
 
@@ -735,13 +768,24 @@ def GMMcomp_composition(n_mc=10):
 
     for i_c, c in enumerate(cats): 
         for i_t, tscale in enumerate(tscales):
+            name = c+'_'+tscale
             Cat = Cats.Catalog()
-            logM, logSFR, w, censat = Cat.Read(c+'_'+tscale, keepzeros=True, silent=True)
-            psat = Cat.GroupFinder(c+'_'+tscale) 
+            logM, logSFR, w, censat = Cat.Read(name, keepzeros=True, silent=True)
+            psat = Cat.GroupFinder(name) 
             iscen = (psat < 0.01)
             #iscen = (censat == 1)
             iscen_nz = iscen & np.invert(Cat.zero_sfr) # SFR > 0 
             iscen_z = iscen & Cat.zero_sfr # SFR == 0 
+
+            # fit range
+            mmin = 8.4
+            if c == 'scsam': 
+                mmin = 8.5
+            elif name == 'eagle_100myr': 
+                mmin = 8.6
+            elif name == 'mufasa_100myr': 
+                mmin = 9.4
+
             assert np.sum(iscen) == np.sum(iscen_nz) + np.sum(iscen_z) # snaity check 
             
             f_zeros, f_sfmss, f_qs, f_other0s, f_other1s= [], [], [], [], []  
@@ -749,7 +793,7 @@ def GMMcomp_composition(n_mc=10):
                 # fit the SFMS using GMM fitting
                 fSFMS = fstarforms()
                 fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-                        method='gaussmix', fit_range=[8.4, 12.], dlogm=0.2, Nbin_thresh=5, 
+                        method='gaussmix', fit_range=[mmin, 12.], dlogm=0.2, Nbin_thresh=5, max_comp=4, 
                         forTest=True, silent=True) 
                 
                 mbins = fSFMS._tests['mbin_mid'] 
@@ -822,6 +866,7 @@ def GMMcomp_composition(n_mc=10):
                     linewidth=0, color='C0') 
             sub.fill_between(mbins, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # SFMS 
                     linewidth=0, color='C2') 
+            sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
             #sub.set_xlim([fit_logm.min(), fit_logm.max()]) 
             sub.set_xlim([8.8, 11.5])#fit_logm.min(), fit_logm.max()]) 
             sub.set_xticks([9., 10., 11.]) 
@@ -854,7 +899,7 @@ def GMMcomp_composition(n_mc=10):
     bkgd.set_ylabel(r'GMM component fractions', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.05, hspace=0.1)
-    fig_name = ''.join([UT.fig_dir(), 'GMMcomp_composition.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_composition.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -940,14 +985,15 @@ def Pssfr_res_impact():
     bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20)
 
     fig.subplots_adjust(wspace=0.05, hspace=0.05)
-    fig_name = ''.join([UT.fig_dir(), 'Pssfr_res_impact.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_res_impact.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
 
 
 def Mlim_res_impact(n_mc=20, seed=10): 
-    '''
+    ''' Measure the stellar mass where the resolution limit of simulations
+    impact the SFMS fits.
     '''
     catalogs = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
     catnames = ['Illustris', 'EAGLE', 'MUFASA']
@@ -957,8 +1003,9 @@ def Mlim_res_impact(n_mc=20, seed=10):
     Cat = Cats.Catalog()
     for i_n, name in enumerate(catalogs): 
         _logm, _logsfr, _, censat = Cat.Read(name, keepzeros=True, silent=True)
-        iscen_nz = (censat == 1) & np.invert(Cat.zero_sfr)
-        iscen_z  = (censat == 1) & Cat.zero_sfr
+        psat = Cat.GroupFinder(name)
+        iscen_nz = (psat < 0.01) & np.invert(Cat.zero_sfr)
+        iscen_z  = (psat < 0.01) & Cat.zero_sfr
         ngal_nz = np.sum(iscen_nz)
         ngal_z = np.sum(iscen_z) 
 
@@ -1003,9 +1050,9 @@ def Mlim_res_impact(n_mc=20, seed=10):
         dfit = fit_logsfr_ns - fit_logsfr_s # change in SFMS fit caused by resolution limit 
         #print np.abs(dfit)/sig_tot 
 
-        # log M* where resolution limit causes the SFMS to shift by 0.1 dex
+        # log M* where resolution limit causes the SFMS to shift by 0.2 dex
         mbin_mid = np.array(fSFMS._tests['mbin_mid'])
-        mlim = (mbin_mid[(np.abs(dfit) > 0.1)]).max() + 0.5*fSFMS._dlogm 
+        mlim = (mbin_mid[(np.abs(dfit) > 0.15)]).max() + 0.5*fSFMS._dlogm 
         
         # lets plot this stuff 
         sub = fig.add_subplot(1,len(catalogs),i_n+1)
@@ -1026,7 +1073,7 @@ def Mlim_res_impact(n_mc=20, seed=10):
         sub.set_xticks([8., 9., 10., 11.]) 
         sub.set_ylim([-3., 2.])
         sub.set_title(catnames[i_n], fontsize=20)
-        if i_n != 0: sub.set_yticks([]) 
+        if i_n != 0: sub.set_yticklabels([]) 
         if i_n == len(catalogs)-1: sub.legend(loc='upper left', bbox_to_anchor=(-0.075, 1.), 
                 handletextpad=-0.02, frameon=False, prop={'size':15}) 
     
@@ -1034,7 +1081,7 @@ def Mlim_res_impact(n_mc=20, seed=10):
     bkgd.set_ylabel(r'log SFR $[M_\odot \, yr^{-1}]$', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.05)
-    fig_name = ''.join([UT.fig_dir(), 'Mlim_res_impact.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Mlim_res_impact.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
@@ -1120,7 +1167,7 @@ def _SFMSfit_assess(name, method='gaussmix'):
         sub.set_xlabel(r'log SSFR  $[yr^{-1}]$', fontsize=20) 
 
     fig.subplots_adjust(hspace=0.3, wspace=0.4)
-    fig_name = ''.join([UT.fig_dir(), 'Pssfr_fit.assess.', name, '.', method, '.png'])
+    fig_name = ''.join([UT.doc_dir(), 'Pssfr_fit.assess.', name, '.', method, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None
@@ -1161,7 +1208,7 @@ def _SFR_tscales(name):
             sub.plot([-4., 2.], [-4., 2.], c='k', lw=2, ls='--') 
 
     
-    fig_name = ''.join([UT.fig_dir(), 'SFRcomparison.', name, '.png'])
+    fig_name = ''.join([UT.doc_dir(), 'SFRcomparison.', name, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
 
@@ -1256,7 +1303,7 @@ def _GMM_comp_test(name):
     bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20) 
     
     fig.subplots_adjust(wspace=0.2, hspace=0.2)
-    fig_name = ''.join([UT.fig_dir(), 'GMMcomp.test.', name, '.png'])
+    fig_name = ''.join([UT.doc_dir(), 'GMMcomp.test.', name, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None
@@ -1266,16 +1313,16 @@ if __name__=="__main__":
     #Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
     #GroupFinder()
-    #SFMSfit_example()
+    SFMSfit_example()
     #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
     #    Catalog_SFMS_fit(tt)
     #Catalogs_SFMS_powerlawfit()
-    Catalog_GMMcomps()
-    #GMMcomp_composition(n_mc=50)
+    #Catalog_GMMcomps()
+    #GMMcomp_composition(n_mc=10)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
-    #Mlim_res_impact(n_mc=10)
+    #Mlim_res_impact(n_mc=20)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
