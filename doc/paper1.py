@@ -179,7 +179,7 @@ def GroupFinder():
     bkgd = fig.add_subplot(111, frameon=False) 
     Cata = Cats.Catalog()
     for i_n, name in enumerate(names): 
-        logM, _, _, censat = Cata.Read(name, keepzeros=True) 
+        logM, _, _, censat = Cata.Read(name, keepzeros=True, silent=True) 
         psat = Cata.GroupFinder(name)
         
         if len(psat) != len(logM): 
@@ -210,7 +210,18 @@ def GroupFinder():
                 fp_pc.append(N_cencen/(N_cencen + N_censat))
                 # completeness
                 fcomp_pc.append(N_cencen/(N_cencen + N_satcen))
-        
+
+        purity_threshold = 0.8 # purity threshold 
+
+        notpure = (np.array(fp_pc) < 0.8) 
+        if np.sum(notpure) > 0:  
+            print('-- %s Catalog -- ' % name) 
+            print('M_* < %f ' % (np.array(mmids)[notpure].max()+0.5*(mbin[1]-mbin[0])))
+        if 'scsam' in name: 
+            print('%f' % np.mean(np.array(fp_pc)[notpure]))
+            print('%f' % np.mean(np.array(fp_pc)[np.invert(notpure)]))
+            print('%f' % (float(len(logM[logM < 8.5]))/float(len(logM))))
+
         sub = fig.add_subplot(1,len(names),i_n+1) 
         sub.plot(mmids, fp_pc, 
                 label='Purity: '+str(round(np.mean(fp_pc),2)))
@@ -225,7 +236,7 @@ def GroupFinder():
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
     bkgd.set_ylabel(r'Purity and Completeness', labelpad=10, fontsize=20) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    fig.savefig(''.join([UT.fig_dir(), 'groupfinder.pdf']), bbox_inches='tight') 
+    fig.savefig(''.join([UT.doc_dir(), 'figs/groupfinder.pdf']), bbox_inches='tight') 
     plt.close() 
     return None 
 
@@ -306,8 +317,10 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
                     logsfr_err=logsfr_err, method='gaussmix_err', forTest=True) 
         else: 
+            fitrange = None
+            if cc == 'scsam': fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
-                    method='gaussmix', forTest=True) 
+                    method='gaussmix', fit_range=fitrange, forTest=True) 
         fit_logms[i_c] = fit_logm 
         fit_logsfrs[i_c] = fit_logsfr
 
@@ -381,9 +394,13 @@ def Catalogs_SFMS_powerlawfit():
             # only keep centrals
             iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
             #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+            
+            fitrange = None
+            if cc == 'scsam': fitrange = [8.5, np.ceil(logMstar[iscen].max()/0.2)*0.2]
 
             fSFMS = fstarforms() # fit the SFMS  
-            _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', forTest=True) 
+            _ = fSFMS.fit(logMstar[iscen], logSFR[iscen], method='gaussmix', 
+                    fit_range=fitrange, forTest=True) 
             # power-law fit of the SFMS fit 
             f_sfms = fSFMS.powerlaw(logMfid=10.5) 
             print('%s' % cat) 
@@ -1237,9 +1254,9 @@ if __name__=="__main__":
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
-    for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
-        Catalog_SFMS_fit(tt)
-    #Catalogs_SFMS_powerlawfit()
+    #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
+    #    Catalog_SFMS_fit(tt)
+    Catalogs_SFMS_powerlawfit()
     #Catalog_GMMcomps()
     #GMMcomp_composition(n_mc=50)
     #_GMM_comp_test('tinkergroup')
