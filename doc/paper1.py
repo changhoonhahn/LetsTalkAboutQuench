@@ -18,11 +18,11 @@ from matplotlib.patches import Rectangle
 #import matplotlib.patheffects as path_effects
 
 # -- Local --
-import util as UT
-import catalogs as Cats
-import galprop as Gprop
-from fstarforms import fstarforms
-from fstarforms import sfr_mstar_gmm
+from letstalkaboutquench import util as UT
+from letstalkaboutquench import catalogs as Cats
+from letstalkaboutquench import galprop as Gprop
+from letstalkaboutquench.fstarforms import fstarforms
+from letstalkaboutquench.fstarforms import sfr_mstar_gmm
 
 from ChangTools.plotting import prettycolors
 import matplotlib as mpl
@@ -240,9 +240,9 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
 
-    fig = plt.figure(1, figsize=(16,8))
+    fig = plt.figure(1, figsize=(12,8))
     bkgd = fig.add_subplot(111, frameon=False)
-    plot_range = [[7., 12.], [-4., 2.]]
+    plot_range = [[8., 12.], [-4., 2.]]
 
     # plot SFR-M* for the observations 
     sub0 = fig.add_subplot(233)
@@ -261,6 +261,12 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
 
     sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
                 transform=sub0.transAxes, fontsize=20)
+    sub0.set_xlim([8.0, 12.]) 
+    sub0.set_ylim([-4., 2.]) 
+    sub0.set_xticks([8., 9., 10., 11., 12.]) 
+    sub0.set_xticklabels([]) 
+    #sub0.set_yticks([-4., -2., 0., 2.]) 
+    sub0.set_yticklabels([]) 
 
     fit_logms = [None for i in sims_list]
     fit_logsfrs = [None for i in sims_list]
@@ -311,25 +317,33 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
         sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
                 transform=sub.transAxes, fontsize=20)
         sub.scatter(fit_logm, fit_logsfr, c='k', marker='x', lw=3, s=40)
-        sub.set_xticks([8., 10., 12.]) 
-        sub.set_yticks([-4., -2., 0., 2.]) 
+        sub.set_xlim([8., 12.]) 
+        sub.set_ylim([-4., 2.]) 
+        sub.set_xticks([8., 9., 10., 11., 12.]) 
+        if i_c < 2:   
+            sub.set_xticklabels([]) 
+        if i_c not in [0, 2]: 
+            sub.set_yticklabels([]) 
     
     sub = fig.add_subplot(2,3,6) 
     for i in range(len(fit_logms)):   
         if fit_logms[i] is not None: 
             sub.scatter(fit_logms[i], fit_logsfrs[i], c='C'+str(i+2), marker='x', lw=3, s=40) 
-    sub.set_xlim(plot_range[0]) 
-    sub.set_ylim(plot_range[1]) 
-    sub.set_xticks([8., 10., 12.]) 
-    sub.set_yticks([-4., -2., 0., 2.]) 
+    sub.set_xlim([8., 12.]) 
+    sub.set_ylim([-4., 2.]) 
+    sub.set_xticks([8., 9., 10., 11., 12.]) 
+    #sub.set_yticks([-4., -2., 0., 2.]) 
+    sub.set_yticklabels([]) 
+    sub.text(0.9, 0.1, 'Best-fit SFMS', ha='right', va='center', 
+            transform=sub.transAxes, fontsize=20)
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     
-    fig.subplots_adjust(wspace=0.15, hspace=0.15)
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFMSfit_SFR', tscale, '.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -378,17 +392,17 @@ def Catalogs_SFMS_powerlawfit():
 
             sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
         sub.set_xlim([8.2, 11.8]) 
-        sub.set_xticks([9., 10., 11.]) 
-        sub.set_ylim([-2., 2.]) 
+        sub.set_xticks([8.5, 9.5, 10.5, 11.5]) 
+        sub.set_ylim([-4., 2.]) 
         sub.set_yticks([-4., -3., -2., -1., 0., 1., 2.]) 
+        if i_t != 0: sub.set_yticklabels([]) 
     sub.legend(loc='lower right', frameon=False, prop={'size': 15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=10, fontsize=25) 
     
-    fig.subplots_adjust(wspace=0.15, hspace=0.15)
-    
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_SFMS_powerlawfit.pdf'])
+    fig.subplots_adjust(wspace=0.05)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMS_powerlawfit.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -1223,9 +1237,9 @@ if __name__=="__main__":
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
-    #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
-    #    Catalog_SFMS_fit(tt)
-    Catalogs_SFMS_powerlawfit()
+    for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
+        Catalog_SFMS_fit(tt)
+    #Catalogs_SFMS_powerlawfit()
     #Catalog_GMMcomps()
     #GMMcomp_composition(n_mc=50)
     #_GMM_comp_test('tinkergroup')

@@ -35,6 +35,12 @@ def fig_dir():
         return os.environ.get('IQUENCH_FIGDIR')
 
 
+def doc_dir(): 
+    ''' directory for paper related stuff 
+    '''
+    return fig_dir().split('fig')[0]+'doc/'
+
+
 def gaussianKDE_contour(x, y, xmin=None, xmax=None, ymin=None, ymax=None):
     ''' Returns [xx, yy, f]. To plot filled contour contourf(xx, yy, f, cmap='Blues'). To plot 
     contour lines contour(xx, yy, f, colors='k')
