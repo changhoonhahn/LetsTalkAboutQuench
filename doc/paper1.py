@@ -27,6 +27,7 @@ from letstalkaboutquench.fstarforms import sfr_mstar_gmm
 from ChangTools.plotting import prettycolors
 import matplotlib as mpl
 import matplotlib.pyplot as plt 
+from matplotlib.font_manager import FontProperties
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
@@ -585,60 +586,61 @@ def Catalog_GMMcomps():
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
 
-    fig = plt.figure(1, figsize=(20,7.5))
+    fig = plt.figure(1, figsize=(16,8))#(20,7.5))
     bkgd = fig.add_subplot(111, frameon=False)
-    plot_range = [[7., 12.], [-4., 2.]]
-
+    plot_range = [[8., 12.], [-4., 2.]]
+    '''
     # plot SFR-M* for the observations 
-    sub0 = fig.add_subplot(2,5,5)
-    for i_c, cat in enumerate(obvs_list): 
-        logMstar, logSFR, weight, censat = Cat.Read(cat)
-        iscen = ((censat == 1) & np.invert(Cat.zero_sfr))
+        sub0 = fig.add_subplot(2,5,5)
+        for i_c, cat in enumerate(obvs_list): 
+            logMstar, logSFR, weight, censat = Cat.Read(cat)
+            iscen = ((censat == 1) & np.invert(Cat.zero_sfr))
 
-        # fit the SFMS  
-        fSFMS = fstarforms()
-        fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
-                method='gaussmix', forTest=True) 
+            # fit the SFMS  
+            fSFMS = fstarforms()
+            fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
+                    method='gaussmix', forTest=True) 
 
-        DFM.hist2d(logMstar[iscen], logSFR[iscen], color='k',#'C'+str(i_c), 
-                levels=[0.68, 0.95], range=plot_range, 
-                plot_datapoints=True, fill_contours=False, plot_density=False, 
-                contour_kwargs={'linewidths':1, 'linestyles':'dotted'}, 
-                alpha=0.5, ax=sub0) 
+            DFM.hist2d(logMstar[iscen], logSFR[iscen], color='k',#'C'+str(i_c), 
+                    levels=[0.68, 0.95], range=plot_range, 
+                    plot_datapoints=True, fill_contours=False, plot_density=False, 
+                    contour_kwargs={'linewidths':1, 'linestyles':'dotted'}, 
+                    alpha=0.5, ax=sub0) 
 
-        sig_sfms, w_sfms = np.zeros(len(fit_logm)), np.zeros(len(fit_logm))
-        for i_m, fitlogm in enumerate(fit_logm): 
-            # sfms component 
-            sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
-            sig_sfms[i_m] = np.sqrt(fSFMS._gmix_covariances[i_m][sfms])
-            w_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
-            # "quenched" component 
-            quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
-            if np.sum(quenched) > 0: 
-                sub0.errorbar([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, 
-                             yerr=np.sqrt(fSFMS._gmix_covariances[i_m][quenched]), 
-                             fmt='.C1')
-                #sub0.scatter([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, #s=40.*np.array(fSFMS._gmix_weights[i_m][quenched]), 
-                #        color='C1')
-            # other component 
-            other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
-            if np.sum(other) > 0: 
-                sub0.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], 
-                             fSFMS._gmix_means[i_m][other]+fitlogm, 
-                             yerr=np.sqrt(fSFMS._gmix_covariances[i_m][other]), 
-                             fmt='.C2')
-                #sub0.scatter([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], fSFMS._gmix_means[i_m][other]+fitlogm, #s=40.*np.array(fSFMS._gmix_weights[i_m][other]), color='C2')
-        sub0.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
-        #sub0.scatter(fit_logm, fit_logsfr, #s=40.*np.array(w_sfms), 
-        #        color='C0')
+            sig_sfms, w_sfms = np.zeros(len(fit_logm)), np.zeros(len(fit_logm))
+            for i_m, fitlogm in enumerate(fit_logm): 
+                # sfms component 
+                sfms = (fSFMS._gmix_means[i_m] == fit_logsfr[i_m]-fit_logm[i_m])
+                sig_sfms[i_m] = np.sqrt(fSFMS._gmix_covariances[i_m][sfms])
+                w_sfms[i_m] = fSFMS._gmix_weights[i_m][sfms][0]
+                # "quenched" component 
+                quenched = (range(len(fSFMS._gmix_means[i_m])) == fSFMS._gmix_means[i_m].argmin()) & (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m])
+                if np.sum(quenched) > 0: 
+                    sub0.errorbar([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, 
+                                 yerr=np.sqrt(fSFMS._gmix_covariances[i_m][quenched]), 
+                                 fmt='.C1')
+                    #sub0.scatter([fitlogm+0.01], fSFMS._gmix_means[i_m][quenched]+fitlogm, #s=40.*np.array(fSFMS._gmix_weights[i_m][quenched]), 
+                    #        color='C1')
+                # other component 
+                other = (fSFMS._gmix_means[i_m] != fit_logsfr[i_m]-fit_logm[i_m]) & (fSFMS._gmix_means[i_m] != fSFMS._gmix_means[i_m].min())
+                if np.sum(other) > 0: 
+                    sub0.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], 
+                                 fSFMS._gmix_means[i_m][other]+fitlogm, 
+                                 yerr=np.sqrt(fSFMS._gmix_covariances[i_m][other]), 
+                                 fmt='.C2')
+                    #sub0.scatter([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], fSFMS._gmix_means[i_m][other]+fitlogm, #s=40.*np.array(fSFMS._gmix_weights[i_m][other]), color='C2')
+            sub0.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
+            #sub0.scatter(fit_logm, fit_logsfr, #s=40.*np.array(w_sfms), 
+            #        color='C0')
 
-    sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
-                transform=sub0.transAxes, fontsize=20)
+        sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
+                    transform=sub0.transAxes, fontsize=20)
+    '''
 
     for i_t, tscale in enumerate(tscales): 
         for i_c, cc in enumerate(sims_list): 
             cat = '_'.join([cc, tscale]) 
-            sub = fig.add_subplot(2,5,1+i_c+i_t*5) 
+            sub = fig.add_subplot(2,4,1+i_c+i_t*4) 
 
             try: 
                 lbl = Cat.CatalogLabel(cat)
@@ -656,11 +658,17 @@ def Catalog_GMMcomps():
             if i_c == 0: 
                 sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='center', transform=sub.transAxes, fontsize=20)
+            
+            # fit range
+            if cc == 'scsam': 
+                fitrange = [8.5, logMstar[iscen].max()]
+            else: 
+                fitrange = None
 
             # fit the SFMS  
             fSFMS = fstarforms()
             fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
-                    method='gaussmix', forTest=True) 
+                    method='gaussmix', fit_range=fitrange, forTest=True, silent=True) 
 
             DFM.hist2d(logMstar[iscen], logSFR[iscen], color='k',#C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
@@ -668,8 +676,10 @@ def Catalog_GMMcomps():
                     contour_kwargs={'linewidths':1, 'linestyles':'dotted'}, 
                     ax=sub) 
             if i_t == 1: 
+                font0 = FontProperties() 
+                font0.set_weight('heavy') 
                 sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
-                        transform=sub.transAxes, fontsize=20)
+                        transform=sub.transAxes, fontsize=20, fontproperties=font0)
 
             sig_sfms, w_sfms = np.zeros(len(fit_logm)), np.zeros(len(fit_logm))
             for i_m, fitlogm in enumerate(fit_logm): 
@@ -699,12 +709,15 @@ def Catalog_GMMcomps():
                     #            color='C2')
             sub.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
             #sub.scatter(fit_logm, fit_logsfr, #s=40.*np.array(w_sfms), color='C0')
+            sub.set_xlim([8., 12.]) 
+            if i_t == 0: sub.set_xticklabels([]) 
+            if i_c != 0: sub.set_yticklabels([]) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     
-    fig.subplots_adjust(wspace=0.15, hspace=0.15)
-    fig_name = ''.join([UT.fig_dir(), 'Catalogs_GMMcomps.pdf'])
+    fig.subplots_adjust(wspace=0.1, hspace=0.075)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_GMMcomps.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -1256,8 +1269,8 @@ if __name__=="__main__":
     #SFMSfit_example()
     #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
     #    Catalog_SFMS_fit(tt)
-    Catalogs_SFMS_powerlawfit()
-    #Catalog_GMMcomps()
+    #Catalogs_SFMS_powerlawfit()
+    Catalog_GMMcomps()
     #GMMcomp_composition(n_mc=50)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
