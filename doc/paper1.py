@@ -1167,7 +1167,7 @@ def _SFMSfit_assess(name, method='gaussmix'):
         sub.set_xlabel(r'log SSFR  $[yr^{-1}]$', fontsize=20) 
 
     fig.subplots_adjust(hspace=0.3, wspace=0.4)
-    fig_name = ''.join([UT.doc_dir(), 'Pssfr_fit.assess.', name, '.', method, '.png'])
+    fig_name = ''.join([UT.fig_dir(), 'Pssfr_fit.assess.', name, '.', method, '.png'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     return None
@@ -1313,7 +1313,7 @@ if __name__=="__main__":
     #Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
     #GroupFinder()
-    SFMSfit_example()
+    #SFMSfit_example()
     #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
     #    Catalog_SFMS_fit(tt)
     #Catalogs_SFMS_powerlawfit()
@@ -1328,7 +1328,7 @@ if __name__=="__main__":
     #        _GMM_comp_test(c+'_'+tscale)
     #for c in ['illustris', 'eagle', 'mufasa']:
     #    _SFR_tscales(c)
-    #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
-    #    for tscale in ['inst', '100myr']: 
-    #        _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
+    for c in ['mufasa']: #'illustris', 'eagle', 'mufasa', 'scsam']: 
+        for tscale in ['inst', '100myr']: 
+            _SFMSfit_assess(c+'_'+tscale, method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
