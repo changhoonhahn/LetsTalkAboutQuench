@@ -4,6 +4,7 @@ fStarForMS = fitting the STAR FORming Main Sequence
 
 '''
 import numpy as np 
+import scipy as sp 
 import warnings 
 from scipy.optimize import curve_fit
 from extreme_deconvolution import extreme_deconvolution
@@ -148,8 +149,9 @@ class fstarforms(object):
             if (method == 'gaussmix_err') and  (logsfr_err is None): 
                 raise ValueError("This method requires logSFR errors") 
 
-            fit_logm, fit_logssfr = [], []
-            if fit_error is not None: fit_sig_logssfr = [] 
+            fit_logm = [] 
+            fit_logssfr, fit_sig_logssfr = [], [] # mean and variance of the SFMS component
+            if fit_error is not None: fit_err_logssfr, fit_err_sig_logssfr = [], [] # uncertainty in the mean and variance
             gbests =  []
             
             for i in range(mbins.shape[0]): # log M* bins  
@@ -162,7 +164,7 @@ class fstarforms(object):
                     Xerr = logsfr_err[in_mbin] 
                     Xerr = np.reshape(Xerr, (-1,1,1))
 
-                if len(in_mbin[0]) <= Nbin_thresh: # not enough galaxies
+                if np.sum(in_mbin) <= Nbin_thresh: # not enough galaxies
                     continue
 
                 n_comps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
@@ -192,22 +194,26 @@ class fstarforms(object):
                 
                 # save the SFMS log M* and log SSFR values 
                 fit_logm.append(np.median(logmstar[in_mbin])) 
-                fit_logssfr.append(gbest.mean_.flatten()[i_sfms])
+                fit_logssfr.append(UT.flatten(gbest.means_.flatten()[i_sfms]))
+                fit_sig_logssfr.append(UT.flatten(gbest.covariances_.flatten()[i_sfms]))
 
                 # calculate the uncertainty of logSSFR fit 
                 if fit_error == 'bootstrap': 
                     # using bootstrap resampling 
-                    boot_logssfr = [] 
+                    boot_mu_logssfr, boot_sig_logssfr = [], []
                     for i_boot in range(n_bootstrap): 
-                        X_boot = np.random.choice(X, size=len(X), replace=True) 
+                        # resample the data w/ replacement 
+                        X_boot = np.random.choice(X.flatten(), size=len(X), replace=True) 
                         gmm_boot = GMix(n_components=n_best)
-                        gmm_boot.fit(X_boot)
+                        gmm_boot.fit(X_boot.reshape(-1,1))
                 
                         i_sfms_boot, _, _, _ = self._GMM_idcomp(gmm_boot, silent=True)
                         if i_sfms_boot is None: 
                             continue 
-                        boot_logssfr.append(gmm_boot.mean_.flatten()[i_sfms_boot]) 
-                    fit_sig_logssfr.append(np.std(np.array(boot_logssfr)))
+                        boot_mu_logssfr.append(UT.flatten(gmm_boot.means_.flatten()[i_sfms_boot]))
+                        boot_sig_logssfr.append(UT.flatten(gmm_boot.covariances_.flatten()[i_sfms_boot]))
+                    fit_err_logssfr.append(np.std(np.array(boot_mu_logssfr)))
+                    fit_err_sig_logssfr.append(np.std(np.array(boot_sig_logssfr)))
                 else: 
                     raise NotImplementedError("not yet implemented") 
                 
@@ -333,11 +339,15 @@ class fstarforms(object):
         self._fit_logm = np.array(fit_logm)  
         self._fit_logssfr = np.array(fit_logssfr)  
         self._fit_logsfr = self._fit_logm + self._fit_logssfr
+        self._fit_sig_logssfr = np.array(fit_sig_logssfr)
         if fit_error is None: 
+            self._fit_err_logssfr = None 
+            self._fit_err_sig_logssfr = None
             return [self._fit_logm, self._fit_logsfr]
         else: 
-            self._fit_sig_logssfr = np.array(fit_sig_logssfr) 
-            return [self._fit_logm, self._fit_logsfr, self._fit_sig_logssfr]
+            self._fit_err_logssfr = np.array(fit_err_logssfr) 
+            self._fit_err_sig_logssfr = np.array(fit_err_sig_logssfr)
+            return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
 
     def powerlaw(self, logMfid=None, silent=True): 
         ''' Find the best-fit power-law parameterization of the 
@@ -348,8 +358,8 @@ class fstarforms(object):
 
         Parameters
         ----------
-        Mid : (float) 
-            Fiducial 
+        logMfid : (float) 
+            Fiducial log M_*. 
 
         Returns
         -------
@@ -368,12 +378,18 @@ class fstarforms(object):
         # now fit line to the fit_Mstar and fit_SSFR values
         xx = self._fit_logm - logMfid  # log Mstar - log M_fid
         yy = self._fit_logsfr
-        A = np.vstack([xx, np.ones(len(xx))]).T
-        m, c = np.linalg.lstsq(A, yy)[0] 
-        self._powerlaw_m = m 
-        self._powerlaw_c = c
+
+        # chi-squared
+        chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/self._fit_err_logssfr**2)
+
+        #A = np.vstack([xx, np.ones(len(xx))]).T
+        #m, c = np.linalg.lstsq(A, yy)[0] 
+        tt = sp.optimize.minimize(chisq, np.array([0.8, 0.3])) 
+
+        self._powerlaw_m = tt['x'][0]
+        self._powerlaw_c = tt['x'][1]
         
-        sfms_fit = lambda mm: m * (mm - logMfid) + c
+        sfms_fit = lambda mm: tt['x'][0] * (mm - logMfid) + tt['x'][1]
         self._sfms_fit = sfms_fit 
         if not silent: 
             print('logSFR_SFMS = %s (logM* - %s) + %s' % (str(round(m, 3)), str(round(logMfid,3)), str(round(c, 3))))
@@ -403,7 +419,6 @@ class fstarforms(object):
         mu_gbest = gbest.means_.flatten()
         w_gbest  = gbest.weights_
         n_gbest  = len(mu_gbest) 
-        print mu_gbest, n_gbest 
         
         i_sfms = None # sfms 
         i_sb = None # star-burst 
@@ -413,7 +428,7 @@ class fstarforms(object):
         highsfr = (mu_gbest > -11) 
         if np.sum(highsfr) == 1: 
             # only one component with high sfr. This is the one 
-            i_sfms = np.arange(n_gbest)[highsfr] 
+            i_sfms = np.arange(n_gbest)[highsfr]
         elif np.sum(mu_gbest > -11) > 1: 
             # if best fit has more than one component with high SFR (logSSFR > -11), 
             # we designate the component with the highest weight as the SFMS 
@@ -432,15 +447,12 @@ class fstarforms(object):
             # check if there's an intermediate population 
             interm = notsfms & (mu_gbest > mu_gbest[i_q]) 
             if np.sum(interm) > 0: 
-                if np.sum(interm) > 1: raise ValueError
                 i_int = np.arange(n_gbest)[interm]
 
         # if there's a component with high SFR than SFMS -- i.e. star-burst 
         above_sfms = (mu_gbest > mu_gbest[i_sfms])
         if np.sum(above_sfms) > 0: 
-            if np.sum(above_sfms) > 1: raise ValueError
             i_sb = np.arange(n_gbest)[above_sfms]
-        print i_sfms, i_q, i_int, i_sb  
         return [i_sfms, i_q, i_int, i_sb] 
     
     def _check_input(self, logmstar, logsfr): 
