@@ -198,7 +198,9 @@ class fstarforms(object):
                 fit_sig_logssfr.append(UT.flatten(gbest.covariances_.flatten()[i_sfms]))
 
                 # calculate the uncertainty of logSSFR fit 
-                if fit_error == 'bootstrap': 
+                if fit_error is None: 
+                    pass 
+                elif fit_error == 'bootstrap': 
                     # using bootstrap resampling 
                     boot_mu_logssfr, boot_sig_logssfr = [], []
                     for i_boot in range(n_bootstrap): 
@@ -440,19 +442,27 @@ class fstarforms(object):
 
         # lowest SSFR component with SSFR less than SFMS will be designated as the 
         # quenched component 
-        notsfms = (mu_gbest < mu_gbest[i_sfms]) 
-        if np.sum(notsfms) > 0: 
-            i_q = (np.arange(n_gbest)[notsfms])[mu_gbest[notsfms].argmin()]
-            
+        if i_sfms is not None: 
+            notsfms = (mu_gbest < mu_gbest[i_sfms]) 
+            if np.sum(notsfms) > 0: 
+                i_q = (np.arange(n_gbest)[notsfms])[mu_gbest[notsfms].argmin()]
+                
+                # check if there's an intermediate population 
+                interm = notsfms & (mu_gbest > mu_gbest[i_q]) 
+                if np.sum(interm) > 0: 
+                    i_int = np.arange(n_gbest)[interm]
+        else: # no SFMS 
+            i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
             # check if there's an intermediate population 
-            interm = notsfms & (mu_gbest > mu_gbest[i_q]) 
+            interm = (mu_gbest > mu_gbest[i_q]) 
             if np.sum(interm) > 0: 
                 i_int = np.arange(n_gbest)[interm]
 
         # if there's a component with high SFR than SFMS -- i.e. star-burst 
-        above_sfms = (mu_gbest > mu_gbest[i_sfms])
-        if np.sum(above_sfms) > 0: 
-            i_sb = np.arange(n_gbest)[above_sfms]
+        if i_sfms is not None: 
+            above_sfms = (mu_gbest > mu_gbest[i_sfms])
+            if np.sum(above_sfms) > 0: 
+                i_sb = np.arange(n_gbest)[above_sfms]
         return [i_sfms, i_q, i_int, i_sb] 
     
     def _check_input(self, logmstar, logsfr): 
