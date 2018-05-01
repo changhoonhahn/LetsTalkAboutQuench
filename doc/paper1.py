@@ -888,7 +888,7 @@ def GMMcomp_composition(n_bootstrap=10):
             # fit the SFMS using GMM fitting
             fSFMS = fstarforms()
             fit_logm, fit_logsfr = fSFMS.fit(logM[iscen_nz], logSFR[iscen_nz],
-                    method='gaussmix', fit_range=[mmin, 12.], dlogm=0.2, Nbin_thresh=5, max_comp=4, 
+                    method='gaussmix', fit_range=[mmin, 12.], dlogm=0.2, Nbin_thresh=10, max_comp=3, 
                     silent=True) 
             
             mbin0 = fSFMS._mbins[:,0]
