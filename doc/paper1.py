@@ -107,7 +107,6 @@ def Catalogs_SFR_Mstar():
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     
     fig.subplots_adjust(wspace=0.15, hspace=0.15)
-    
     fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
@@ -922,6 +921,8 @@ def GMMcomp_composition(n_bootstrap=10):
                 # bootstrap uncertainty 
                 X = logSFR[mbin_iscen] - logM[mbin_iscen] # logSSFRs
                 n_best = len(gbest.means_.flatten())
+
+                #if c == 'mufasa': print mbin0[i_m], '-', mbin1[i_m], ': ', len(X) 
     
                 f_boots = np.zeros((5, n_bootstrap))
 
@@ -965,7 +966,10 @@ def GMMcomp_composition(n_bootstrap=10):
             sub.fill_between(mbins, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # star-burst 
                     linewidth=0, color='C4') 
             sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
-            sub.set_xlim([8.8, 11.5])
+            if c == 'mufasa': 
+                sub.set_xlim([8.8, 11.3])
+            else: 
+                sub.set_xlim([8.8, 11.5])
             sub.set_xticks([9., 10., 11.]) 
             if i_t == 0: sub.set_xticklabels([]) 
             sub.set_ylim([0.0, 1.]) 
@@ -1017,8 +1021,11 @@ def GMMcomp_composition(n_bootstrap=10):
             #sub.errorbar(mbins, f_other1, f_other1_unc, fmt='.C4')# Star-burst 
             #sub.plot(mbins, f_other1, c='C2')
             sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
-
-            sub.set_xlim([8.8, 11.5])
+            
+            if c == 'mufasa': 
+                sub.set_xlim([8.8, 11.3])
+            else: 
+                sub.set_xlim([8.8, 11.5])
             sub.set_xticks([9., 10., 11.]) 
             if i_t == 0: sub.set_xticklabels([]) 
             sub.set_ylim([0.0, 1.]) 
@@ -1471,11 +1478,11 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
-    GMMcomp_composition(n_bootstrap=100)
+    #GMMcomp_composition(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()
-    #Mlim_res_impact(n_mc=20)
+    Mlim_res_impact(n_mc=20)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
