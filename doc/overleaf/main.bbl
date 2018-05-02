@@ -1,0 +1,141 @@
+\begin{thebibliography}{}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\providecommand{\url}[1]{\href{#1}{#1}}
+\providecommand{\dodoi}[1]{doi:~\href{http://doi.org/#1}{\nolinkurl{#1}}}
+\providecommand{\doeprint}[1]{\href{http://ascl.net/#1}{\nolinkurl{http://ascl.net/#1}}}
+\providecommand{\doarXiv}[1]{\href{https://arxiv.org/abs/#1}{\nolinkurl{https://arxiv.org/abs/#1}}}
+
+\bibitem[{{Abazajian} {et~al.}(2009){Abazajian}, {Adelman-McCarthy},
+  {Ag{\"u}eros}, {Allam}, {Allende Prieto}, {An}, {Anderson}, {Anderson},
+  {Annis}, {Bahcall}, \& et~al.}]{Abazajianetal2009}
+{Abazajian}, K.~N., {Adelman-McCarthy}, J.~K., {Ag{\"u}eros}, M.~A., {et~al.}
+  2009, \apjs, 182, 543, \dodoi{10.1088/0067-0049/182/2/543}
+
+\bibitem[{{Blanton} \& {Roweis}(2007)}]{BlantonRoweis2007}
+{Blanton}, M.~R., \& {Roweis}, S. 2007, \aj, 133, 734, \dodoi{10.1086/510127}
+
+\bibitem[{{Blanton} {et~al.}(2005){Blanton}, {Schlegel}, {Strauss},
+  {Brinkmann}, {Finkbeiner}, {Fukugita}, {Gunn}, {Hogg}, {Ivezi{\'c}}, {Knapp},
+  {Lupton}, {Munn}, {Schneider}, {Tegmark}, \& {Zehavi}}]{Blantonetal2005}
+{Blanton}, M.~R., {Schlegel}, D.~J., {Strauss}, M.~A., {et~al.} 2005, \aj, 129,
+  2562, \dodoi{10.1086/429803}
+
+\bibitem[{{Bluck} {et~al.}(2016){Bluck}, {Mendel}, {Ellison}, {Patton},
+  {Simard}, {Henriques}, {Torrey}, {Teimoorinia}, {Moreno}, \&
+  {Starkenburg}}]{Blucketal2016}
+{Bluck}, A.~F.~L., {Mendel}, J.~T., {Ellison}, S.~L., {et~al.} 2016, \mnras,
+  462, 2559, \dodoi{10.1093/mnras/stw1665}
+
+\bibitem[{{Brinchmann} {et~al.}(2004){Brinchmann}, {Charlot}, {Heckman},
+  {Kauffmann}, {Tremonti}, \& {White}}]{Brinchmannetal2004catalog}
+{Brinchmann}, J., {Charlot}, S., {Heckman}, T.~M., {et~al.} 2004, ArXiv
+  Astrophysics e-prints
+
+\bibitem[{{Byler} {et~al.}(2017){Byler}, {Dalcanton}, {Conroy}, \&
+  {Johnson}}]{Byleretal2017FSPSneb}
+{Byler}, N., {Dalcanton}, J.~J., {Conroy}, C., \& {Johnson}, B.~D. 2017, \apj,
+  840, 44, \dodoi{10.3847/1538-4357/aa6c66}
+
+\bibitem[{{Calzetti} {et~al.}(2000){Calzetti}, {Armus}, {Bohlin}, {Kinney},
+  {Koornneef}, \& {Storchi-Bergmann}}]{Calzettietal2000}
+{Calzetti}, D., {Armus}, L., {Bohlin}, R.~C., {et~al.} 2000, \apj, 533, 682,
+  \dodoi{10.1086/308692}
+
+\bibitem[{{Chabrier}(2003)}]{Chabrier2003}
+{Chabrier}, G. 2003, \pasp, 115, 763, \dodoi{10.1086/376392}
+
+\bibitem[{{Charlot} \& {Fall}(2000)}]{CharlotFall2000}
+{Charlot}, S., \& {Fall}, S.~M. 2000, \apj, 539, 718, \dodoi{10.1086/309250}
+
+\bibitem[{{Conroy} \& {Gunn}(2010{\natexlab{a}})}]{ConroyGunn2010FSPSsoftware}
+{Conroy}, C., \& {Gunn}, J.~E. 2010{\natexlab{a}}, {FSPS: Flexible Stellar
+  Population Synthesis}, Astrophysics Source Code Library.
+\newblock \doeprint{1010.043}
+
+\bibitem[{{Conroy} \& {Gunn}(2010{\natexlab{b}})}]{ConroyGunn2010FSPSpaper3}
+---. 2010{\natexlab{b}}, \apj, 712, 833, \dodoi{10.1088/0004-637X/712/2/833}
+
+\bibitem[{{Conroy} {et~al.}(2009){Conroy}, {Gunn}, \&
+  {White}}]{Conroyetal2009FSPSpaper1}
+{Conroy}, C., {Gunn}, J.~E., \& {White}, M. 2009, \apj, 699, 486,
+  \dodoi{10.1088/0004-637X/699/1/486}
+
+\bibitem[{{Conroy} {et~al.}(2010){Conroy}, {White}, \&
+  {Gunn}}]{Conroyetal2010FSPSpaper2}
+{Conroy}, C., {White}, M., \& {Gunn}, J.~E. 2010, \apj, 708, 58,
+  \dodoi{10.1088/0004-637X/708/1/58}
+
+\bibitem[{Foreman-Mackey {et~al.}(2014)Foreman-Mackey, Sick, \&
+  Johnson}]{ForemanMackeyetal2014python-fsps}
+Foreman-Mackey, D., Sick, J., \& Johnson, B. 2014, python-fsps: Python bindings
+  to FSPS (v0.1.1), \dodoi{10.5281/zenodo.12157}.
+\newblock \url{https://doi.org/10.5281/zenodo.12157}
+
+\bibitem[{{Genel} {et~al.}(2014){Genel}, {Vogelsberger}, {Springel}, {Sijacki},
+  {Nelson}, {Snyder}, {Rodriguez-Gomez}, {Torrey}, \&
+  {Hernquist}}]{Geneletal2014}
+{Genel}, S., {Vogelsberger}, M., {Springel}, V., {et~al.} 2014, \mnras, 445,
+  175, \dodoi{10.1093/mnras/stu1654}
+
+\bibitem[{{Salim} {et~al.}(2007){Salim}, {Rich}, {Charlot}, {Brinchmann},
+  {Johnson}, {Schiminovich}, {Seibert}, {Mallery}, {Heckman}, {Forster},
+  {Friedman}, {Martin}, {Morrissey}, {Neff}, {Small}, {Wyder}, {Bianchi},
+  {Donas}, {Lee}, {Madore}, {Milliard}, {Szalay}, {Welsh}, \&
+  {Yi}}]{Salimetal2007}
+{Salim}, S., {Rich}, R.~M., {Charlot}, S., {et~al.} 2007, \apjs, 173, 267,
+  \dodoi{10.1086/519218}
+
+\bibitem[{{Sijacki} {et~al.}(2007){Sijacki}, {Springel}, {Di Matteo}, \&
+  {Hernquist}}]{Sijackietal2007}
+{Sijacki}, D., {Springel}, V., {Di Matteo}, T., \& {Hernquist}, L. 2007,
+  \mnras, 380, 877, \dodoi{10.1111/j.1365-2966.2007.12153.x}
+
+\bibitem[{{Somerville} {et~al.}(2012){Somerville}, {Gilmore}, {Primack}, \&
+  {Dom{\'{\i}}nguez}}]{Somervilleetal2012}
+{Somerville}, R.~S., {Gilmore}, R.~C., {Primack}, J.~R., \& {Dom{\'{\i}}nguez},
+  A. 2012, \mnras, 423, 1992, \dodoi{10.1111/j.1365-2966.2012.20490.x}
+
+\bibitem[{{Somerville} {et~al.}(2008){Somerville}, {Hopkins}, {Cox},
+  {Robertson}, \& {Hernquist}}]{Somervilleetal2008}
+{Somerville}, R.~S., {Hopkins}, P.~F., {Cox}, T.~J., {Robertson}, B.~E., \&
+  {Hernquist}, L. 2008, \mnras, 391, 481,
+  \dodoi{10.1111/j.1365-2966.2008.13805.x}
+
+\bibitem[{{Somerville} {et~al.}(2018){Somerville}, {Behroozi}, {Pandya},
+  {Dekel}, {Faber}, {Fontana}, {Koekemoer}, {Koo}, {P{\'e}rez-Gonz{\'a}lez},
+  {Primack}, {Santini}, {Taylor}, \& {van der Wel}}]{Somervilleetal2018}
+{Somerville}, R.~S., {Behroozi}, P., {Pandya}, V., {et~al.} 2018, \mnras, 473,
+  2714, \dodoi{10.1093/mnras/stx2040}
+
+\bibitem[{{Sparre} {et~al.}(2015){Sparre}, {Hayward}, {Springel},
+  {Vogelsberger}, {Genel}, {Torrey}, {Nelson}, {Sijacki}, \&
+  {Hernquist}}]{Sparreetal2015}
+{Sparre}, M., {Hayward}, C.~C., {Springel}, V., {et~al.} 2015, \mnras, 447,
+  3548, \dodoi{10.1093/mnras/stu2713}
+
+\bibitem[{{Springel} \& {Hernquist}(2003)}]{SpringelHernquist2003}
+{Springel}, V., \& {Hernquist}, L. 2003, \mnras, 339, 289,
+  \dodoi{10.1046/j.1365-8711.2003.06206.x}
+
+\bibitem[{{Terrazas} {et~al.}(2017){Terrazas}, {Bell}, {Woo}, \&
+  {Henriques}}]{Terrazasetal2017}
+{Terrazas}, B.~A., {Bell}, E.~F., {Woo}, J., \& {Henriques}, B.~M.~B. 2017,
+  \apj, 844, 170, \dodoi{10.3847/1538-4357/aa7d07}
+
+\bibitem[{{Tinker} {et~al.}(2011){Tinker}, {Wetzel}, \&
+  {Conroy}}]{Tinkeretal2011}
+{Tinker}, J., {Wetzel}, A., \& {Conroy}, C. 2011, ArXiv e-prints.
+\newblock \doarXiv{1107.5046}
+
+\bibitem[{{Vogelsberger} {et~al.}(2013){Vogelsberger}, {Genel}, {Sijacki},
+  {Torrey}, {Springel}, \& {Hernquist}}]{Vogelsbergeretal2013}
+{Vogelsberger}, M., {Genel}, S., {Sijacki}, D., {et~al.} 2013, \mnras, 436,
+  3031, \dodoi{10.1093/mnras/stt1789}
+
+\bibitem[{{Vogelsberger} {et~al.}(2014){Vogelsberger}, {Genel}, {Springel},
+  {Torrey}, {Sijacki}, {Xu}, {Snyder}, {Nelson}, \&
+  {Hernquist}}]{Vogelsbergeretal2014}
+{Vogelsberger}, M., {Genel}, S., {Springel}, V., {et~al.} 2014, \mnras, 444,
+  1518, \dodoi{10.1093/mnras/stu1536}
+
+\end{thebibliography}
