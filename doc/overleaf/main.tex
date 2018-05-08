@@ -563,7 +563,8 @@ and~\ref{fig:sfmsfit_powerlaw}. In Appendix~\ref{app:zerosfr}, we describe
 how we derive these stellar mass limits. 
 
 \todo{concluding paragrpah to this subsection that ties together all the
-results regarding the sfms}
+results regarding the sfms: 
+highlight the advantage of our GMM fitting method}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure  
@@ -669,14 +670,17 @@ $\log\,\mathrm{SFR} = -4$. Regardless of their position and width, the
 significant quiescent populations at low stellar masses are in disagreement
 with observations~\citep{geha2012}, which find no isolated/central quenched 
 galaxies below $M_* \sim 10^9 M_\odot$. 
-\todo{Some sentence about what may be causing this.}
+\begin{itemize}
+    \item \todo{what's causing central galaxies to be quenched below 
+        $10^9M_\odot$}
+\end{itemize}
 This discrepancy between simulations and observations, however, must be 
 taken with a grain of salt. Both the environment and quenched classifications 
 in \cite{geha2012} are defined differently than in the simulations. 
 \cite{geha2012} classifies as a galaxy as quenched if it
 does not have an $H\alpha$ emission and based on a $D_n 4000$ criteria. 
 Furthermore, \todo{the isolation criteria of \cite{geha2012} is more 
-stringent than the group finder. (CHH: @claire is this true?)} 
+stringent than the group finder. [chang: @claire is this true?]} 
 %incept the idea for paper2. 
 
 %Figure~\ref{fig:sfmsfit_comps} reveals components besides the SFMS and quiescent components. For instance, 
@@ -722,12 +726,14 @@ and star-burst (purple). We present the uncertainties of $\pi_i$, estimated
 through bootstrap resampling, in Figure~\ref{fig:fcomp_uncertainty} of 
 Appendix~\ref{app:zerosfr}. 
 For every simulation, a significant fraction of galaxies have SFR$=0$. 
-This is because \todo{chang: @tjistke why do we have a significant fraction 
-of galaxies with SFR$=0$ in all of the simulations? Can they be thought
-of as quiescent?} 
+In hydrodynamical simulations, galaxies with SFR below the resolution 
+limit have $\mathrm{SFR}{=}0$ (Appendix~\ref{app:zerosfr}). They therefore
+can be considered quiescent galaxies. In the Santa Cruz SAM, 
+\todo{chang: @tjistke why do we have a significant fraction 
+of galaxies with SFR$=0$ in the SAM? Can they be thought of as quiescent?} 
 
 The fractional contributions of the GMM components in Figure~\ref{fig:kandinsky}
-reveal a number of disagreements between trends established from 
+reveal disagreements between trends established from 
 observations and our simulated galaxies --- especially the ones from 
 hydrodynamical simulations. As we mentioned earlier, observations 
 established a stellar mass lower bound for isolated/central quenched
@@ -739,26 +745,34 @@ Illustris with $100\,\mathrm{Myr}$ SFRs and MUFASA with instantaneous SFRs
 have similarly high quiescent fractions. Even in the Santa Cruz SAM, we 
 find a non-negligible ($\sim 10\%$) quiescent fraction at $10^9M_\odot$. 
 
-Related to the low $M_*$ quiescent fraction, we find little stellar mass 
-dependence in the fraction of high SFR components (blue and purple) at 
-$M_* < 10^{11} M_\odot$ for our hydrodynamical simulations. 
+At $M_* > 10^9M_\odot$, we find little stellar mass dependence in the 
+fraction of high SFR components (SFMS and star-burst; blue and purple 
+in Figure~\ref{fig:kandinsky}) in our hydrodynamical simulations at 
+$M_* < 10^{11}M_\odot$. If we take the quiescent fraction to be 
+$f_\mathrm{Q} = 1 - \sum\limits_{\mathrm{high\,SFR}} \pi_i$, then the 
+quiescent fraction of our central galaxies from hydrodynamical simulations 
+have little stellar mass dependence at $10^9 < M_* < 10^{11} M_\odot$ ---
+unlike $f_\mathrm{Q}$s from~\cite{baldry2006,peng2010,hahn2015},
+which all find significant stellar mass dependence in the quiescent/red fraction of 
+isolated galaxies in SDSS. In this regards, the quiescent fraction of the 
+Santa Cruz SAM is in good agreement with the isolated galaxy 
+quiescent fraction from SDSS~\citep{baldry2006,peng2010,hahn2015}.
 
-\todo{concluding paragrpah to this subsection that ties together all the
-results regarding the sfms: 
-highlight the advantage of our GMM fitting method
-highlight how the data-driven fitting method provides detailed insights into 
+\todo{highlight how the data-driven fitting method provides detailed insights into 
 simulated galaxies besides the ones that lie on the SFMSs .
 We ultimately conclude from these insights that the hydro sims do not agree
 well with trends established from observations. Santa Cruz SAM does better.}
 
 \subsection{Comparing to Observations}
-Our data-driven GMM SFMS fitting has so far provided a principled way to 
-compare our simulated galaxy populations through the major features in the 
-data. These comparisons have revealed a number of agreements and discrepancies
-among the simulations; however, the ultimate goal of these galaxy simulation 
-is to reproduce the observations. Therefore, in this section we compare 
-our simulations to our observed galaxy sample from SDSS and NSA
-(Section~\ref{sec:obvs}) in a similar fashion to the previous sections. 
+Our data-driven GMM SFMS fitting provides a principled way to compare 
+galaxy populations through the major features in the data-space. These 
+comparisons have so far revealed a number of agreements and discrepancies
+among the central galaxies in our simulations. The ultimate goal of 
+these simulations, however, is to reproduce the observations, which means
+that we ultimately want to compare them to observations. In this section, 
+we extend our GMM SFMS fitting to our observed galaxy sample from SDSS and NSA
+and compare our simulated galaxies to observations.
+
 
 First, we compare the SFMS of our simulated galaxies to the best-fit SFMS
 of our SDSS and NSA central galaxies

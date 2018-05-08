@@ -443,20 +443,24 @@ class fstarforms(object):
         # lowest SSFR component with SSFR less than SFMS will be designated as the 
         # quenched component 
         if i_sfms is not None: 
-            notsfms = (mu_gbest < mu_gbest[i_sfms]) 
-            if np.sum(notsfms) > 0: 
-                i_q = (np.arange(n_gbest)[notsfms])[mu_gbest[notsfms].argmin()]
-                
+            notsf = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest < -11.) 
+            if np.sum(notsf) > 0: 
+                i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
                 # check if there's an intermediate population 
-                interm = notsfms & (mu_gbest > mu_gbest[i_q]) 
-                if np.sum(interm) > 0: 
-                    i_int = np.arange(n_gbest)[interm]
-        else: # no SFMS 
-            i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
-            # check if there's an intermediate population 
-            interm = (mu_gbest > mu_gbest[i_q]) 
+                interm = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest > mu_gbest[i_q]) 
+            else: 
+                interm = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest > -11.) 
             if np.sum(interm) > 0: 
                 i_int = np.arange(n_gbest)[interm]
+        else: # no SFMS 
+            notsf = (mu_gbest < -11.) 
+            if np.sum(notsf) > 0: 
+                i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
+                #i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
+                # check if there's an intermediate population 
+                interm = (mu_gbest > mu_gbest[i_q]) 
+                if np.sum(interm) > 0: 
+                    i_int = np.arange(n_gbest)[interm]
 
         # if there's a component with high SFR than SFMS -- i.e. star-burst 
         if i_sfms is not None: 
