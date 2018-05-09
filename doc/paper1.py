@@ -262,10 +262,17 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
         iscen = ((censat == 1) & np.invert(Cat.zero_sfr))
+
+        if cat == 'nsa_dickey': 
+            fitrange = [np.floor(logMstar[iscen].min()/0.2)*0.2, 9.7]
+            iscen = iscen & (logMstar < 9.7)
+        elif cat == 'tinkergroup': 
+            fitrange = [9.7, np.ceil(logMstar[iscen].max()/0.2)*0.2]
+            iscen = iscen & (logMstar > 9.7)
         # fit the SFMS  
         fSFMS = fstarforms()
         fit_logm, fit_logsfr, fit_sig_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
-                method='gaussmix', fit_error='bootstrap', n_bootstrap=100) 
+                method='gaussmix', fit_range=fitrange, fit_error='bootstrap', n_bootstrap=100) 
         DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, alpha=0.5, 
@@ -362,7 +369,7 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
         if fit_logms[i] is not None: 
             #sub.errorbar(fit_logms[i], fit_logsfrs[i], fit_sig_logsfrs[i], fmt='.C'+str(i+2)) 
             sub.fill_between(fit_logms[i], fit_logsfrs[i]-fit_sig_logsfrs[i], fit_logsfrs[i]+fit_sig_logsfrs[i],
-                    color='C'+str(i+2), linewidth=0, alpha=0.5) 
+                    color='C'+str(i+2), linewidth=0.5, alpha=0.75) 
             #sub.scatter(fit_logms[i], fit_logsfrs[i], c='C'+str(i+2), marker='x', lw=3, s=40) 
     sub.set_xlim([8., 12.]) 
     sub.set_ylim([-4., 2.]) 
@@ -388,27 +395,26 @@ def Catalogs_SFMS_powerlawfit():
     ''' Compare the power-law fit of the GMM SFMS fits 
     '''
     Cat = Cats.Catalog()
-    # tscales 
-    tscales = ['inst', '100myr']
-    # simulations 
-    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+    tscales = ['inst', '100myr'] # tscales 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    f_table = open(''.join([UT.doc_dir(), 'SFMS_powerlawfit.txt']), 'w') 
+    f_table.write("# best-fit (maximum likelihood) paremters for power-law fits to SFMS \n")
 
     fig = plt.figure(1, figsize=(8,4))
     bkgd = fig.add_subplot(111, frameon=False)
     m_arr = np.linspace(8., 12., 100) 
-
     for i_t, tscale in enumerate(tscales): 
         sub = fig.add_subplot(1,2,1+i_t)
         for i_c, cc in enumerate(sims_list): 
             cat = '_'.join([cc, tscale]) 
-
             try: 
                 lbl = Cat.CatalogLabel(cat)
                 logMstar, logSFR, weight, censat = Cat.Read(cat, keepzeros=True)
                 psat = Cat.GroupFinder(cat+'_'+tscale)
             except (ValueError, NotImplementedError): 
                 continue 
-
+            
             if i_c == 0: 
                 sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='top', transform=sub.transAxes, fontsize=20)
@@ -436,9 +442,9 @@ def Catalogs_SFMS_powerlawfit():
                     fit_range=fitrange, fit_error='bootstrap', n_bootstrap=100) 
             # power-law fit of the SFMS fit 
             f_sfms = fSFMS.powerlaw(logMfid=10.5) 
-            print('%s' % cat) 
-            print('power-law m: %f' % fSFMS._powerlaw_m) 
-            print('power-law b: %f' % fSFMS._powerlaw_c) 
+            f_table.write('--- %s --- \n' % cat) 
+            f_table.write('power-law m: %f \n' % fSFMS._powerlaw_m) 
+            f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
 
             sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
         sub.set_xlim([8.2, 11.8]) 
@@ -455,6 +461,25 @@ def Catalogs_SFMS_powerlawfit():
     fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMS_powerlawfit.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
+
+    # **for reference** fit the franken-SDSS sample 
+    logM_nsa, logSFR_nsa, _, censat_nsa = Cat.Read('nsa_dickey', keepzeros=True)
+    iscen_nsa = ((censat_nsa == 1) & np.invert(Cat.zero_sfr)) # only keep centrals
+    logM_sdss, logSFR_sdss, _, censat_sdss = Cat.Read('tinkergroup', keepzeros=True)
+    iscen_sdss = ((censat_sdss == 1) & np.invert(Cat.zero_sfr)) 
+
+    logM_comb = np.concatenate([logM_nsa[iscen_nsa], logM_sdss[iscen_sdss]]) 
+    logSFR_comb = np.concatenate([logSFR_nsa[iscen_nsa], logSFR_sdss[iscen_sdss]]) 
+
+    fSFMS = fstarforms() # fit the SFMS  
+    _ = fSFMS.fit(logM_comb, logSFR_comb, method='gaussmix', 
+            fit_range=fitrange, fit_error='bootstrap', n_bootstrap=100) 
+    # power-law fit of the SFMS fit 
+    f_sfms = fSFMS.powerlaw(logMfid=10.5) 
+    f_table.write('--- SDSS + NSA --- \n') 
+    f_table.write('power-law m: %f \n' % fSFMS._powerlaw_m) 
+    f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
+    f_table.close() 
     return None 
 
 
@@ -515,8 +540,15 @@ def Catalogs_SFMS_width():
             elif i_t == 1 and i_c in [2, 3]: 
                 _label = lbl.split('[')[0]
 
-            sub.errorbar(fSFMS._fit_logm, np.sqrt(fSFMS._fit_sig_logssfr), fSFMS._fit_err_sig_logssfr, 
-                    fmt='.C'+str(i_c+2), label=_label) 
+            #sub.errorbar(fSFMS._fit_logm, np.sqrt(fSFMS._fit_sig_logssfr), fSFMS._fit_err_sig_logssfr, 
+            #        fmt='.C'+str(i_c+2), label=_label) 
+            sub.fill_between(fSFMS._fit_logm, fSFMS._fit_sig_logssfr - fSFMS._fit_err_sig_logssfr, 
+                    fSFMS._fit_sig_logssfr + fSFMS._fit_err_sig_logssfr, color='C'+str(i_c+2), 
+                    alpha=0.75, linewidth=0, label=_label) 
+
+            #sub.fill_between(fSFMS._fit_logm, np.sqrt(fSFMS._fit_sig_logssfr) - fSFMS._fit_err_sig_logssfr, 
+            #        np.sqrt(fSFMS._fit_sig_logssfr) + fSFMS._fit_err_sig_logssfr, color='C'+str(i_c+2), 
+            #        alpha=0.75, label=_label) 
             sub.legend(loc='lower right', frameon=False, handletextpad=-0.1, prop={'size': 15}) 
             
             # fit the widths to a line 
@@ -1556,9 +1588,9 @@ if __name__=="__main__":
     #for tt in ['inst', '100myr']: # '10myr', '1gyr']: 
     #    Catalog_SFMS_fit(tt)
     #Catalogs_SFMS_powerlawfit()
-    #Catalogs_SFMS_width()
+    Catalogs_SFMS_width()
     #Catalog_GMMcomps()
-    GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #Pssfr_res_impact()

@@ -195,7 +195,7 @@ class fstarforms(object):
                 # save the SFMS log M* and log SSFR values 
                 fit_logm.append(np.median(logmstar[in_mbin])) 
                 fit_logssfr.append(UT.flatten(gbest.means_.flatten()[i_sfms]))
-                fit_sig_logssfr.append(UT.flatten(gbest.covariances_.flatten()[i_sfms]))
+                fit_sig_logssfr.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfms])))
 
                 # calculate the uncertainty of logSSFR fit 
                 if fit_error is None: 
@@ -213,7 +213,7 @@ class fstarforms(object):
                         if i_sfms_boot is None: 
                             continue 
                         boot_mu_logssfr.append(UT.flatten(gmm_boot.means_.flatten()[i_sfms_boot]))
-                        boot_sig_logssfr.append(UT.flatten(gmm_boot.covariances_.flatten()[i_sfms_boot]))
+                        boot_sig_logssfr.append(np.sqrt(UT.flatten(gmm_boot.covariances_.flatten()[i_sfms_boot])))
                     fit_err_logssfr.append(np.std(np.array(boot_mu_logssfr)))
                     fit_err_sig_logssfr.append(np.std(np.array(boot_sig_logssfr)))
                 else: 
@@ -443,24 +443,24 @@ class fstarforms(object):
         # lowest SSFR component with SSFR less than SFMS will be designated as the 
         # quenched component 
         if i_sfms is not None: 
-            notsf = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest < -11.) 
+            notsf = (mu_gbest < mu_gbest[i_sfms]) #& (mu_gbest < -11.) 
             if np.sum(notsf) > 0: 
                 i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
                 # check if there's an intermediate population 
                 interm = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest > mu_gbest[i_q]) 
-            else: 
-                interm = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest > -11.) 
-            if np.sum(interm) > 0: 
-                i_int = np.arange(n_gbest)[interm]
-        else: # no SFMS 
-            notsf = (mu_gbest < -11.) 
-            if np.sum(notsf) > 0: 
-                i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
-                #i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
-                # check if there's an intermediate population 
-                interm = (mu_gbest > mu_gbest[i_q]) 
+            #else: 
+            #    interm = (mu_gbest < mu_gbest[i_sfms]) & (mu_gbest > -11.) 
                 if np.sum(interm) > 0: 
                     i_int = np.arange(n_gbest)[interm]
+        else: # no SFMS 
+            #notsf = (mu_gbest < -11.) 
+            #if np.sum(notsf) > 0: 
+                #i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
+            i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
+            # check if there's an intermediate population 
+            interm = (mu_gbest > mu_gbest[i_q]) 
+            if np.sum(interm) > 0: 
+                i_int = np.arange(n_gbest)[interm]
 
         # if there's a component with high SFR than SFMS -- i.e. star-burst 
         if i_sfms is not None: 
