@@ -27,10 +27,10 @@ class Catalog:
                 'mufasa_10myr': 'MUFASA_combined.dat',
                 'mufasa_100myr': 'MUFASA_GALAXY_extra.txt', 
                 'mufasa_1gyr': 'MUFASA_combined.dat',
-                'scsam_inst': 'SCSAMgalprop.dat', #'SCSAMgalprop_updatedVersion.dat', 
-                'scsam_10myr': 'SCSAMgalprop.dat', #'SCSAMgalprop_updatedVersion.dat', 
-                'scsam_100myr': 'SCSAMgalprop.dat', #'SCSAMgalprop_updatedVersion.dat', 
-                'scsam_1gyr': 'SCSAMgalprop.dat', # 'SCSAMgalprop_updatedVersion.dat', 
+                'scsam_inst': 'SCSAMgalprop_updatedVersion.dat', #'SCSAMgalprop.dat',  
+                'scsam_10myr': 'SCSAMgalprop_updatedVersion.dat', #'SCSAMgalprop.dat', 
+                'scsam_100myr': 'SCSAMgalprop_updatedVersion.dat', #'SCSAMgalprop.dat', 
+                'scsam_1gyr': 'SCSAMgalprop_updatedVersion.dat', #'SCSAMgalprop.dat', 
                 'nsa_combined': 'NSA_complete_SFRs.cat', 
                 'nsa_combined_uv': 'NSA_complete_SFRs.cat', 
                 'tinkergroup': 'tinker_SDSS_centrals_M9.7.dat',
@@ -152,14 +152,14 @@ class Catalog:
             # 37 vy y component of velocity [km/s]
             # 38 vz z component of velocity [km/s]
             if name == 'scsam_inst': 
-                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,17,3])
-                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,20,3]) 
+                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,17,3])
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,20,3]) 
             elif name == 'scsam_100myr': 
-                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,20,3])
-                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,22,3]) 
+                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,20,3])
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,22,3]) 
             elif name == 'scsam_1gyr': 
-                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,21,3])
-                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,23,3]) 
+                #_M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=47, usecols=[7,21,3])
+                _M, _SFR, _censat = np.loadtxt(f_name, unpack=True, skiprows=39, usecols=[7,23,3]) 
             else: 
                 raise ValueError
             logM = np.log10(_M) + 9.
@@ -231,7 +231,7 @@ class Catalog:
                 'illustris': 'illustris_groups_Mall.prob', 
                 'eagle': 'EAGLE_groups_allabove1.8e8.prob', 
                 'mufasa': 'MUFASA_groups.prob10.prob',
-                'scsam': 'SCSAM_groups.prob', # 'SCSAM_updated_groups.prob'
+                'scsam': 'SCSAM_groups3.prob', # 'SCSAM_updated_groups.prob'
                 }
         # group finder file name
         f_name = ''.join([UT.dat_dir(), 'group_finder/', groupfind_dict[cat_name]]) 
