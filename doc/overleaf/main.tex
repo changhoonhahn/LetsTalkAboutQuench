@@ -44,15 +44,15 @@ We present a data-driven approach to fitting the SFMS using Gaussian
 Mixture Models that can be flexibly applied to a wide range of star 
 formation to stellar mass relations down to $M_*{\sim}10^{8}M_\odot$. %and across four orders of magnitude in stellar mass.
 Using this method, we identify the SFMS of central galaxies in 
-the Illustris, EAGLE, and MUFASA hydrodynamical simulations, the Santa Cruz 
+the Illustris, EAGLE, and MUFASA hydrodynamic simulations, the Santa Cruz 
 Semi-Analytic Model simulation, and observations from the Sloan Digital 
 Sky Survey Data Release 7 and the NASA Sloan Atlas. Among our simulations, 
 we find discrepancies on the order of a magnitude in the amplitudes of the 
 SFMSs. In addition, our fitting method also identifies subpopulations 
 that correspond to quenched, transitioning, and star-burst galaxies. We 
-find overall consistent subpopulations among our hydrodynamical 
+find overall consistent subpopulations among our hydrodynamic 
 simulations but not with the semi-analytic model. Using these subpopulations, 
-we find that the quiescent fractions of the hydrodynamical simulations do 
+we find that the quiescent fractions of the hydrodynamic simulations do 
 not reproduce measurements from observations. Moreover, in \emph{all} of the 
 simulations we find a significant fraction of quenched galaxies at 
 $M_* < 10^9M_\odot$, below the established \cite{geha2012} threshold. The 
@@ -83,29 +83,38 @@ SFMS)~\citep[\emph{e.g.}][]{noeske2007, daddi2007, salim2007}.
 % Galaxy evolution from the perspective of the SFMS. 
 In fact, this sequence of star forming galaxies is found in observations 
 well beyond the local universe out to $z > 2$~\citep{wang2013, schreiber2015}.
-But more than 
-its persistence, the SFMS plays a crucial role in characterizing 
-the evolving galaxy population---the most dramatic transformations of 
-galaxies over the past $10\,\mathrm{Gyr}$ can be described through the SFMS. 
-For instance, the decline in massive star forming galaxies is accompanied by  
-the growth in quiescent galaxies. This corresponds to the cessation of 
-star formation in a significant fraction of star forming galaxies falling off of
-the SFMS~\citep{blanton2006, borch2006,bundy2006, moustakas2013}. Meanwhile, 
-the cosmic decline in star 
-formation~\citep{hopkins2006, behroozi2013a, madau2014}
-correspond to the decline of star formation of the SFMS~\citep{schreiber2015}. 
+But more than its persistence, the SFMS plays a crucial role in characterizing 
+the evolving galaxy population. The most dramatic transformations of 
+galaxies over the past $10\,\mathrm{Gyr}$ can be seen in the context 
+of the SFMS. For instance, the decline in the number density of massive 
+star forming galaxies and the accompanying growth in number density of 
+quiescent galaxies, corresponds to the cessation of star formation in 
+star forming galaxies falling off of the 
+SFMS~\citep{blanton2006, borch2006,bundy2006, moustakas2013}. 
+Meanwhile, the cosmic decline in star formation~\citep{hopkins2006, behroozi2013a, madau2014}
+correspond to the overall decline of star formation of the 
+SFMS~\citep{schreiber2015}. 
 
-In response to the progress in understanding of galaxies through observations,
-simulations have ...
-\todo{Some brief intro about the evolution of simulations. Talk about how the
-different classes of simulations---hydro sims and SAMs---address galaxy 
-formation theory and find agreement with observations. Some brief summary 
-of the progression of physics that these simulations incorporate. 
-Finally talk about previous attempts to compare simulations to data and 
-emphasize how they fell short.}
+In conjunction with observations, numerical simulations have shed light
+on key physical processes governing galaxy formation and evolution. 
+Hydrodynamic and semi-analytic simulations model the immense range of 
+scales using sub-grid models of, for instance, gas heating and cooling, 
+star formation, stellar feedback, chemical evolution, black hole formation 
+and evolution, and AGN feedback. Depending on the simulation method, code, 
+and resolution the detailed processes of prescription differ significantly, 
+even if their effects are similar. 
+For example whether feedback due to AGN in simulations 
+is most effective in suppressing cold gas accretion and star formation when
+modeled as thermal, kinetic, or radiative feedback, or any combination of 
+these depending on central black hole and galaxy properties \todo{refs} \todo{(chang: not sure I understand this example very well)}. 
+Modern simulations qualitatively reproduce the evolution of the SFMS and 
+similar global scaling 
+relations~\citep{SomervilleDave2015ARAA, vogelsberger2014,genel2014, schaye2015, dave2016, dave2017}\todo{and more}. 
+Many comparisons of the SFMS between observations and simulations have been made, but these usually focus on comparing one specific simulated galaxy sample to one or a few observational datasets \citep{vogelsberger2014,genel2014, schaye2015, dave2016,bluck2016, torrey2014,sparre2015}\todo{and more}.
+%At the same time a general understanding of the key physical processes  in the formation and evolution of galaxies has arisen from numerical simulations. Global galaxy properties, correlations, and distribution  functions can nowadays (approximately) be reproduced by hydrodynamical,  and semi-analytical cosmological and zoom simulations that include gas  heating and cooling, star formation and stellar feedback, chemical  evolution, and black hole formation, evolution, and AGN feedback. Due to the immense range in scales that needs to be covered by these simulations, many  of these processes are implemented using sub-grid models, that vary in their prescriptions depending on simulation method, code, and resolution. Even  though the effects can be similar, the detailed processes in these feedback schemes may differ, for example whether feedback due to AGN in simulations  is most effective in suppressing cold gas accretion and star formation when modeled as thermal, kinetic, or radiative feedback, or any combination of  these depending on central black hole and galaxy properties \todo{refs}.  Present-day galaxy formation models do qualitatively reproduce the evolution of the SFMS and similar global scaling relations \citep{SomervilleDave2015ARAA, vogelsberger2014,genel2014, schaye2015, dave2016, dave2017}\todo{and more}. Many comparisons of the SFMS between observations and simulations have been made, but these usually focus on comparing one specific simulated galaxy sample to one or a few observational datasets \citep{vogelsberger2014,genel2014, schaye2015, dave2016,bluck2016, torrey2014,sparre2015}\todo{and more}. 
 
 %Nonetheless, with the key role that starforming galaxies play in our understanding of the formation and evolution of galaxies, the SFMS is an important relation to compare to for simulations. Moreover, the SFMS can form a tool to understand the starforming and non-starforming galaxy populations and the processes that create those. Therefore we argue that a comparing the galaxy populations in the SFR-$M_{\star}$ plane between different simulations that vary in technique and in descriptions of key physical processes, is important. The SFMS serves as a key feature in galaxy sample data for comparison. Therefore in this paper we compare different simulations by conducting a data-driven comparison centered around the star formation main  sequences of different data sets. 
-The SFMS, given its \todo{prominence(?)}, naturally presents itself as a key feature in the data-space of
+The SFMS, given its \todo{prominence(?) markedness(?) ubiquitousness(?)}, naturally presents itself as a key feature in the data-space of
 galaxy properties to compare galaxy populations across both observations 
 and simulations. Moreover, with the important role it plays for 
 understanding galaxy evolution, the SFMS provides a way to understand the 
@@ -118,8 +127,8 @@ for deriving galaxy properties alone dramatically impacts the
 SFMS~\citep[\emph{e.g.}][]{speagle2014}. 
 In this paper we address the first challenge by presenting a flexible, 
 data-driven method for fitting the SFMS. Then we use this method to conduct
-a principled comparison of the central galaxy populations from the Illustris,
-EAGLE, and MUFASA hydrodynamic simulations the Santa Cruz Semi-Analytic 
+a principled comparison between the central galaxy populations from the Illustris,
+EAGLE, and MUFASA hydrodynamic simulations, the Santa Cruz Semi-Analytic 
 Model (SAM) simulation and observations from the SDSS and NASA-Sloan Atlas
 (hereafter NSA) catalogs. 
 
@@ -186,39 +195,46 @@ quantify.}} \label{fig:pssfr}
 \section{Our galaxies} \label{sec:ourgals}
 In this work, we primarily focus on simulated galaxy samples from four 
 large-scale cosmological simulations: three hydrodynamic (Illustris, EAGLE, 
-and MUFASA) and one semi-analytic (Santa Cruz SAM). Although we mainly 
-focus on the simulated galaxies, for reference we also include two observed 
+and MUFASA) and one semi-analytical (Santa Cruz SAM). Although we mainly 
+focus on the simulated galaxies, for reference, we also include two observed 
 galaxy samples: a volume-limited sample from SDSS and a selected isolated 
-dwarf galaxy sample from the NSA catalog. We present a brief description of the
-four simulations in Section~\ref{sec:galsims}. We also briefly
-describe our observed galaxy sample in Section~\ref{sec:obvs}. These 
-descriptions primarily focus on the derivation of SFRs and $M_*$s in our 
-galaxy samples. Finally in Section~\ref{sec:central}, we describe how 
-we consistently identify the central galaxies in both our simulations 
-and observations. 
+dwarf galaxy sample from the NSA catalog. We briefly describe the four 
+simulations in Section~\ref{sec:galsims} and our observed galaxy sample 
+in Section~\ref{sec:obvs}. These descriptions primarily focus on the 
+derivation of SFR's and $M_*$'s in our galaxy samples. Lastly in 
+Section~\ref{sec:central}, we describe how we consistently identify the 
+central galaxies in both our simulations and observations. 
 
 \subsection{Simulated Galaxies} \label{sec:galsims}
-\todo{What are the main goals of these simulations -- i.e. what main observables are they trying to reproduce? Also, what are the main ways in which they differ from one another?}
-For high-mass galaxies, the AGN-feedback descriptions in the simulations are crucial to get the right stellar--to--halo mass and color distributions. 
-For lower mass systems, the stellar feedback is a very important factor for similar reasons. In all cases, the implementation of the sub-grid physics governing these feedback effects are, to a lesser or greater degree constrained by the simulation (by?) matching galaxy properties and(with?) galaxy scaling relations in the present day. Nevertheless, for both feedback prescriptions, there are a number of different (sub-grid) methods in use that will give different results on the number and properties of different galaxy populations in the SFR--$M_{\star}$ plane. 
+For a consistent comparison of the galaxy populations in our simulations,
+we require consistently defined galaxy properties such as SFRs. Therefore,  
+in our analysis we derive instantaneous SFRs and SFRs averaged over 
+$100\,\mathrm{Myr}$ for all of our simulated galaxies. We choose SFRs on 
+these timescales in order to roughly correspond to observed SFRs 
+measurements based on $H{\alpha}$, which correspond to formation of young 
+stars with ages $\lesssim 10\,\mathrm{Myr}$, and $UV$ brightness, which 
+correspond to stars formed in the last 
+$\sim 100\,\mathrm{Myr}$~\citep[e.g.][]{kennicutt2012}. 
 
-We compare the population of the SFR--$M_{\star}$ plane between the different large-scale cosmological simulations and the observational datasets. To ensure that we compare similar star formation rate timescales, we use averaged star formation rates over different recent timescales for(from?) all the simulations. Star formation rates derived from $H{\alpha}$ observations correspond to young stars with ages $\lesssim 10\,\mathrm{Myr}$, while star formation rates derived from $UV$ brightness correspond to stars formed in the last $\sim 100\,\mathrm{Myr}$ \citep[e.g.][]{kennicutt2012}. 
-
-Star formation rates for galaxies in our simulations can be defined on 
-a range of timescales. For our analysis, however, we use SFRs averaged 
-over $100\,\mathrm{Myr}$ and instantaneous SFR. \todo{motivate our choice.}
-In the hydrodynamic simulations the averaged SFRs are derived using the ages, or formation times, of star particles in the simulated 
-galaxies, while instantaneous SFRs are based on 
-the rate of star formation in the dense and cold gas. For the semi-analytic model the instantaneous SFR is based on a Kennicutt-Schmidt relation for molecular hydrogen~\citep{bigiel2008} and the derived H$_2$ surface density in radial bins, while the averaged SFRs are computed from the total stellar mass formed in a galaxy which is saved every 10 Myr. 
-We note that the spatial and temporal resolution of our hydrodynamic 
+%We compare the population of the SFR--$M_{\star}$ plane between the different large-scale cosmological simulations and the observational datasets. To ensure that we compare similar star formation rate timescales, we use averaged star formation rates over chosen recent timescales for all the simulated galaxies. For our analysis, however, we use SFRs averaged 
+%over $100\,\mathrm{Myr}$ and instantaneous SFR, to be roughly consistent with respectively observed SFRs based on $H{\alpha}$ observations, corresponding to young stars with ages $\lesssim 10\,\mathrm{Myr}$, and observed SFRs based on $UV$ brightness, corresponding to stars formed in the last $\sim 100\,\mathrm{Myr}$ \citep[e.g.][]{kennicutt2012}. 
+In our hydrodynamic simulations, we derive the $100\,\mathrm{Myr}$ averaged SFRs 
+from the ages, or formation times, of star particles in the simulated galaxies
+and instantaneous SFRs from the rate of star formation in the dense and cold 
+gas. For the semi-analytic model, we derive the $100\,\mathrm{Myr}$ averaged 
+SFRs from the total stellar mass formed in a galaxy which is saved every
+$10\,\mathrm{Myr}$ and the instantaneous SFR based on a Kennicutt-Schmidt 
+relation for molecular hydrogen~\citep{bigiel2008} and the derived H$_2$ 
+surface density in radial bins.
+\todo{We note that the spatial and temporal resolution of our hydrodynamic 
 simulation can significantly impact the averaged SFRs we derive for our 
 simulated galaxies. In Appendix~\ref{app:zerosfr}, we discuss how we treat
-resolution effects in our analysis. 
+these resolution effects in our analysis.}
+In the rest of this section we give a short description of the Illustris, 
+EAGLE, MUFASA, and Santa-Cruz SAM simulations and their key feedback 
+prescriptions. 
 
-Below we give a short description of the Illustris, EAGLE, MUFASA, and 
-Santa-Cruz SAM simulations, their key feedback prescriptions, and how 
-we derive the instantaneous and $100\,\mathrm{Myr}$ aveaged SFRs for 
-each simulation.
+%and how  we derive the instantaneous and $100\,\mathrm{Myr}$ averaged SFRs for  each simulation.
 
 %For the galaxies in the simulations, we compare star formation rates averaged over the last $10\,\mathrm{Myr}$, $100\,\mathrm{Myr}$, and $1\,\mathrm{Gyr}$, as well as the instantaneous SFR. 
 %We note that spatial and temporal resolution effects in the simulations  can cause averaged SFRs from stellar ages to under-predict the actual  averaged SFRs in simulations. 
@@ -228,20 +244,43 @@ each simulation.
 
 
 \subsubsection{The Illustris simulation}
-The Illustris simulation \citep{Vogelsbergeretal2014, Geneletal2014} evolves a cosmological volume of $(106\ \rm{Mpc})^3$ with a uniform baryonic mass resolution of $1.6\times10^6M_{\sun}$ using the Arepo moving-mesh code. The full halo mass range in the simulation is $2 \times 10^8$--$3\times 10^{14}\ M_{\sun}$, set by resolution (32 particles) at the low-mass end, and by volume (e.g.~including 10 halos with $M>10^{14}M_{\sun}$) at the high-mass end. It employs sub-grid models \citep{Vogelsbergeretal2013} for star-formation \citep{SpringelHernquist2003} and Bondi-like SMBH accretion, a phenomenological model for galactic winds, and two main modes for energy injection from SMBHs. When the accretion occurs at Eddington ratios >0.05, thermal energy is injected continuously in the local environment of the SMBH, while at lower accretion rates, the energy injection occurs in bursts at large distances from the SMBH, generating hot bubbles in the ICM \citep{Sijackietal2007}. The latter mode of feedback is responsible for a steep drop in the cosmic star-formation rate density at late times \citep{Vogelsbergeretal2013}. Previous works discussing aspects of the star-formation main-sequence and/or quenching in the Illustris simulation include \citet{Vogelsbergeretal2014, Sparreetal2015, Blucketal2016, Terrazasetal2017}.
+The Illustris simulation \citep{vogelsberger2014,genel2014} evolves a
+cosmological volume of $(106\ \rm{Mpc})^3$ with a uniform baryonic mass
+resolution of $1.6\times10^6M_{\sun}$ using the Arepo moving-mesh code \todo{(chang: citation for code?)}. 
+The full halo mass range, $2 \times 10^8$ to $3\times 10^{14}\ M_{\sun}$, 
+is set by resolution (32 particles) at the low-mass end and by volume at 
+the high-mass end (e.g.~including 10 halos with $M>10^{14}M_{\sun}$). 
+It employs sub-grid models for star-formation~\citep{springel2003},
+Bondi-like SMBH accretion, a phenomenological model for galactic winds, and 
+two main modes for energy injection from 
+SMBHs~\citep[\emph{see}][]{vogelsberger2013}. 
+When accretion occurs at Eddington ratios $>0.05$, thermal energy is 
+injected continuously in the local environment of the SMBH, while at 
+lower accretion rates, the energy injection occurs in bursts at large
+distances from the SMBH, generating hot bubbles in the ICM~\citep{sijacki2007}.
+The latter mode of feedback is responsible for a steep drop in the 
+cosmic star-formation rate density at late times~\citep{vogelsberger2013}.
+Previous works discussing aspects of the star-formation main-sequence and/or
+quenching in the Illustris simulation include 
+\citet{vogelsberger2014, sparre2015, bluck2016, terrazas2017}.
 
 \subsubsection{EAGLE}
-The Virgo Consortium's Evolution and Assembly of GaLaxies and their Environment (EAGLE) project \citep{schaye2015, crain2015} exists of a suite of cosmological, hydrodynamical simulations of a standard $\Lambda$ cold dark matter universe using a modified version of the N-body/SPH-code Gadget 3 \citep[lastly described in][]{springel2005} called ANARCHY (Dalla Vecchia et al. in prep. see also Appendix A of \citealp{schaye2015} and \citealp{schaller2015}). Modifications include the SPH formulation, the time stepping, and the subgrid physics. The subgrid model for feedback from massive stars and AGN is based on thermal energy injection in the ISM without the need to turn-off cooling or hydrodynamic decoupling of winds \citep{dallavecchia2012}. Similarly to semi-analytical models the subgrid parameters for stellar feedback and BH accretion are calibrated based on present-day galaxy stellar mass function while also requiring reasonable galaxy sizes, and the AGN feedback efficiency is constrained by the amplitude of the central black hole-galaxy mass relation. The galaxy stellar mass range resolved is $10^{8} < M_{\star}/M_{\sun} \lesssim 10^{11}$ and the galaxy stellar mass function is reproduced to $\lesssim 0.2$ dex over this full range. The volume used in this project, L0100Ref, is has a baryonic mass resolution of $1.81\times 10^6M_{\sun}$ and a volume of $100$ cMpc on a side. In addition to the Reference version in different size boxes the EAGLE simulations suite also include higher resolution zoomed-in volumes and physics variations. The star formation--stellar mass plane and/or passive fractions in the EAGLE simulations have been previously discussed in \citet{furlong2015, trayford2015, trayford2016, trayford2017}
+The Virgo Consortium's Evolution and Assembly of GaLaxies and their 
+Environment (EAGLE) project~\citep{schaye2015, crain2015} exists as 
+a suite of cosmological, hydrodynamic simulations of a standard 
+$\Lambda$ cold dark matter universe using a modified version of the 
+$N$-body/SPH-code Gadget 3 \citep[lastly described in][]{springel2005} called ANARCHY (Dalla Vecchia et al. in prep. see also Appendix A of \citealp{schaye2015} and \citealp{schaller2015}). Modifications include the SPH formulation, the time stepping, and the subgrid physics. The subgrid model for feedback from massive stars and AGN is based on thermal energy injection in the ISM without the need to turn-off cooling or hydrodynamic decoupling of winds \citep{dallavecchia2012}. Similarly to semi-analytical models the subgrid parameters for stellar feedback and BH accretion are calibrated based on present-day galaxy stellar mass function while also requiring reasonable galaxy sizes, and the AGN feedback efficiency is constrained by the amplitude of the central black hole-galaxy mass relation. The galaxy stellar mass range resolved is $10^{8} < M_{\star}/M_{\sun} \lesssim 10^{11}$ and the galaxy stellar mass function is reproduced to $\lesssim 0.2$ dex over this full range. The volume used in this project, L0100Ref, is has a baryonic mass resolution of $1.81\times 10^6M_{\sun}$ and a volume of $100$ cMpc on a side. In addition to the Reference version in different size boxes the EAGLE simulations suite also include higher resolution zoomed-in volumes and physics variations. The star formation--stellar mass plane and/or passive fractions in the EAGLE simulations have been previously discussed in \citet{furlong2015, trayford2015, trayford2016, trayford2017}
 
 
 \subsubsection{MUFASA \todo{[Romeel]}}
-\todo{Need to describe the z-dependent halo mass based quenching with continued star formation if self-shielded H2 is present, because we think that causes the turnover in the MUFASA SFMSs.}
+\begin{itemize}
+	\item \todo{Need to describe the z-dependent halo mass based quenching with continued star formation if self-shielded H2 is present, because we think that causes the turnover in the MUFASA SFMSs.}
+\end{itemize}
 
 \subsubsection{the Santa-Cruz Semi-Analytic Model \todo{[Rachel, Viraj]}}
 
 \subsection{Observed SDSS Galaxies} \label{sec:obvs}
-\todo{chang: @claire could you take a look at this section and see if 
-there's anything you'd like to add?}
+\todo{chang: @claire could you check the NSA dwarf galaxy sample description?}
 Our main focus in this work is to compare galaxies from our simulation. 
 However, since the ultimate goal of the simulations are to reproduce 
 observations, we include in our analysis galaxies from the 
@@ -257,24 +296,20 @@ the SDSS Data Release 7~\citep[DR7;][]{abazajian2009} at redshift
 $z \approx 0.04$. For further details on the sample, we refer readers 
 to~\cite{tinker2011,wetzel2013,hahn2017}.
 
-At lower stellar masses, we use galaxies selected from the NSA catalog. Briefly, 
-the NSA catalog is a reprocessing of SDSS DR8, optimized for low-luminosity 
+At lower stellar masses, we use an isolated dwarf galaxy sample selected from the NSA catalog as described in \citet{geha2012}. Briefly, the NSA catalog is a reprocessing of SDSS DR8, optimized for low-luminosity 
 objects. It relies on the improved background subtraction technique of 
 \cite{blanton2011}. The catalog extends to $z \approx 0.055$ and includes 
 re-calibrated spectroscopy~\citep{yan2011,yan2012} with much
 smaller errors. However, this recalibration is mostly relevant only at small 
 equivalent width values and hence galaxies on the star formation main 
-sequence will be largely unaffected by this.
+sequence will be largely unaffected by this. Dwarf galaxies are considered isolated, and selected, when the distance from a more massive host is $> 1.5 {\rm Mpc}$ \citep{geha2012}.
 
 For both galaxy samples, the stellar masses are estimated using the 
 \citet{blanton2007} $\mathtt{kcorrect}$ code, which assumes a 
-\citep{chabrier2003} IMF. The SFRs are derived from the SSFRs of the 
+\citep{chabrier2003} IMF. The SFRs are derived from the 
 current release of~\citet{brinchmann2004}\footnote{http://www.mpa-garching.mpg.de/SDSS/DR7/}. 
-In~\citet{brinchmann2004}, SSFRs 
-$\gtrsim 10^{-11} \mathrm{yr}^{-1}$ are  derived from $\mathrm{H}\alpha$ 
-emissions, $10^{-11}\gtrsim$ SSFRs $\gtrsim 10^{-12} \mathrm{yr}^{-1}$ 
-are derived from a combination of emission lines \todo{need to correct this: SFR is from SPS modeling including continuum, emission lines, and dust}, and SSFRs 
-$\lesssim 10^{-12} \mathrm{yr}^{-1}$ are mainly based on $D_n4000$. 
+In~\citet{brinchmann2004}, SFRs 
+are derived following a Bayesian framework where all emission lines are modeled based on the \citet{bruzualCharlot1993, bruzualCharlot1993} galaxy evolution models combined with a dust prescription following \citet{charlotFall2000} and emission line modeling using CLOUDY \citep[version C90.04][]{ferland1996} as described in \citet{charlotLonghetti2001, charlot2002}. For galaxies that are classified as containing an AGN or have a composite (SF and AGN) spectrum, the relation between the derived SFR and Dn4000 index \citep[implemented following][]{Balogh1998} is used to measure the SFR from the Dn4000 index value. Additionally, for galaxies that are starforming but have low S/N spectra the SFR is only dependent on the $H{\alpha}$ luminosity, where the conversion factor used is taken from the distribution function of conversion factors for starforming galaxies with high S/N in the same stellar mass bin \citep{brinchmann2004}. 
 We emphasize that SSFRs $\lesssim 10^{-12} \mathrm{yr}^{-1}$ should only be 
 considered upper limits to the true value \citep{salim2007}.
 
@@ -609,9 +644,9 @@ Things to discuss at the workshop:
 \item \todo{What's causing the simulations to have SFMSs that are almost an 
 order of magnitude different?} 
 \item \todo{How come this doesn't cause cosmic star-formation rate 
-density estimates to also be an order of magnitude different?}
-\item \todo{what's up with MUFASA. why does MUFASA it have a turnover? -- 
-mufasa's quenching is based on halo mass?}
+density estimates to also be an order of magnitude different? Is it that they agree better on the total or average SFR in a stellar mass bin than on how we model the SFMS??}
+\item \todo{what's up with MUFASA. why does MUFASA have a turnover? -- 
+Due to MUFASA's quenching method being based on halo mass?}
 \end{itemize}
 
 In addition to its position, $\mu_\mathrm{SFMS}$, the SFMS GMM component 
@@ -665,7 +700,7 @@ Santa Cruz SAM [$100\,\mathrm{Myr}$ SFR] & 1.11 & 0.36 \\
 One factor that impacts our SFMS fits is the strict lower limit of the 
 $\log\mathrm{SFR}$s caused by the resolution effects in the simulations. 
 This is particularly evident in the $100\,\mathrm{Myr}$ SFR--$M_*$ 
-relations of the hydrodynamical simulations of Figure~\ref{fig:sfrmstar}---especially 
+relations of the hydrodynamic simulations of Figure~\ref{fig:sfrmstar}---especially 
 MUFASA. As we describe in Section~\ref{sec:galsims}, the $100\,\mathrm{Myr}$ 
 SFRs are  calculated using the ages of all star particles in a galaxy. For a galaxy to 
 have star formation (\emph{i.e.} SFR $> 0$), it must \emph{at least} 
@@ -790,8 +825,8 @@ taken with a grain of salt. Both the environment and quenched classifications
 in \cite{geha2012} are defined differently than in the simulations. 
 \cite{geha2012} classifies as a galaxy as quenched if it
 does not have an $H\alpha$ emission and based on a $D_n 4000$ criteria. 
-Furthermore, \todo{the isolation criteria of \cite{geha2012} is more 
-stringent than the group finder. [chang: @claire is this true?]} 
+Furthermore, the isolation criteria of \cite{geha2012} is more 
+stringent than the group finder at these mass scales.
 %incept the idea for paper2. 
 
 %Figure~\ref{fig:sfmsfit_comps} reveals components besides the SFMS and quiescent components. For instance, 
@@ -836,10 +871,8 @@ and star-burst (purple). We present the uncertainties of $\pi_i$, estimated
 through bootstrap resampling, in Figure~\ref{fig:fcomp_uncertainty} of 
 Appendix~\ref{app:zerosfr}. 
 For every simulation, a significant fraction of galaxies have SFR$=0$. 
-In hydrodynamical simulations, galaxies with SFR below the resolution 
-limit have $\mathrm{SFR}{=}0$ (Appendix~\ref{app:zerosfr}). In the Santa 
-Cruz SAM, \todo{chang: @tjistke why do we have galaxies with SFR$=0$ 
-in the SAM?}. In both hydrodynamical and SAM simulations, the SFR$=0$ 
+In hydrodynamical simulations, a galaxy with $\mathrm{SFR}{=}0$ can have an SFR below the resolution limit, or have a \emph{true} $\mathrm{SFR}{=}0$ on the measured timescales (Appendix~\ref{app:zerosfr}). In the Santa 
+Cruz SAM, all the $\mathrm{SFR}{=}0$ galaxies have truly no star formation on the timescales that we present here. Therefore, in both hydrodynamical and SAM simulations, the SFR$=0$ 
 galaxies can be considered quiescent. 
 
 The fractional contributions of the GMM components in Figure~\ref{fig:kandinsky}
