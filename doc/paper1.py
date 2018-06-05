@@ -901,13 +901,25 @@ def GMMcomp_weights(n_bootstrap=10):
         gs_i = mpl.gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[i_c])
         for i_t, tscale in enumerate(tscales):
             name = c+'_'+tscale
-            mbins, f_comps, f_comps_unc = _GMM_fcomp(name, groupfinder=True, n_bootstrap=n_bootstrap)
-            
+            if (c == 'mufasa') and (tscale == '100myr'): 
+                mbins, f_comps, f_comps_unc = _GMM_fcomp(name, groupfinder=True, n_bootstrap=n_bootstrap, silent=False)
+            else: 
+                mbins, f_comps, f_comps_unc = _GMM_fcomp(name, groupfinder=True, n_bootstrap=n_bootstrap)
             mbinss.append(mbins)
             f_compss.append(f_comps)
             f_comps_uncs.append(f_comps_unc)
 
             f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
+            
+            if (c == 'mufasa') and (tscale == '100myr'): 
+                f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
+                inmm = ((mbins > 10.5) & (mbins < 11.))
+                print('fzero ', f_zero[inmm])
+                print('fzerounc', f_zero_unc[inmm])
+                print('fsfms ', f_sfms[inmm]) 
+                print('fsfmsunc ', f_sfms_unc[inmm]) 
+                print('fq ', f_q[inmm]) 
+                print('fqunc ', f_q_unc[inmm]) 
     
             sub = plt.subplot(gs_i[i_t,0]) 
             sub.fill_between(mbins, np.zeros(len(mbins)), f_zero, # SFR = 0 
@@ -1081,7 +1093,7 @@ def GMMcomp_weights(n_bootstrap=10):
     return None 
 
 
-def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10):         
+def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, silent=True):         
     Cat = Cats.Catalog()
     logM, logSFR, w, censat = Cat.Read(name, keepzeros=True, silent=True)
     if groupfinder: 
@@ -1153,9 +1165,11 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10):
 
         for i_boot in range(n_bootstrap): 
             X_boot = np.random.choice(X.flatten(), size=len(X), replace=True) 
-            if name not in ['eagle_inst', 'eagle_100myr']: zero = np.invert(np.isfinite(X_boot))
-            else: zero = np.invert(np.isfinite(X_boot)) | (X_boot < -99)
+            if name not in ['eagle_inst', 'eagle_100myr', 'mufasa_insta', 'mufasa_100myr']: zero = np.invert(np.isfinite(X_boot))
+            else: zero = (np.invert(np.isfinite(X_boot)) | (X_boot <= -99.))
+
             f_boots[0,i_boot] = float(np.sum(zero))/float(len(X))
+            if not silent: print('%f - %f : %f' % (mbin0[i_m], mbin1[i_m], f_boots[0,i_boot]))
                 
             gmm_boot = GMix(n_components=n_best)
             gmm_boot.fit(X_boot[np.invert(zero)].reshape(-1,1))
