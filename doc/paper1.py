@@ -1191,11 +1191,14 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, silent=True):
     return 0.5*(mbin0 + mbin1),  f_comps, f_comps_unc 
 
 
-def Pssfr_res_impact(): 
-    ''' Plot illustrating the impact of star-particle resolution  
+
+##############################
+# Appendix: 100Myr SFR Resolution Effect
+##############################
+def Pssfr_res_impact(n_mc=100): 
+    ''' Plot illustrating the impact of 100Myr SFR resolution  
     on the P(SSFR) distribution. 
     '''
-    n_mc = 100
     fig = plt.figure(figsize=(12,6))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_c, cat_name in enumerate(['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']):
@@ -1215,17 +1218,18 @@ def Pssfr_res_impact():
             # read in SFR and M* 
             Cat = Cats.Catalog()
             _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
+            psat = Cat.GroupFinder(cat)
             _SFR = 10**_logSFR
 
             sub = fig.add_subplot(2,3,i_c+1+3*i_m)
-            iscen = (censat == 1)
+            iscen = (psat < 0.01) # only pure central galaxies identified from the group catalog 
             iscen_nz_mbin = iscen & np.invert(Cat.zero_sfr) & (_logM > mbin[0]) & (_logM < mbin[1])
             iscen_z_mbin  = iscen & Cat.zero_sfr & (_logM > mbin[0]) & (_logM < mbin[1])
             ngal_bin = float(np.sum(iscen & (_logM > mbin[0]) & (_logM < mbin[1])))
 
             hs, hs_nz = [], []
             for ii in range(n_mc):
-                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*np.random.uniform(size=np.sum(iscen_nz_mbin))
                 sfr_z = dsfr * np.random.uniform(size=np.sum(iscen_z_mbin))
 
                 logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
@@ -1236,7 +1240,7 @@ def Pssfr_res_impact():
                 hs.append(h0)
 
             for ii in range(n_mc):
-                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*2*np.random.uniform(size=np.sum(iscen_nz_mbin))
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*np.random.uniform(size=np.sum(iscen_nz_mbin))
                 logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
                 h0_nz, _ = np.histogram(logssfr_nz, bins=40, range=[-16., -8.])
                 hs_nz.append(h0_nz)
@@ -1606,10 +1610,10 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width(n_bootstrap=100)
     #Catalog_GMMcomps()
-    GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    #Pssfr_res_impact()
+    Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=20)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
