@@ -1191,11 +1191,10 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, silent=True):
     return 0.5*(mbin0 + mbin1),  f_comps, f_comps_unc 
 
 
-
 ##############################
 # Appendix: 100Myr SFR Resolution Effect
 ##############################
-def Pssfr_res_impact(n_mc=100): 
+def Pssfr_res_impact(n_mc=100, seed=1): 
     ''' Plot illustrating the impact of 100Myr SFR resolution  
     on the P(SSFR) distribution. 
     '''
@@ -1218,7 +1217,7 @@ def Pssfr_res_impact(n_mc=100):
             # read in SFR and M* 
             Cat = Cats.Catalog()
             _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
-            psat = Cat.GroupFinder(cat)
+            psat = Cat.GroupFinder(cat_name)
             _SFR = 10**_logSFR
 
             sub = fig.add_subplot(2,3,i_c+1+3*i_m)
@@ -1227,9 +1226,10 @@ def Pssfr_res_impact(n_mc=100):
             iscen_z_mbin  = iscen & Cat.zero_sfr & (_logM > mbin[0]) & (_logM < mbin[1])
             ngal_bin = float(np.sum(iscen & (_logM > mbin[0]) & (_logM < mbin[1])))
 
-            hs, hs_nz = [], []
+            hs_uniform, hs_poisson = [], [] 
+            rand = np.random.RandomState(seed)
             for ii in range(n_mc):
-                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*np.random.uniform(size=np.sum(iscen_nz_mbin))
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*rand.uniform(size=np.sum(iscen_nz_mbin))
                 sfr_z = dsfr * np.random.uniform(size=np.sum(iscen_z_mbin))
 
                 logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
@@ -1237,26 +1237,36 @@ def Pssfr_res_impact(n_mc=100):
                 logssfr = np.concatenate([logssfr_nz, logssfr_z])
 
                 h0, h1 = np.histogram(logssfr, bins=40, range=[-16., -8.])
-                hs.append(h0)
+                hs_uniform.append(h0)
+                
+                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*rand.poisson(size=np.sum(iscen_nz_mbin))
+                sfr_z = dsfr*rand.poisson(size=np.sum(iscen_z_mbin))
 
-            for ii in range(n_mc):
-                sfr_nz = _SFR[iscen_nz_mbin] + dsfr*np.random.uniform(size=np.sum(iscen_nz_mbin))
                 logssfr_nz = np.log10(sfr_nz) - _logM[iscen_nz_mbin]
-                h0_nz, _ = np.histogram(logssfr_nz, bins=40, range=[-16., -8.])
-                hs_nz.append(h0_nz)
+                logssfr_z = np.log10(sfr_z) - _logM[iscen_z_mbin]
+                logssfr = np.concatenate([logssfr_nz, logssfr_z])
 
-            hs = np.array(hs)/ngal_bin
-            hs_nz = np.array(hs_nz)/ngal_bin
+                h0, h1 = np.histogram(logssfr, bins=40, range=[-16., -8.])
+                hs_poisson.append(h0)
 
-            bar_x, bar_y = UT.bar_plot(h1, np.mean(hs,axis=0))
-            sub.plot(bar_x, bar_y, c='C0', label='w/ SFR $=0$')#/ngal_bin)
-            sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs, axis=0), yerr=np.std(hs, axis=0),
+            hs_uniform = np.array(hs_uniform)/ngal_bin
+            hs_poisson = np.array(hs_poisson)/ngal_bin
+               
+            h0, h1 = np.histogram(_logSFR[iscen_nz_mbin] - _logM[iscen_nz_mbin], bins=40, range=[-16., -8.])
+            bar_x, bar_y = UT.bar_plot(h1, h0/ngal_bin)
+            sub.plot(bar_x, bar_y, c='k', ls='-', lw=1.5)#, label='w/o SFR $=0$')
+
+            bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_uniform,axis=0))
+            sub.plot(bar_x, bar_y, c='C0', lw=1, label=r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$")
+            sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs_uniform, axis=0), yerr=np.std(hs_uniform, axis=0),
                          fmt='.C0', markersize=.5)
             
-            bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_nz,axis=0))
-            sub.plot(bar_x, bar_y, c='k', ls='--', label='w/o SFR $=0$')
-            sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
-                    yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
+            #bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_poisson,axis=0))
+            #sub.plot(bar_x, bar_y, c='C1', ls='--', lw=1)#, label=r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$")
+            #sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs_poisson, axis=0), yerr=np.std(hs_poisson, axis=0),
+            #             fmt='.C1', markersize=.5)
+            #sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
+            #        yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
 
             sub.set_xlim([-13.25, -8.8])
             if i_m == 0: sub.set_xticks([])
@@ -1269,7 +1279,8 @@ def Pssfr_res_impact(n_mc=100):
             sub.text(0.5, 0.92, '$'+str(mbin[0])+'< \log M_* <'+str(mbin[1])+'$',
                 ha='center', va='top', transform=sub.transAxes, fontsize=15)
     
-            if (i_c == 2) and (i_m == 0): sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.48), frameon=False, prop={'size':15}) 
+            if (i_c == 2) and (i_m == 1): 
+                sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.65), frameon=False, prop={'size':13}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_ylabel(r'P(log SSFR  $[yr^{-1}])$', labelpad=10, fontsize=20)
     bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20)
