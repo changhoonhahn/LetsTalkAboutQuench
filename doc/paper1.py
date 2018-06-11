@@ -1292,9 +1292,11 @@ def Pssfr_res_impact(n_mc=100, seed=1):
     return None
 
 
-def Mlim_res_impact(n_mc=20, seed=10): 
+def Mlim_res_impact(n_mc=20, seed=10, threshold=0.2): 
     ''' Measure the stellar mass where the resolution limit of simulations
     impact the SFMS fits.
+
+    Threshold is in units of dex
     '''
     catalogs = ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']
     catnames = ['Illustris', 'EAGLE', 'MUFASA']
@@ -1320,40 +1322,56 @@ def Mlim_res_impact(n_mc=20, seed=10):
         fit_logsfr_s = [] 
         np.random.seed(seed)
         for i in range(n_mc): 
-            sfr_low = _sfr[iscen_nz] - dsfr
-            sfr_low = np.clip(sfr_low, 0., None) 
-            logsfr_nz = np.log10(np.random.uniform(sfr_low, _sfr[iscen_nz]+dsfr, size=ngal_nz))
+            #sfr_low = _sfr[iscen_nz] - dsfr
+            #sfr_low = np.clip(sfr_low, 0., None) 
+            #logsfr_nz = np.log10(np.random.uniform(sfr_low, _sfr[iscen_nz]+dsfr, size=ngal_nz))
+            logsfr_nz = np.log10(_sfr[iscen_nz] + dsfr * np.random.uniform(size=ngal_nz))
             logsfr_z = np.log10(dsfr * np.random.uniform(size=ngal_z))
             logsfr = np.concatenate([logsfr_nz, logsfr_z]) # scattered log SFR
         
             fit_logm_s, fit_logsfr_s_i = fSFMS_s.fit(logm, logsfr, method='gaussmix', 
-                    dlogm=0.2, fit_range=[8.,11.], maxcomp=4, forTest=True, silent=True) 
+                    dlogm=0.2, fit_range=[8.,11.], max_comp=4, silent=True) 
             fit_logsfr_s.append(fit_logsfr_s_i)
     
         sig_fit_logsfr_s = np.std(np.array(fit_logsfr_s), ddof=1, axis=0) # scatter in the fits
         fit_logsfr_s = np.mean(fit_logsfr_s, axis=0) # mean fit
 
         # fit without scatter
-        fSFMS = fstarforms()
-        fit_logsfr_ns = [] 
-        for i in range(n_mc): 
-            fit_logm_ns, fit_logsfr_ns_i = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
-                    dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
-            fit_logsfr_ns.append(fit_logsfr_ns_i)
-        sig_fit_logsfr_ns = np.std(np.array(fit_logsfr_ns), ddof=1, axis=0) # scatter in the fits
-        fit_logsfr_ns = np.mean(fit_logsfr_ns, axis=0) # mean fit
+        fSFMS = fstarforms() # fit the SFMS  
+        fit_logm_ns, fit_logsfr_ns, sig_fit_logsfr_ns = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
+                    dlogm=0.2, fit_range=[8.,11.], max_comp=3, fit_error='bootstrap', 
+                    n_bootstrap=n_mc, silent=True) 
+
+        #sub.fill_between(fSFMS._fit_logm, fSFMS._fit_sig_logssfr - fSFMS._fit_err_sig_logssfr, 
+        #        fSFMS._fit_sig_logssfr + fSFMS._fit_err_sig_logssfr, color='C'+str(i_c+2), 
+        #        alpha=0.75, linewidth=0, label=_label) 
+        #fit_logsfr_ns = [] 
+        #for i in range(n_mc): 
+        #    fit_logm_ns, fit_logsfr_ns_i = fSFMS.fit(_logm[iscen_nz], _logsfr[iscen_nz], method='gaussmix', 
+        #            dlogm=0.2, fit_range=[8.,11.], maxcomp=3, forTest=True, silent=True) 
+        #    fit_logsfr_ns.append(fit_logsfr_ns_i)
+        #sig_fit_logsfr_ns = np.std(np.array(fit_logsfr_ns), ddof=1, axis=0) # scatter in the fits
+        #fit_logsfr_ns = np.mean(fit_logsfr_ns, axis=0) # mean fit
         sig_tot = np.clip(sig_fit_logsfr_s + sig_fit_logsfr_ns, 0.1, None) 
         #print 'sig=', sig_tot
 
         # check that the mbins are equal between the fit w/ scatter and fit w/o scatter
-        assert np.array_equal(fSFMS._tests['mbin_mid'], fSFMS_s._tests['mbin_mid'])
+        assert np.array_equal(fSFMS._mbins, fSFMS_s._mbins)
 
         dfit = fit_logsfr_ns - fit_logsfr_s # change in SFMS fit caused by resolution limit 
         #print np.abs(dfit)/sig_tot 
 
         # log M* where resolution limit causes the SFMS to shift by 0.2 dex
-        mbin_mid = np.array(fSFMS._tests['mbin_mid'])
-        mlim = (mbin_mid[(np.abs(dfit) > 0.15)]).max() + 0.5*fSFMS._dlogm 
+        mbin_mid = 0.5 * (fSFMS._mbins[:,0] + fSFMS._mbins[:,1])
+        if dfit.shape[0] != mbin_mid.shape[0]: 
+            i0 = np.max(np.where(mbin_mid < fit_logm_s.min()-0.1)[0])
+            mbin_mid = mbin_mid[i0+1:]
+            assert len(mbin_mid) == len(dfit)
+        mlim = (mbin_mid[(np.abs(dfit) > threshold)]).max() + 0.5 * fSFMS._dlogm 
+        for tt in [0.1, 0.15, 0.2, 0.25]: 
+            print('-------------------------') 
+            print('%s' % name)
+            print('for %f dex threshold: M_lim = %f' % (tt, (mbin_mid[(np.abs(dfit) > tt)]).max() + 0.5 * fSFMS._dlogm))
         
         # lets plot this stuff 
         sub = fig.add_subplot(1,len(catalogs),i_n+1)
@@ -1362,10 +1380,16 @@ def Mlim_res_impact(n_mc=20, seed=10):
                 plot_datapoints=False, fill_contours=False, plot_density=False, 
                 contour_kwargs={'linewidths':1, 'linestyles':'dotted'}, ax=sub) 
 
+        #sub.scatter(fit_logm_ns, fit_logsfr_ns, marker='x', color='k', lw=1, s=40, 
+        #        label='w/ Res. Effect')
+        if i_n == 1: lbl0 = 'with SFR resolution'
+        else: lbl0 = None 
+        sub.errorbar(fit_logm_ns, fit_logsfr_ns, sig_fit_logsfr_ns, fmt='.k',
+                label=lbl0)
+        if i_n == 2: lbl1 = 'without SFR resolution' #r"$\mathrm{SFR}_i' \in [\mathrm{SFR}_i, \mathrm{SFR}_i+\Delta_\mathrm{SFR}]$"
+        else: lbl1 = None 
         sub.scatter(fit_logm_s, fit_logsfr_s, marker='x', color='C1', lw=1, s=40, 
-                label='SFR resamp.')
-        sub.scatter(fit_logm_ns, fit_logsfr_ns, marker='x', color='k', lw=1, s=40, 
-                label='SFR no resamp.')
+                label=lbl1)
         sub.text(0.95, 0.05, '$\log\,M_{\lim}='+str(round(mlim,2))+'$', 
                  ha='right', va='bottom', transform=sub.transAxes, fontsize=15)
         sub.vlines(mlim, -4., 2., color='k', linestyle='--', linewidth=0.5)
@@ -1375,7 +1399,8 @@ def Mlim_res_impact(n_mc=20, seed=10):
         sub.set_ylim([-3., 2.])
         sub.set_title(catnames[i_n], fontsize=20)
         if i_n != 0: sub.set_yticklabels([]) 
-        if i_n == len(catalogs)-1: sub.legend(loc='upper left', bbox_to_anchor=(-0.075, 1.), 
+        #if i_n == len(catalogs)-1: 
+        sub.legend(loc='upper right', #bbox_to_anchor=(-0.075, 1.), 
                 handletextpad=-0.02, frameon=False, prop={'size':15}) 
     
     bkgd.set_xlabel(r'log $M_* \;\;[M_\odot]$', labelpad=10, fontsize=25) 
@@ -1624,8 +1649,8 @@ if __name__=="__main__":
     #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    Pssfr_res_impact(n_mc=100)
-    #Mlim_res_impact(n_mc=20)
+    #Pssfr_res_impact(n_mc=100)
+    Mlim_res_impact(n_mc=100)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
