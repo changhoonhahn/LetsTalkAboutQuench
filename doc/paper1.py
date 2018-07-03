@@ -14,7 +14,6 @@ from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
 from sklearn.mixture import GaussianMixture as GMix
 
-import matplotlib.pyplot as plt 
 from matplotlib import lines as mlines
 from matplotlib.patches import Rectangle
 #import matplotlib.patheffects as path_effects
@@ -1842,10 +1841,10 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width(n_bootstrap=100)
     #Catalog_GMMcomps()
-    GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    #rhoSF()
+    rhoSF()
     #GMMcomp_weights_res_impact(n_bootstrap=100)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)
