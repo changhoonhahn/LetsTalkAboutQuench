@@ -844,6 +844,77 @@ def Catalog_GMMcomps():
     return None 
 
 
+def Pssfr_GMMcomps(): 
+    ''' Plot P(SSFR) along with the best-fit GMM components
+    in order to demonstrate that the GMM model is not overfitting 
+    '''
+    mass_bin = [9.4, 9.6]
+
+    Cat = Cats.Catalog()
+    # Read in various data sets
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+
+    fig = plt.figure(1, figsize=(16,8))#(20,7.5))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_c, cc in enumerate(sims_list): 
+        cat = '_'.join([cc, 'inst']) 
+        logMstar, logSFR, weight, censat = Cat.Read(cat, keepzeros=True)
+        psat = Cat.GroupFinder(cat) 
+        iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
+        #iscen = (censat == 1)
+
+        # fit the SFMS  
+        fSFMS = fstarforms()
+        fit_logm, fit_logsfr = fSFMS.fit(logMstar[iscen], logSFR[iscen], 
+                method='gaussmix', fit_range=mass_bin, dlogm=0.2, silent=True) 
+        if len(fit_logm) > 1: 
+            print cat
+            print fit_logm
+            print fit_logsfr
+            raise ValueError
+    
+        # P(SSFR) plot
+        sub = fig.add_subplot(4,1,1+i_c) 
+        inmbin = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1]) & iscen)
+        inmbin_zero = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1]) & 
+                (psat < 0.01) & Cat.zero_sfr)  
+        ssfrs = np.concatenate([logSFR[inmbin] - logMstar[inmbin], np.repeat(-13., np.sum(inmbin_zero))])
+        print('%i of %i galaxies have zero SFR' % (np.sum(inmbin_zero), np.sum(inmbin)))
+        _ = sub.hist(ssfrs, bins=40, 
+                    range=[-14., -8.], normed=True, histtype='step', 
+                    color='C0', linewidth=1.75)
+
+        font0 = FontProperties() 
+        font0.set_weight('heavy') 
+        lbl = Cat.CatalogLabel(cat)
+        sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
+                transform=sub.transAxes, fontsize=20, fontproperties=font0)
+    
+        gmm_weights = fSFMS._gbests[0].weights_
+        gmm_means = fSFMS._gbests[0].means_
+        gmm_vars = fSFMS._gbests[0].covariances_
+        n_comp = len(gmm_means) 
+        x_ssfr = np.linspace(-14., -9, 100)
+        for icomp in range(n_comp):
+            sub.plot(x_ssfr, 
+                    gmm_weights[icomp] * MNorm.pdf(x_ssfr, gmm_means[icomp], gmm_vars[icomp])) 
+        sub.set_xlim([-13.25, -9.]) 
+        sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
+        sub.set_ylim([0.,2.4]) 
+        #sub.set_yticks([0., 0.5, 1., 1.5, 2.])
+        
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
+    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25)
+    
+    fig.subplots_adjust(wspace=0.1, hspace=0.075)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_GMMcomps_', 
+        str(mass_bin[0]), '_', str(mass_bin[1]), '.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
 def GMMcomp_weights(n_bootstrap=10): 
     ''' Plot the fractional composition of the different GMM components 
     along with galaxies with zero SFRs for the different catalogs
@@ -1165,6 +1236,7 @@ def rhoSF():
             sfr_tot = np.sum(10**logSFR) # Msun/yr
             print("%s %s, log(SF density) %f Msun/yr/Mpc^3" % (cc, tscale, np.log10(sfr_tot/sims_vol[i_c])))
     return None 
+
 
 ##############################
 # Appendix: 100Myr SFR Resolution Effect
@@ -1841,10 +1913,11 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width(n_bootstrap=100)
     #Catalog_GMMcomps()
+    Pssfr_GMMcomps()
     #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    rhoSF()
+    #rhoSF()
     #GMMcomp_weights_res_impact(n_bootstrap=100)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)
