@@ -167,5 +167,5 @@ def matchNSA(ra, dec, nsa_data):
 
 
 if __name__=="__main__": 
-    valueaddNSAcentrals()
-    #valueaddSDSScentrals()
+    #valueaddNSAcentrals()
+    valueaddSDSScentrals()

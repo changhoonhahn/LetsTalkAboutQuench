@@ -32,10 +32,10 @@ def valueadd():
     
     fig = plt.figure(figsize=(12,6))
     sub = fig.add_subplot(121)
-    sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['UVSFR'].value), c='C0', s=1)
-    sub.scatter(np.log10(fnsa['MASS'].value), np.log10(fnsa['UVSFR'].value), c='C1', s=1)
-    #sub.scatter(np.log10(fsdss['ms_tinker'].value), np.log10(fsdss['UVSFR'].value), c='C0', s=1)
-    #sub.scatter(fnsa['MASS_claire'].value, np.log10(fnsa['UVSFR'].value), c='C1', s=1)
+    #sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['UVSFR'].value), c='C0', s=1)
+    #sub.scatter(np.log10(fnsa['MASS'].value), np.log10(fnsa['UVSFR'].value), c='C1', s=1)
+    sub.scatter(np.log10(fsdss['ms_tinker'].value), np.log10(fsdss['UVSFR'].value), c='C0', s=1)
+    sub.scatter(fnsa['MASS_claire'].value, np.log10(fnsa['UVSFR'].value), c='C1', s=1)
     sub.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', fontsize=25) 
     sub.set_xlim([8., 12.]) 
     sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', fontsize=25) 
@@ -44,10 +44,10 @@ def valueadd():
             transform=sub.transAxes, fontsize=25)
 
     sub = fig.add_subplot(122)
-    #sub.scatter(np.log10(fsdss['ms_tinker'].value), np.log10(fsdss['HASFR'].value), c='C0', s=1)
-    sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['HASFR'].value), c='C0', s=1)
-    #sub.scatter(fnsa['MASS_claire'].value, np.log10(fnsa['HASFR'].value), c='C1', s=1)
-    sub.scatter(np.log10(fnsa['MASS'].value), np.log10(fnsa['HASFR'].value), c='C1', s=1)
+    sub.scatter(np.log10(fsdss['ms_tinker'].value), np.log10(fsdss['HASFR'].value), c='C0', s=1)
+    #sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['HASFR'].value), c='C0', s=1)
+    sub.scatter(fnsa['MASS_claire'].value, np.log10(fnsa['HASFR'].value), c='C1', s=1)
+    #sub.scatter(np.log10(fnsa['MASS'].value), np.log10(fnsa['HASFR'].value), c='C1', s=1)
     sub.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', fontsize=25) 
     sub.set_xlim([8., 12.]) 
     sub.set_ylim([-4., 2.]) 
@@ -89,16 +89,15 @@ def NSA_UVHAsfr():
     return None 
 
 
-
 def NSA_tinker_mass(): 
     fnsa = h5py.File(''.join([UT.dat_dir(), 'dickey_NSA_iso_lowmass_gals.valueadd.hdf5']), 'r') 
     fsdss = h5py.File(''.join([UT.dat_dir(), 'tinker_SDSS_centrals_M9.7.valueadd.hdf5']), 'r') 
     
     fig = plt.figure(figsize=(6,6))
     sub = fig.add_subplot(111)
-    sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['ms_tinker'].value), c='k', s=1)
-    #sub.scatter(np.log10(fnsa['MASS'].value), fnsa['MASS_claire'].value, c='C1', s=1)
-    sub.plot([6., 12.], [6., 12.], c='C1', lw=1.5, ls='--') 
+    sub.scatter(np.log10(fsdss['MASS'].value), np.log10(fsdss['ms_tinker'].value), c='C0', s=1)
+    sub.scatter(np.log10(fnsa['MASS'].value), fnsa['MASS_claire'].value, c='C1', s=1)
+    sub.plot([6., 12.], [6.-np.log10(0.7**2), 12.-np.log10(0.7**2)], c='k', lw=1.5, ls='--') 
     sub.set_xlabel(r'log ( $M_*^\mathrm{NSA} \;\;[M_\odot]$ )', fontsize=25) 
     sub.set_xlim([7., 12.]) 
     sub.set_ylabel(r'log ( $M_*^\mathrm{Tinker} \;\;[M_\odot]$ )', fontsize=25) 
@@ -109,5 +108,5 @@ def NSA_tinker_mass():
 
 if __name__=='__main__': 
     #NSA_UVHAsfr()
-    #valueadd()
-    NSA_tinker_mass()
+    valueadd()
+    #NSA_tinker_mass()
