@@ -130,8 +130,9 @@ class fstarforms(object):
 
         mass_cut = (logmstar > fit_range[0]) & (logmstar < fit_range[1])
         if np.sum(mass_cut) == 0: 
+            print("trying to fit SFMS over range %f < log M* < %f" % (fit_range[0], fit_range[1]))
+            print("input spans %f < log M* < %f" % (logmstar.min(), logmstar.max()))
             raise ValueError("no galaxies within that cut!")
-        
         # log M* binning 
         mbin_low = np.arange(fit_range[0], fit_range[1], dlogm)
         mbin_high = mbin_low + dlogm
