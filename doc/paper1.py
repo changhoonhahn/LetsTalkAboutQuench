@@ -844,12 +844,10 @@ def Catalog_GMMcomps():
     return None 
 
 
-def Pssfr_GMMcomps(): 
+def Pssfr_GMMcomps(mass_bin, timescale='inst'): 
     ''' Plot P(SSFR) along with the best-fit GMM components
     in order to demonstrate that the GMM model is not overfitting 
     '''
-    mass_bin = [9.4, 9.6]
-
     Cat = Cats.Catalog()
     # Read in various data sets
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
@@ -857,7 +855,15 @@ def Pssfr_GMMcomps():
     fig = plt.figure(1, figsize=(16,8))#(20,7.5))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_c, cc in enumerate(sims_list): 
-        cat = '_'.join([cc, 'inst']) 
+        if timescale == '100myr': # check mass lim 
+            if cc == 'illustris': mmin = illustris_mmin
+            elif cc == 'eagle': mmin = eagle_mmin
+            elif cc == 'mufasa': mmin = mufasa_mmin
+            elif cc == 'scsam': mmin = scsam_mmin
+            if mass_bin[0] < mmin: 
+                continue 
+
+        cat = '_'.join([cc, timescale]) 
         logMstar, logSFR, weight, censat = Cat.Read(cat, keepzeros=True)
         psat = Cat.GroupFinder(cat) 
         iscen = ((psat < 0.01) & np.invert(Cat.zero_sfr))
@@ -874,7 +880,7 @@ def Pssfr_GMMcomps():
             raise ValueError
     
         # P(SSFR) plot
-        sub = fig.add_subplot(4,1,1+i_c) 
+        sub = fig.add_subplot(2,2,1+i_c) 
         inmbin = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1]) & iscen)
         inmbin_zero = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1]) & 
                 (psat < 0.01) & Cat.zero_sfr)  
@@ -882,7 +888,7 @@ def Pssfr_GMMcomps():
         print('%i of %i galaxies have zero SFR' % (np.sum(inmbin_zero), np.sum(inmbin)))
         _ = sub.hist(ssfrs, bins=40, 
                     range=[-14., -8.], normed=True, histtype='step', 
-                    color='C0', linewidth=1.75)
+                    color='k', linewidth=1.75)
 
         font0 = FontProperties() 
         font0.set_weight('heavy') 
@@ -908,7 +914,7 @@ def Pssfr_GMMcomps():
     bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25)
     
     fig.subplots_adjust(wspace=0.1, hspace=0.075)
-    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_GMMcomps_', 
+    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_GMMcomps_', timescale, '_',  
         str(mass_bin[0]), '_', str(mass_bin[1]), '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
@@ -1227,14 +1233,136 @@ def rhoSF():
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam']#, 'mufasa'
     sims_vol = [106**3, 100**3, (50/0.68)**3, (100/0.678)**3] # volume 
 
+    mbin = np.linspace(8.8, 12., 20) 
     Cat = Cats.Catalog()
-    for i_c, cc in enumerate(sims_list): 
-        for i_t, tscale in enumerate(tscales): 
+    for i_t, tscale in enumerate(tscales): 
+        fig = plt.figure(figsize=(16,5))
+        bkgd = fig.add_subplot(111, frameon=False)
+        for i_c, cc in enumerate(sims_list): 
             cat = '_'.join([cc, tscale]) 
             logMstar, logSFR, weight, censat = Cat.Read(cat)
 
             sfr_tot = np.sum(10**logSFR) # Msun/yr
             print("%s %s, log(SF density) %f Msun/yr/Mpc^3" % (cc, tscale, np.log10(sfr_tot/sims_vol[i_c])))
+
+            sub = fig.add_subplot(1,4,i_c+1)
+            rho_cum = np.zeros(len(mbin))
+            rho_cum_cen = np.zeros(len(mbin))
+            rho_cum_sat = np.zeros(len(mbin))
+            for i_m, m in enumerate(mbin): 
+                lessthan = (logMstar < m) & np.isfinite(logSFR)
+                lessthan_cen = lessthan & (censat == 1)
+                lessthan_sat = lessthan & (censat != 1)
+                if np.sum(lessthan) == 0: 
+                    continue 
+                rho_cum[i_m] = np.log10(np.sum(10**logSFR[lessthan])/sims_vol[i_c])
+                if np.sum(lessthan_cen) > 0: 
+                    rho_cum_cen[i_m] = np.log10(np.sum(10**logSFR[lessthan_cen])/sims_vol[i_c])
+                if np.sum(lessthan_sat) > 0: 
+                    rho_cum_sat[i_m] = np.log10(np.sum(10**logSFR[lessthan_sat])/sims_vol[i_c])
+
+            sub.plot(mbin, rho_cum, c='k') 
+            sub.plot(mbin, rho_cum_cen, c='C0', label='Centrals') 
+            sub.plot(mbin, rho_cum_sat, c='C1', label='Satellites') 
+            sub.set_xlim([8.8, 12.]) 
+            sub.set_ylim([-4., -1.5]) 
+            if i_c != 0: 
+                sub.set_yticklabels([])
+            if i_c == 3: sub.legend(loc='upper left', frameon=False, prop={'size': 20})
+            lbl = Cat.CatalogLabel(cat)
+            sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', transform=sub.transAxes, fontsize=20)
+        bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+        bkgd.set_ylabel(r'cumulative log $\rho_\mathrm{SFR}$  $[M_\odot/yr/\mathrm{Mpc}^3])$', labelpad=10, fontsize=20)
+        bkgd.set_xlabel(r'log $M_*$  $[M_\odot]$', labelpad=10, fontsize=20)
+
+        fig.subplots_adjust(wspace=0.05, hspace=0.05)
+        fig_name = ''.join([UT.doc_dir(), 'figs/rhoSFR_cum_', tscale, '.pdf'])
+        fig.savefig(fig_name, bbox_inches='tight')
+    return None 
+
+
+def SMF(): 
+    '''
+    '''
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam']#, 'mufasa'
+    sims_vol = [106**3, 100**3, (50/0.68)**3, (100/0.678)**3] # volume 
+    Cat = Cats.Catalog()
+
+    fig = plt.figure(figsize=(20,4))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub0 = fig.add_subplot(1,5,1)
+    for i_c, cc in enumerate(sims_list): 
+        cat = '_'.join([cc, 'inst']) 
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+       
+        mbin = np.linspace(8.8, 12., 10) 
+        phi, phi_cen, phi_sat = [], [], [] 
+        for i_m in range(len(mbin)-1): 
+            inmbin = ((logMstar > mbin[i_m]) & (logMstar < mbin[i_m+1]))
+            inmbin_cen = inmbin & (censat == 1)
+            inmbin_sat = inmbin & (censat != 1)
+
+            phi.append(float(np.sum(inmbin)) / sims_vol[i_c])
+            phi_cen.append(float(np.sum(inmbin_cen)) / sims_vol[i_c])
+            phi_sat.append(float(np.sum(inmbin_sat)) / sims_vol[i_c])
+    
+        lbl = Cat.CatalogLabel(cat)
+        sub0.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi), c='C'+str(i_c), label=lbl.split('[')[0]) 
+        sub0.set_xlim([8.8, 12.]) 
+        sub0.set_ylim([-5., -1.8]) 
+    
+        sub = fig.add_subplot(1,5,i_c+2)
+        sub.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi), c='k')
+        sub.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi_cen), c='C0', label='Centrals') 
+        sub.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi_sat), c='C1', label='Satellites') 
+        sub.set_xlim([8.8, 12.]) 
+        sub.set_ylim([-5., -1.8]) 
+        sub.set_yticklabels([])
+        if i_c == 3: sub.legend(loc='lower left', frameon=False, prop={'size': 15})
+        sub.text(0.95, 0.95, lbl.split('[')[0], ha='right', va='top', transform=sub.transAxes, fontsize=20)
+
+    sub0.legend(loc='lower left', frameon=False, prop={'size': 15})
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'log $\Phi$  $[\mathrm{Mpc}^{-3}])$', labelpad=10, fontsize=20)
+    bkgd.set_xlabel(r'log $M_*$  $[M_\odot]$', labelpad=10, fontsize=20)
+    fig.subplots_adjust(wspace=0.05, hspace=0.05)
+    fig_name = ''.join([UT.doc_dir(), 'figs/SMF_sims.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    return None 
+
+
+def fsat():
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam']#, 'mufasa'
+    sims_vol = [106**3, 100**3, (50/0.68)**3, (100/0.678)**3] # volume 
+    Cat = Cats.Catalog()
+
+    fig = plt.figure(figsize=(6,6))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub = fig.add_subplot(111) 
+    for i_c, cc in enumerate(sims_list): 
+        cat = '_'.join([cc, 'inst']) 
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+       
+        mbin = np.linspace(8.0, 12., 20) 
+        fsat = np.zeros(len(mbin)-1)
+        for i_m in range(len(mbin)-1): 
+            inmbin = ((logMstar > mbin[i_m]) & (logMstar < mbin[i_m+1]))
+            if np.sum(inmbin) ==  0: 
+                continue 
+            inmbin_sat = inmbin & (censat != 1)
+            fsat[i_m] = float(np.sum(inmbin_sat))/float(np.sum(inmbin))
+
+        lbl = Cat.CatalogLabel(cat)
+        sub.plot((0.5*(mbin[1:] + mbin[:-1]))[fsat > 0], fsat[fsat > 0], c='C'+str(i_c), label=lbl.split('[')[0]) 
+    sub.legend(loc='upper right', frameon=False, prop={'size': 20})  
+    sub.set_xlim([8.0, 12.]) 
+    sub.set_ylim([0.,1.]) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'$f_\mathrm{sat}$', labelpad=10, fontsize=20)
+    bkgd.set_xlabel(r'log $M_*$  $[M_\odot]$', labelpad=10, fontsize=20)
+    fig.subplots_adjust(wspace=0.05, hspace=0.05)
+    fig_name = ''.join([UT.doc_dir(), 'figs/fsat_sims.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
     return None 
 
 
@@ -1913,11 +2041,13 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width(n_bootstrap=100)
     #Catalog_GMMcomps()
-    Pssfr_GMMcomps()
+    #Pssfr_GMMcomps([8.7, 8.8], timescale='inst')
     #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #rhoSF()
+    #SMF()
+    fsat()
     #GMMcomp_weights_res_impact(n_bootstrap=100)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)

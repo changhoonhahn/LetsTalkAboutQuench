@@ -8,6 +8,10 @@ import numpy as np
 import scipy.stats as Stat
 from scipy.stats import nbinom as nbinom
 from scipy import interpolate
+# -- astropy --
+from astropy import units as U
+from astropy import constants as Const
+
 
 def flatten(x): 
     ''' deals with those pesky cases when you have an array or list with only one element!
@@ -57,6 +61,56 @@ def doc_dir():
     ''' directory for paper related stuff 
     '''
     return fig_dir().split('fig')[0]+'doc/'
+
+
+def HAsfr(zdist, ha_flux): 
+    ''' calculate the Halpha SFR for the NSA data using 
+    the ZDIST and HAFLUX columns
+    '''
+    ha_flux = ha_flux * 1e-17 * U.erg/U.s/U.cm**2 # get the units right 
+    H0 = 70. * U.km/U.s/U.Mpc
+    ha_flux *= 4. * np.pi * (zdist * Const.c / H0)**2 
+
+    sfr = ha_flux.to(U.erg/U.s) /(10.**41.28)
+    return sfr.value
+
+
+def jansky(flux, kcorrect):
+    '''Getting fluxes in Janskies from Nanomaggies:
+    Inputs: Choose Petrosian/Sersic Nmgy and the relevant Kcorrection
+    '''
+    flux_in_Jy = flux*3631*(10.0**(-9.0))*(10**(kcorrect/(-2.5)))
+    return flux_in_Jy
+
+
+def UVsfr(zdist, fmag, nmag, rmag, f_flux):
+    ''' Calculate UV star formation rates.
+    Inputs: nsa.field('ZDIST'), F-band magnitude, N-band magnitude, r-band magnitude, F-band flux in Janskies
+    '''
+    fn = fmag - nmag
+    opt = nmag - rmag   # N-r
+
+    #Luminosity Distance
+    #dist = WMAP7.comoving_distance(z)
+    #ldist = (1+z)*dist.value
+    H0 = 70. * U.km/U.s/U.Mpc
+    ldist = (zdist * Const.c/H0).to(U.Mpc).value
+
+    #calculating Attenuation 'atten'
+    atten = np.repeat(-999., len(fmag))
+
+    case1 = np.where((opt > 4.) & (fn < 0.95))
+    atten[case1] = 3.32*fn[case1] + 0.22
+    case2 = np.where((opt > 4.) & (fn >= 0.95))
+    atten[case2] = 3.37
+    case3 = np.where((opt <= 4.) & (fn < 0.9))
+    atten[case3] = 2.99*fn[case3] + 0.27
+    case4 = np.where((opt <= 4.) & (fn >= 0.9))
+    atten[case4] = 2.96
+
+    lum = 4.*np.pi*(ldist**2.0)*(3.087**2.0)*(10**(25.0 +(atten/2.5)))*f_flux  #Luminosity
+    sfr = 1.08*(10**(-28.0))*np.abs(lum)
+    return sfr
 
 
 def gaussianKDE_contour(x, y, xmin=None, xmax=None, ymin=None, ymax=None):
