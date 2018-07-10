@@ -166,5 +166,61 @@ def highz_sfms(name):
     return None 
 
 
+def sfms_comparison(): 
+    ''' Compare the SFMS fits among the data and simulation  
+    '''
+    names = ['candels', 'illustris_10myr', 'illustris_1gyr', 'eagle'] 
+
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    
+    fSFMS = fstarforms()
+    sfms_dict = {} 
+    for name in names:  
+        sfms_fits = [] 
+        for i in range(1,len(zlo)+1): 
+            logm, logsfr = readHighz(name, i, keepzeros=False)
+            # fit the SFMSes
+            sfms_fit = fSFMS.fit(logm, logsfr, 
+                    method='gaussmix',      # Gaussian Mixture Model fitting 
+                    fit_range=[8.5, 12.0],  # stellar mass range
+                    dlogm = 0.4,            # stellar mass bins of 0.4 dex
+                    Nbin_thresh=100,        # at least 100 galaxies in bin 
+                    fit_error='bootstrap',  # uncertainty estimate method 
+                    n_bootstrap=100)        # number of bootstrap bins
+            sfms_fits.append(sfms_fit) 
+        sfms_dict[name] = sfms_fits
+    
+    # SFMS overplotted ontop of SFR--M* relation 
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+        # plot SFMS fits
+        for i_n, name in enumerate(names):  
+            if name == 'candels': colour = 'k'
+            else: colour = 'C'+str(i_n) 
+            sub.fill_between(sfms_dict[name][i_z][0], 
+                    sfms_dict[name][i_z][1] - sfms_dict[name][i_z][2], 
+                    sfms_dict[name][i_z][1] + sfms_dict[name][i_z][2], 
+                    color=colour, alpha=0.75, label=' '.join(name.upper().split('_')))
+        sub.set_xlim([8.5, 12.]) 
+        sub.set_ylim([-1., 4.]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 15}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+    fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_comparison.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    return None
+
+
 if __name__=="__main__": 
-    highz_sfms('eagle')
+    #highz_sfms('eagle')
+    sfms_comparison()
