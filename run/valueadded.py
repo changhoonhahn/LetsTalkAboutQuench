@@ -81,13 +81,15 @@ def valueaddSDSScentrals():
     ''' add NSA columns to Jeremy's central galaxy catalog
     '''
     # Jeremy's original central catalog
-    tinker = np.loadtxt(''.join([UT.dat_dir(), 'tinker_SDSS_centrals_M9.7.dat']), skiprows=2)
+    tinker = np.loadtxt(''.join([UT.dat_dir(), 'tinker_SDSS_centrals_M9.7_pos.dat']), skiprows=2)
     # data columns in the file 
     cols_tinker = ['ms_tinker', 'mr_tinker', 'mg_tinker', 'mh_tinker', 
             'd_tinker', 'psat_tinker', 'dn4k_tinker', 'sfr_tinker', 
             'hdelta_tinker', 'rexp_tinker', 'nsersic_tinker', 
-            'con_tinker', 'sigv1_tinker', 'ka_tinker']
-    assert tinker.shape[1] == len(cols_tinker)
+            'con_tinker', 'sigv1_tinker', 'ka_tinker', 
+            'surf_tinker', 'surfhalf2_tinker', 'surfkpc_tinker', 
+            'verr_tinker', 'redshift_tinker']
+    #assert tinker.shape[1] == len(cols_tinker)
 
     # read in RA and Dec that Jeremy provided
     tinker_ra, tinker_dec = np.loadtxt(''.join([UT.dat_dir(), 'central_positions_tinker_SDSS.dat']), 

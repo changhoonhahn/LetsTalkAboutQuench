@@ -106,7 +106,50 @@ def NSA_tinker_mass():
     return None 
 
 
+def NSA_tinker_z(): 
+    fsdss = h5py.File(''.join([UT.dat_dir(), 'tinker_SDSS_centrals_M9.7.valueadd.hdf5']), 'r') 
+    
+    fig = plt.figure(figsize=(6,6))
+    sub = fig.add_subplot(111)
+    sub.scatter(fsdss['Z'].value, fsdss['redshift_tinker'].value.astype(float)/299792.5, 
+            c='C0', s=1)
+    sub.plot([0., 0.2], [0., 0.2], c='k', lw=1.5, ls='--') 
+    sub.set_xlabel(r'$z_\mathrm{NSA}$', fontsize=25) 
+    sub.set_xlim([0., 0.06]) 
+    sub.set_ylabel(r'$z_\mathrm{tinker}$', fontsize=25) 
+    sub.set_ylim([0., 0.06]) 
+    fig.savefig(''.join([UT.fig_dir(), 'z_nsa_tinker_comparison.png']), bbox_inches='tight') 
+    
+    hasmatch = (fsdss['Z'].value != -999.) 
+    dz = fsdss['Z'].value[hasmatch] - \
+            (fsdss['redshift_tinker'].value.astype(float)/299792.5)[hasmatch]
+    fig = plt.figure(figsize=(6,6))
+    sub = fig.add_subplot(111)
+    _ = sub.hist(dz, range=(-1e-5, 1e-5), bins=40, density=True)
+    sub.set_xlabel(r'$\Delta z = z_\mathrm{nsa} - z_\mathrm{tinker}$', fontsize=25) 
+    sub.set_xlim([-1e-5, 1e-5]) 
+    fig.savefig(''.join([UT.fig_dir(), 'dz_nsa_tinker.png']), bbox_inches='tight') 
+    return None 
+
+
+def NSA_tinker_d4000(): 
+    fsdss = h5py.File(''.join([UT.dat_dir(), 'tinker_SDSS_centrals_M9.7.valueadd.hdf5']), 'r') 
+    
+    fig = plt.figure(figsize=(6,6))
+    sub = fig.add_subplot(111)
+    print fsdss['D4000'].value
+    sub.scatter(fsdss['D4000'].value, fsdss['dn4k_tinker'].value, c='C0', s=1)
+    sub.plot([0., 10.], [0., 10.], c='k', lw=1.5, ls='--') 
+    sub.set_xlabel(r'$D_n4000_\mathrm{NSA}$', fontsize=25) 
+    sub.set_xlim([0., 5.]) 
+    sub.set_ylabel(r'$D_n4000_\mathrm{tinker}$', fontsize=25) 
+    sub.set_ylim([0., 5.]) 
+    fig.savefig(''.join([UT.fig_dir(), 'd4000_nsa_tinker_comparison.png']), bbox_inches='tight') 
+    return None 
+
+
 if __name__=='__main__': 
     #NSA_UVHAsfr()
-    valueadd()
+    #valueadd()
     #NSA_tinker_mass()
+    NSA_tinker_d4000()
