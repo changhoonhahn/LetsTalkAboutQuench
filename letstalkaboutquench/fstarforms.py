@@ -27,6 +27,7 @@ class fstarforms(object):
     * implement calculate f_SFMS (the SFMS fraction)
     '''
     def __init__(self):
+        self._fit_method = None
         self._fit_logm = None 
         self._fit_logssfr = None
         self._fit_logsfr = None
@@ -84,13 +85,11 @@ class fstarforms(object):
         -------
         fit_logm, fit_logsfr : (array, array)
              
-
         Notes
         -----
         - Since the inputs are logM* and logSFR, SFR=0 is by construction 
         not accepted. 
             
-
         References
         ---------- 
         - Bluck et al., 2016 (arXiv:1607.03318)
@@ -110,6 +109,7 @@ class fstarforms(object):
 
         if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err']: 
             raise ValueError(method+" is not one of the methods!") 
+        self._fit_method = method 
 
         if fit_error is not None: 
             if fit_error not in ['bootstrap', 'jackknife']: 
@@ -223,121 +223,8 @@ class fstarforms(object):
             # save the bestfit GMM  
             self._gbests = gbests
         else: 
-            raise NotImplementedError("other fitting methods below need to be significantly corrected") 
-            '''
-                if method == 'lowMbin_extrap': 
-                    # fit the SFMS with median SFR in the low mass range where 
-                    # f_Q ~ 0 then extrapolate the fit to higher masses
-                    # such a method was used in Bluck et al. 2016
-                    if fit_range[1] > 9.5: 
-                        warnings.warn('hmmm, you sure you want to use lowMbin_extrap?'+\
-                                'Observations find the quiescent fraction greater than'+\
-                                ' 0 in these stellar mass ranges') 
+            raise NotImplementedError
 
-                    fit_logm, fit_logsfr = [], []
-                    for i in range(len(mbin_low)): 
-                        in_mbin = np.where(
-                                (logmstar > mbin_low[i]) & 
-                                (logmstar < mbin_high[i])) 
-
-                        if len(in_mbin[0]) > Nbin_thresh: 
-                            fit_logm.append(np.median(logm[in_mbin]))
-                            fit_logsfr.append(np.median(logsfr[in_mbin]))
-                
-                elif method == 'gaussfit': 
-                    # in stellar mass bins, fit P(log SSFR) distribution above some SSFR cut with a Gaussian 
-                    # then fit the mus you get from the Gaussian with a linear fit 
-                    # this is motivated by the fact that observations find SFMS 
-                    # to be a log-normal distrubiton (see put references here) 
-                    if SSFR_cut is None: 
-                        ssfrcut = (logsfr - logmstar > -11.)
-                    else: 
-                        if isinstance(SSFR_cut, float): 
-                            ssfrcut = (logsfr - logmstar > SSFR_cut)
-                        elif callable(SSFR_cut):  
-                            # if SSFR_cut is a function of log M*
-                            ssfrcut = (logsfr - logmstar > SSFR_cut(logmstar))
-
-                    fit_logm, fit_logssfr = [], []
-                    fit_popt, fit_amp = [], []
-                    frac_sfms = [] 
-                    for i in range(len(mbin_low)): 
-                        in_mbin = np.where(
-                                (logmstar > mbin_low[i]) & 
-                                (logmstar < mbin_high[i]) & 
-                                ssfrcut) 
-
-                        if len(in_mbin[0]) > Nbin_thresh: 
-                            # now fit a gaussian to the distribution 
-                            yy, xx_edges = np.histogram(logsfr[in_mbin]-logmstar[in_mbin],
-                                    bins=20, range=[-14, -8], normed=True)
-                            xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
-
-                            gauss = lambda xx, aa, x0, sig: aa * np.exp(-(xx - x0)**2/(2*sig**2))
-                            
-                            try: 
-                                popt, pcov = curve_fit(gauss, xx, yy, 
-                                        p0=[1., np.median(logsfr[in_mbin]-logmstar[in_mbin]), 0.3])
-                            except RuntimeError: 
-                                plt.scatter(xx, yy)
-                                plt.show()
-                                plt.close()
-                                raise ValueError
-                            fit_logm.append(np.median(logmstar[in_mbin]))
-                            fit_logssfr.append(popt[1])
-                            famp = float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i]))
-                            fit_amp.append(famp)
-                            fit_popt.append(popt)
-                            frac_sfms.append(popt[0] * np.sqrt(2.*np.pi*popt[2]**2) * famp)
-                    self._fit_amp = fit_amp
-                    self._fit_popt = fit_popt
-
-                elif method == 'negbinomfit': 
-                    # in stellar mass bins, fit P(SSFR) distribution above some SSFR cut with a 
-                    # negative binomial distribution (see ipython notebook for details on binomial distribution)
-                    if SSFR_cut is None: 
-                        ssfrcut = (logsfr - logmstar > -11.)
-                    else: 
-                        if isinstance(SSFR_cut, float): 
-                            ssfrcut = (logsfr - logmstar > SSFR_cut)
-                        elif callable(SSFR_cut):  
-                            # if SSFR_cut is a function of log M*
-                            ssfrcut = (logsfr - logmstar > SSFR_cut(logmstar))
-                    
-                    fit_logm, fit_logssfr = [], []
-                    fit_popt, fit_amp = [], []
-                    for i in range(len(mbin_low)): 
-                        in_mbin = np.where(
-                                (logmstar > mbin_low[i]) & 
-                                (logmstar < mbin_high[i]) & 
-                                ssfrcut) 
-
-                        if len(in_mbin[0]) > Nbin_thresh: 
-                            # now fit a negative binomal to the distribution 
-                            yy, xx_edges = np.histogram(logsfr[in_mbin]-logmstar[in_mbin],
-                                    bins=20, range=[-14, -8], normed=True)
-                            xx = 0.5 * (xx_edges[1:] + xx_edges[:-1])
-
-                            # negative binomial PDF 
-                            NB_fit = lambda xx, aa, mu, theta: UT.NB_pdf_logx(np.power(10., xx+aa), mu, theta)
-
-                            try: 
-                                popt, pcov = curve_fit(NB_fit, xx, yy, 
-                                        p0=[12., 100, 1.5])
-                            except RuntimeError: 
-                                fig = plt.figure(2)
-                                plt.scatter(xx, yy)
-                                plt.show()
-                                plt.close()
-                                raise ValueError
-                            
-                            fit_logm.append(np.median(logmstar[in_mbin]))
-                            fit_logssfr.append(np.log10(popt[1]) - popt[0])
-                            fit_amp.append(float(len(in_mbin[0]))/np.sum((logmstar > mbin_low[i]) & (logmstar < mbin_high[i])))
-                            fit_popt.append(popt)
-                    self._fit_amp = fit_amp
-                    self._fit_popt = fit_popt
-            '''
         # save the fit ssfr and logm 
         self._fit_logm = np.array(fit_logm)  
         self._fit_logssfr = np.array(fit_logssfr)  
@@ -398,12 +285,56 @@ class fstarforms(object):
             print('logSFR_SFMS = %s (logM* - %s) + %s' % (str(round(m, 3)), str(round(logMfid,3)), str(round(c, 3))))
         return sfms_fit 
     
-    def d_MS(self, logmstar, logsfr): 
-        ''' Calculate the `distance` from the best-fit main sequence 
+    def d_SFS(self, logmstar, logsfr, interp=True, extrap=False, silent=True): 
+        ''' Calculate the `distance` from the best-fit star-forming sequence 
         '''
-        if self._sfms_fit is None: 
-            raise ValueError("Run `fit` and `powerlaw` methods first") 
-        return logsfr - self._sfms_fit(logmstar) 
+        # check that .fit() has been run
+        if self._fit_method is None: 
+            msg_err = ''.join(["Cannot calculate the distance to the best-fit", 
+                " star forming sequence without first fitting the sequence"]) 
+            raise ValueError(msg_err) 
+
+        # get stellar mass bins 
+        mlow, mhigh = self._mbins.T
+        n_mbins = len(mlow) 
+        hasfit = np.zeros(n_mbins).astype(bool) 
+        for i_m in range(n_mbins): 
+            fitinmbin = ((self._fit_logm >= mlow[i_m]) & (self._fit_logm < mhigh[i_m])) 
+            if np.sum(fitinmbin) == 1: 
+                hasfit[i_m] = True
+            elif np.sum(fitinmbin) > 1: 
+                raise ValueError 
+        mlow = mlow[hasfit]
+        mhigh = mhigh[hasfit]
+        n_mbins = np.sum(hasfit)
+        
+        # impose stellar mass limit based on the stellar mass range of the SFMS fits
+        inmlim = ((logmstar > mlow.min()) & (logmstar < mhigh.max()) & np.isfinite(logsfr)) 
+        if not silent: 
+            print('SFMS fit ranges in logM* from %f to %f' % (mlow.min(), mhigh.max())) 
+            print('%i objects are outside of this range and be assigned d_SFS = -999.' % (np.sum(~inmlim)))
+
+        # calculate dsfs 
+        dsfs = np.tile(-999., len(logmstar))
+        if interp:
+            # linear interpolation with extrapolation beyond
+            fsfms = sp.interpolate.interp1d(self._fit_logm, self._fit_logsfr, kind='linear', 
+                    fill_value='extrapolate') 
+            if not extrap: 
+                dsfs[inmlim] = logsfr[inmlim] - fsfms(logmstar[inmlim]) 
+            else: 
+                dsfs = logsfr - fsfms(logmstar) 
+        else: 
+            fsfms = sp.interpolate.interp1d(self._fit_logm, self._fit_logsfr, kind='nearest') 
+            in_interp = (logmstar >= self._fit_logm.min()) & (logmstar <= self._fit_logm.max())
+            dsfs[inmlim & in_interp] = logsfr[inmlim & in_interp] - fsfms(logmstar[inmlim & in_interp]) 
+            below = (logmstar < self._fit_logm.min())
+            dsfs[inmlim & below] = logsfr[inmlim & below] - \
+                    self._fit_logsfr[np.argmin(self._fit_logm)]
+            above = (logmstar > self._fit_logm.max())
+            dsfs[inmlim & above] = logsfr[inmlim & above] - \
+                    self._fit_logsfr[np.argmax(self._fit_logm)]
+        return dsfs 
 
     def frac_SFMS(self): 
         ''' Return the estimate of the fraction of galaxies that are on 

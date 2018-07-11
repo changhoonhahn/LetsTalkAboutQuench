@@ -5,14 +5,12 @@ from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
 from sklearn.mixture import GaussianMixture as GMix
 import corner as DFM 
-
-import env
-from catalogs import Catalog as Cat
-from fstarforms import fstarforms
-from fstarforms import xdGMM 
-from fstarforms import sfr_mstar_gmm
-import util as UT
-import corner as DFM 
+# -- letstalkaboutquench -- 
+from letstalkaboutquench import util as UT
+from letstalkaboutquench.catalogs import Catalog as Cat
+from letstalkaboutquench.fstarforms import fstarforms
+from letstalkaboutquench.fstarforms import xdGMM 
+from letstalkaboutquench.fstarforms import sfr_mstar_gmm
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt 
@@ -27,6 +25,54 @@ mpl.rcParams['ytick.labelsize'] = 'x-large'
 mpl.rcParams['ytick.major.size'] = 5
 mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
+
+
+
+def dSFS(catalog, fit_method='gaussmix'):
+    ''' Assess the quality of the SFMS fits by comparing 
+    to the actual P(SFR) at each of the mass bins. 
+    '''
+    # read in catalogs
+    cat = Cat()
+    logm, logsfr, w, censat = cat.Read(catalog)  
+    iscen = (censat ==1)
+    
+    # fit the SFMS using whatever method 
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr = fSFMS.fit(logm[iscen], logsfr[iscen], method=fit_method, dlogm=0.4) 
+    dsfs_interp = fSFMS.d_SFS(logm[iscen], logsfr[iscen], interp=True, extrap=True, silent=False) 
+    dsfs_nointerp = fSFMS.d_SFS(logm[iscen], logsfr[iscen], interp=False, silent=False) 
+
+    # plot log SFR - log M* relation 
+    fig = plt.figure(1, figsize=(12,6))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub = fig.add_subplot(121)
+    sub.scatter(logm[iscen], logsfr[iscen], color='k', s=1) 
+    sub.scatter(fit_logm, fit_logsfr, c='C0', marker='x', lw=3, s=40)
+    isq = (dsfs_interp < -1.) & (dsfs_interp != -999.) 
+    sub.scatter(logm[iscen][isq], logsfr[iscen][isq], c='C1', s=1) 
+    sub.set_xlim([8., 12.])
+    sub.set_ylim([-4., 2.])
+    sub.text(0.05, 0.95, 'Interp.', ha='left', va='top', transform=sub.transAxes, fontsize=20)
+
+    sub = fig.add_subplot(122)
+    sub.scatter(logm[iscen], logsfr[iscen], color='k', s=1) 
+    sub.scatter(fit_logm, fit_logsfr, c='C0', marker='x', lw=3, s=40)
+    isq = (dsfs_nointerp < -1.) & (dsfs_nointerp != -999.) 
+    sub.scatter(logm[iscen][isq], logsfr[iscen][isq], c='C1', s=1) 
+    sub.set_xlim([8., 12.])
+    sub.set_ylim([-4., 2.])
+    sub.text(0.05, 0.95, 'No Interp.', ha='left', va='top', transform=sub.transAxes, fontsize=20)
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log $M_* \;\;[M_\odot]$', labelpad=20, fontsize=30) 
+    bkgd.set_ylabel(r'log SFR $[M_\odot \, yr^{-1}]$', labelpad=20, fontsize=30) 
+
+    fig_name = ''.join([UT.fig_dir(), 'dSFS.', catalog, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+
+    return None
 
 
 def assess_SFMS_fit(catalog, fit_method, silent=False):
@@ -607,6 +653,7 @@ if __name__=='__main__':
     #fQ_dMS('gaussmix')
 
     #assess_SFMS_fit('tinkergroup', 'gaussmix')
-    for c in ['illustris']:#, 'eagle', 'mufasa']:
-        assess_SFMS_fit(c+'_100myr', 'gaussmix', silent=True)
+    #for c in ['illustris']:#, 'eagle', 'mufasa']:
+    #    assess_SFMS_fit(c+'_100myr', 'gaussmix', silent=True)
     #SFMSfrac('tinkergroup')
+    dSFS('illustris_inst') 
