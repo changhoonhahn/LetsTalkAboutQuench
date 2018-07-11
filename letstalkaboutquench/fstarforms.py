@@ -188,7 +188,7 @@ class fstarforms(object):
                 gbests.append(gbest)
 
                 # identify the different components
-                i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, silent=True)
+                i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, SSFR_cut=SSFR_cut, silent=True)
     
                 if i_sfms is None: 
                     continue 
@@ -210,7 +210,7 @@ class fstarforms(object):
                         gmm_boot = GMix(n_components=n_best)
                         gmm_boot.fit(X_boot.reshape(-1,1))
                 
-                        i_sfms_boot, _, _, _ = self._GMM_idcomp(gmm_boot, silent=True)
+                        i_sfms_boot, _, _, _ = self._GMM_idcomp(gmm_boot, SSFR_cut=SSFR_cut, silent=True)
                         if i_sfms_boot is None: 
                             continue 
                         boot_mu_logssfr.append(UT.flatten(gmm_boot.means_.flatten()[i_sfms_boot]))
@@ -285,7 +285,7 @@ class fstarforms(object):
             print('logSFR_SFMS = %s (logM* - %s) + %s' % (str(round(m, 3)), str(round(logMfid,3)), str(round(c, 3))))
         return sfms_fit 
     
-    def d_SFS(self, logmstar, logsfr, interp=True, extrap=False, silent=True): 
+    def d_SFS(self, logmstar, logsfr, method='interpexterp', err_thresh=None, silent=True): 
         ''' Calculate the `distance` from the best-fit star-forming sequence 
         '''
         # check that .fit() has been run
@@ -294,46 +294,67 @@ class fstarforms(object):
                 " star forming sequence without first fitting the sequence"]) 
             raise ValueError(msg_err) 
 
-        # get stellar mass bins 
-        mlow, mhigh = self._mbins.T
-        n_mbins = len(mlow) 
-        hasfit = np.zeros(n_mbins).astype(bool) 
-        for i_m in range(n_mbins): 
-            fitinmbin = ((self._fit_logm >= mlow[i_m]) & (self._fit_logm < mhigh[i_m])) 
-            if np.sum(fitinmbin) == 1: 
-                hasfit[i_m] = True
-            elif np.sum(fitinmbin) > 1: 
-                raise ValueError 
-        mlow = mlow[hasfit]
-        mhigh = mhigh[hasfit]
-        n_mbins = np.sum(hasfit)
-        
-        # impose stellar mass limit based on the stellar mass range of the SFMS fits
-        inmlim = ((logmstar > mlow.min()) & (logmstar < mhigh.max()) & np.isfinite(logsfr)) 
-        if not silent: 
-            print('SFMS fit ranges in logM* from %f to %f' % (mlow.min(), mhigh.max())) 
-            print('%i objects are outside of this range and be assigned d_SFS = -999.' % (np.sum(~inmlim)))
+        if method == 'powerlaw':  
+            # fit a powerlaw to the GMM SFS fits and then use it 
+            # to measure the dSFS 
+            fsfms = lambda mm: self._powerlaw_m * (mm - self._logMfid) + self._powerlaw_c 
+            dsfs = logsfr - fsfms(logmstar) 
 
-        # calculate dsfs 
-        dsfs = np.tile(-999., len(logmstar))
-        if interp:
-            # linear interpolation with extrapolation beyond
-            fsfms = sp.interpolate.interp1d(self._fit_logm, self._fit_logsfr, kind='linear', 
-                    fill_value='extrapolate') 
-            if not extrap: 
-                dsfs[inmlim] = logsfr[inmlim] - fsfms(logmstar[inmlim]) 
+        elif method in ['interpexterp', 'nointerp']: 
+            # instead of fitting a powerlaw use the actual SFS fits in order 
+            # to calculate the dSFS values 
+
+            # get stellar mass bins 
+            mlow, mhigh = self._mbins.T
+            n_mbins = len(mlow) 
+            hasfit = np.zeros(n_mbins).astype(bool) 
+            for i_m in range(n_mbins): 
+                fitinmbin = ((self._fit_logm >= mlow[i_m]) & (self._fit_logm < mhigh[i_m])) 
+                if np.sum(fitinmbin) == 1: 
+                    hasfit[i_m] = True
+                elif np.sum(fitinmbin) > 1: 
+                    raise ValueError 
+            mlow = mlow[hasfit]
+            mhigh = mhigh[hasfit]
+            n_mbins = np.sum(hasfit)
+        
+            # impose stellar mass limit based on the stellar mass range of the SFMS fits
+            inmlim = ((logmstar > mlow.min()) & (logmstar < mhigh.max()) & np.isfinite(logsfr)) 
+            if not silent: 
+                print('SFMS fit ranges in logM* from %f to %f' % (mlow.min(), mhigh.max())) 
+                print('%i objects are outside of this range and be assigned d_SFS = -999.' % (np.sum(~inmlim)))
+            
+            # error threshold to remove noisy SFMS bins
+            if err_thresh is not None: 
+                if self._fit_err_logssfr is None: 
+                    raise ValueError("run fit with fit_error enabled")
+
+                notnoisy = (self._fit_err_logssfr < err_thresh) 
+                fit_logm = self._fit_logm[notnoisy]
+                fit_logsfr = self._fit_logsfr[notnoisy]
             else: 
+                fit_logm = self._fit_logm
+                fit_logsfr = self._fit_logsfr
+
+            # calculate dsfs 
+            dsfs = np.tile(-999., len(logmstar))
+            if method == 'interpexterp': 
+                # linear interpolation with extrapolation beyond
+                fsfms = sp.interpolate.interp1d(fit_logm, fit_logsfr, kind='linear', 
+                        fill_value='extrapolate') 
+                #if not extrap: 
+                #    dsfs[inmlim] = logsfr[inmlim] - fsfms(logmstar[inmlim]) 
                 dsfs = logsfr - fsfms(logmstar) 
-        else: 
-            fsfms = sp.interpolate.interp1d(self._fit_logm, self._fit_logsfr, kind='nearest') 
-            in_interp = (logmstar >= self._fit_logm.min()) & (logmstar <= self._fit_logm.max())
-            dsfs[inmlim & in_interp] = logsfr[inmlim & in_interp] - fsfms(logmstar[inmlim & in_interp]) 
-            below = (logmstar < self._fit_logm.min())
-            dsfs[inmlim & below] = logsfr[inmlim & below] - \
-                    self._fit_logsfr[np.argmin(self._fit_logm)]
-            above = (logmstar > self._fit_logm.max())
-            dsfs[inmlim & above] = logsfr[inmlim & above] - \
-                    self._fit_logsfr[np.argmax(self._fit_logm)]
+            elif method == 'nointerp': 
+                fsfms = sp.interpolate.interp1d(fit_logm, fit_logsfr, kind='nearest') 
+                in_interp = (logmstar >= self._fit_logm.min()) & (logmstar <= self._fit_logm.max())
+                dsfs[inmlim & in_interp] = logsfr[inmlim & in_interp] - fsfms(logmstar[inmlim & in_interp]) 
+                below = (logmstar < self._fit_logm.min())
+                dsfs[inmlim & below] = logsfr[inmlim & below] - \
+                        self._fit_logsfr[np.argmin(self._fit_logm)]
+                above = (logmstar > self._fit_logm.max())
+                dsfs[inmlim & above] = logsfr[inmlim & above] - \
+                        self._fit_logsfr[np.argmax(self._fit_logm)]
         return dsfs 
 
     def frac_SFMS(self): 
@@ -347,9 +368,11 @@ class fstarforms(object):
             raise NotImplementedError(self._frac_sfms[0]) 
         return [self._fit_logm, self._frac_sfms]
 
-    def _GMM_idcomp(self, gbest, silent=True): 
+    def _GMM_idcomp(self, gbest, SSFR_cut=None, silent=True): 
         ''' Given the best-fit GMM, identify all the components
         '''
+        if SSFR_cut is None: 
+            SSFR_cut = -11.
         mu_gbest = gbest.means_.flatten()
         w_gbest  = gbest.weights_
         n_gbest  = len(mu_gbest) 
@@ -359,14 +382,14 @@ class fstarforms(object):
         i_int = None # intermediate 
         i_q = None # quenched
     
-        highsfr = (mu_gbest > -11) 
+        highsfr = (mu_gbest > SSFR_cut) 
         if np.sum(highsfr) == 1: 
             # only one component with high sfr. This is the one 
             i_sfms = np.arange(n_gbest)[highsfr]
-        elif np.sum(mu_gbest > -11) > 1: 
+        elif np.sum(mu_gbest > SSFR_cut) > 1: 
             # if best fit has more than one component with high SFR (logSSFR > -11), 
             # we designate the component with the highest weight as the SFMS 
-            highsfr = (mu_gbest > -11)
+            highsfr = (mu_gbest > SSFR_cut)
             i_sfms = (np.arange(n_gbest)[highsfr])[w_gbest[highsfr].argmax()]
         else: 
             # no components with high sfr -- i.e. no SFMS component 

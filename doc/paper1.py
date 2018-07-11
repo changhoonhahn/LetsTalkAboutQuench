@@ -7,6 +7,7 @@ Author(s): ChangHoon Hahn
 
 
 '''
+import pickle
 import numpy as np 
 import scipy as sp
 import corner as DFM 
@@ -1366,6 +1367,76 @@ def fsat():
     return None 
 
 
+def dSFS(method='interpexterp'): 
+    ''' plot galaxies that would be classified as quiescent based on 
+    a d_SFMS < -1 cut. 
+    ''' 
+    f_sfs = lambda name: ''.join([UT.dat_dir(), 'paper1/dsfs.', name, '.gfcentrals.mlim.dat']) 
+    f_gmm = lambda name: ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+    if method == 'powerlaw': 
+        icol_dsfs = 2 
+    elif method == 'interpexterp': 
+        icol_dsfs = 3 
+
+    fig = plt.figure(figsize=(20,8))
+    gs = mpl.gridspec.GridSpec(1,5, figure=fig) 
+    # plot SFR-M* for the observations 
+    gs_i = mpl.gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[4])
+    sub0 = plt.subplot(gs_i[1:3,:])
+    for cat in ['tinkergroup', 'nsa_dickey']:
+        logmstar, logsfr, dsfs = np.loadtxt(f_sfs(cat), 
+                skiprows=4, unpack=True, delimiter=',', usecols=[0,1,icol_dsfs]) 
+        fSFMS = pickle.load(open(f_gmm(cat), 'rb'))
+        
+        sub0.scatter(logmstar, logsfr, c='k', s=1) 
+        sub0.errorbar(fSFMS._fit_logm, fSFMS._fit_logsfr, fSFMS._fit_err_logssfr, fmt='.C0')
+        quiescent = ((dsfs < -1.) & (dsfs != -999.)) 
+        sub0.scatter(logmstar[quiescent], logsfr[quiescent], c='C1', s=1) 
+    sub0.set_xlim([8., 12.]) 
+    sub0.set_ylim([-4., 2.]) 
+    sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
+                transform=sub0.transAxes, fontsize=20)
+    
+    Cat = Cats.Catalog()
+    tscales = ['inst', '100myr']
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam']  # simulations 
+    for i_c, cc in enumerate(sims_list): 
+        gs_i = mpl.gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[i_c])
+        for i_t, tscale in enumerate(tscales): 
+            cat = '_'.join([cc, tscale]) 
+            sub = plt.subplot(gs_i[i_t,0]) 
+        
+            logmstar, logsfr, dsfs = np.loadtxt(f_sfs(cat), 
+                    skiprows=4, unpack=True, delimiter=',', usecols=[0,1,icol_dsfs]) 
+            fSFMS = pickle.load(open(f_gmm(cat), 'rb'))
+
+            fpowerlaw = fSFMS.powerlaw(logMfid=10.5) 
+            sub.scatter(logmstar, logsfr, c='k', s=1) 
+            sub.errorbar(fSFMS._fit_logm, fSFMS._fit_logsfr, fSFMS._fit_err_logssfr, fmt='.C0')
+            quiescent = ((dsfs < -1.) & (dsfs != -999.)) 
+            sub.scatter(logmstar[quiescent], logsfr[quiescent], c='C1', s=1) 
+            
+            marr = np.linspace(8., 12., 20) 
+            sub.plot(marr, fpowerlaw(marr), c='r', ls='--')
+            sub.set_xlim([8., 12.]) 
+            sub.set_ylim([-4., 2.]) 
+            
+            lbl = Cat.CatalogLabel(cat)
+            if i_c == 0: 
+                sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='left', va='center', transform=sub.transAxes, fontsize=20)
+            if i_t == 1: 
+                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
+                        transform=sub.transAxes, fontsize=20)
+
+    fig.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
+    fig.text(0.075, 0.5, r'log ( SFR $[M_\odot \, yr^{-1}]$ )', rotation='vertical', va='center', fontsize=25) 
+    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_dSFS.', method, '.png'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
 ##############################
 # Appendix: 100Myr SFR Resolution Effect
 ##############################
@@ -2047,7 +2118,9 @@ if __name__=="__main__":
     #_GMM_comp_test('nsa_dickey')
     #rhoSF()
     #SMF()
-    fsat()
+    #fsat()
+    dSFS('powerlaw')
+    dSFS('interpexterp')
     #GMMcomp_weights_res_impact(n_bootstrap=100)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)

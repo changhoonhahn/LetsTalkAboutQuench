@@ -1,0 +1,28 @@
+	# best-fit (maximum likelihood) paremters for power-law fits to SFMS 
+--- illustris_inst --- 
+power-law m: 1.002881 
+power-law b: 0.580349 
+--- eagle_inst --- 
+power-law m: 0.912230 
+power-law b: 0.233468 
+--- mufasa_inst --- 
+power-law m: 0.753686 
+power-law b: 0.586517 
+--- scsam_inst --- 
+power-law m: 0.919990 
+power-law b: 0.319528 
+--- illustris_100myr --- 
+power-law m: 0.940545 
+power-law b: 0.543439 
+--- eagle_100myr --- 
+power-law m: 0.761437 
+power-law b: 0.216886 
+--- mufasa_100myr --- 
+power-law m: 0.403252 
+power-law b: 0.316243 
+--- scsam_100myr --- 
+power-law m: 1.142494 
+power-law b: 0.460550 
+--- SDSS + NSA --- 
+power-law m: 0.702159 
+power-law b: 0.127395 
