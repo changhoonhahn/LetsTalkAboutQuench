@@ -17,7 +17,7 @@ from letstalkaboutquench.fstarforms import fstarforms
 illustris_mmin = 8.4
 eagle_mmin = 8.4
 mufasa_mmin = 9.2
-scsam_mmin = 8.5
+scsam_mmin = 8.8
 tinker_mmin = 9.7
 dickey_mmax = 9.7
 
@@ -161,22 +161,23 @@ def _gmmSFSfit_frankenSDSS():
     return None 
 
 
-def gmmSFSpowerlaw(): 
+def gmmSFSpowerlaw(logMfid=10.5): 
     ''' power-law fits to the GMM SFS fits to the specified catalog + SFR timescale
     '''
-    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
-    fSFMS = pickle.load(open(f_gmm, 'rb')) 
-    
     tscales = ['inst', '100myr'] # tscales 
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit.txt']), 'w') 
+    f_table.write("# best-fit (maximum likelihood) paremters for power-law fits to SFMS \n")
+    f_table.write("# log SFR_sfs = m x (log M* - "+str(logMfid)+") + b \n")
     for i_t, tscale in enumerate(tscales): 
         for i_c, cc in enumerate(sims_list): 
             name = '_'.join([cc, tscale]) 
             f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
             fSFMS = pickle.load(open(f_gmm, 'rb')) 
             # power-law fit of the SFMS fit 
-            _ = fSFMS.powerlaw(logMfid=10.5) 
-            f_table.write('--- %s --- \n' % cat) 
+            _ = fSFMS.powerlaw(logMfid=logMfid)
+            f_table.write('--- %s --- \n' % name) 
             f_table.write('power-law m: %f \n' % fSFMS._powerlaw_m) 
             f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
     
@@ -221,11 +222,12 @@ def _mlim_fit(name, logMstar, cut):
 
 
 if __name__=="__main__": 
+    #for t in ['inst', '100myr']: 
+    #    for name in ['scsam']: #['illustris', 'eagle', 'mufasa', 'scsam']:
+    #        gmmSFSfits(name+'_'+t)
+    #        dSFS(name+'_'+t) 
+    #for name in ['nsa_dickey', 'tinkergroup']: 
+    #    gmmSFSfits(name)
+    #    dSFS(name) 
     #_gmmSFSfit_frankenSDSS()
-    for t in ['inst', '100myr']: 
-        for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
-            gmmSFSfits(name+'_'+t)
-            dSFS(name+'_'+t) 
-    for name in ['nsa_dickey', 'tinkergroup']: 
-        gmmSFSfits(name)
-        dSFS(name) 
+    gmmSFSpowerlaw()
