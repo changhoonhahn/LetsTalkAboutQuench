@@ -136,7 +136,7 @@ class fstarforms(object):
         # log M* binning 
         mbin_low = np.arange(fit_range[0], fit_range[1], dlogm)
         mbin_high = mbin_low + dlogm
-        mbins =  np.array([mbin_low, mbin_high]).T
+        mbins = np.array([mbin_low, mbin_high]).T
         self._mbins = mbins
         self._dlogm = dlogm
         self._Nbin_thresh = Nbin_thresh
@@ -153,8 +153,8 @@ class fstarforms(object):
             fit_logm = [] 
             fit_logssfr, fit_sig_logssfr = [], [] # mean and variance of the SFMS component
             if fit_error is not None: fit_err_logssfr, fit_err_sig_logssfr = [], [] # uncertainty in the mean and variance
-            gbests =  []
-            
+            gbests = []
+            _gmms = []  
             for i in range(mbins.shape[0]): # log M* bins  
                 in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
 
@@ -186,6 +186,7 @@ class fstarforms(object):
                 n_best = n_comps[i_best] # number of components of the best-fit 
                 gbest = gmms[i_best] # best fit GMM 
                 gbests.append(gbest)
+                _gmms.append(gmms) 
 
                 # identify the different components
                 i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, SSFR_cut=SSFR_cut, silent=True)
@@ -222,6 +223,7 @@ class fstarforms(object):
                 
             # save the bestfit GMM  
             self._gbests = gbests
+            self._gmms = _gmms
         else: 
             raise NotImplementedError
 
