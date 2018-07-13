@@ -222,12 +222,12 @@ def _mlim_fit(name, logMstar, cut):
 
 
 if __name__=="__main__": 
-    #for t in ['inst', '100myr']: 
-    #    for name in ['scsam']: #['illustris', 'eagle', 'mufasa', 'scsam']:
-    #        gmmSFSfits(name+'_'+t)
-    #        dSFS(name+'_'+t) 
-    #for name in ['nsa_dickey', 'tinkergroup']: 
-    #    gmmSFSfits(name)
-    #    dSFS(name) 
-    #_gmmSFSfit_frankenSDSS()
-    gmmSFSpowerlaw()
+    for t in ['inst', '100myr']: 
+        for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
+            gmmSFSfits(name+'_'+t)
+            dSFS(name+'_'+t) 
+    for name in ['nsa_dickey', 'tinkergroup']: 
+        gmmSFSfits(name)
+        dSFS(name) 
+    _gmmSFSfit_frankenSDSS()
+    #gmmSFSpowerlaw()

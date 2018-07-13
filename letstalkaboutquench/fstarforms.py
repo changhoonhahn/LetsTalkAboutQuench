@@ -154,7 +154,7 @@ class fstarforms(object):
             fit_logssfr, fit_sig_logssfr = [], [] # mean and variance of the SFMS component
             if fit_error is not None: fit_err_logssfr, fit_err_sig_logssfr = [], [] # uncertainty in the mean and variance
             gbests = []
-            _gmms = []  
+            _gmms, _bics = [], [] 
             for i in range(mbins.shape[0]): # log M* bins  
                 in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
 
@@ -185,14 +185,15 @@ class fstarforms(object):
                 i_best = np.array(bics).argmin()
                 n_best = n_comps[i_best] # number of components of the best-fit 
                 gbest = gmms[i_best] # best fit GMM 
-                gbests.append(gbest)
-                _gmms.append(gmms) 
 
                 # identify the different components
                 i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, SSFR_cut=SSFR_cut, silent=True)
     
                 if i_sfms is None: 
                     continue 
+                gbests.append(gbest)
+                _gmms.append(gmms) 
+                _bics.append(bics)
                 
                 # save the SFMS log M* and log SSFR values 
                 fit_logm.append(np.median(logmstar[in_mbin])) 
@@ -224,6 +225,7 @@ class fstarforms(object):
             # save the bestfit GMM  
             self._gbests = gbests
             self._gmms = _gmms
+            self._bics = _bics
         else: 
             raise NotImplementedError
 

@@ -131,11 +131,13 @@ def Catalogs_Pssfr(mbin=[10.4, 10.6]):
         for i_c, cat in enumerate(sims_list): 
             logMstar, logSFR, weight, censat = Cat.Read(cat+'_'+tscale, keepzeros=True)
             psat = Cat.GroupFinder(cat+'_'+tscale)
-            iscen = ((psat < 0.01) & ~Cat.zero_sfr)
-            #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
-            inmbin = (iscen & (logMstar > mbin[0]) & (logMstar < mbin[1]))   
+            iscen_nz = ((psat < 0.01) & ~Cat.zero_sfr) #iscen = ((censat == 1) & np.invert(Cat.zero_sfr)) 
+            iscen_z = ((psat < 0.01) & Cat.zero_sfr)
+            inmbin_nz = (iscen_nz & (logMstar > mbin[0]) & (logMstar < mbin[1]))   
+            inmbin_z = (iscen_z & (logMstar > mbin[0]) & (logMstar < mbin[1]))   
 
-            ssfr_i = logSFR[inmbin] - logMstar[inmbin]
+            ssfr_i = np.concatenate([logSFR[inmbin_nz] - logMstar[inmbin_nz], 
+                np.tile(-13.2, np.sum(inmbin_z))])
             _ = sub.hist(ssfr_i, bins=40, 
                     range=[-14., -8.], 
                     normed=True, histtype='step', color='C'+str(i_c+2), linewidth=1.75, 
@@ -705,7 +707,7 @@ def Catalog_GMMcomps():
     return None 
 
 
-def Pssfr_GMMcomps(mass_bin, timescale='inst'): 
+def Pssfr_GMMcomps(timescale='inst'): 
     ''' Plot P(SSFR) along with the best-fit GMM components
     in order to demonstrate that the GMM model is not overfitting 
     '''
@@ -715,85 +717,105 @@ def Pssfr_GMMcomps(mass_bin, timescale='inst'):
     
     f_gmm = lambda name: ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
 
-    fig = plt.figure(1, figsize=(16,8))#(20,7.5))
-    bkgd = fig.add_subplot(111, frameon=False)
+    fig = plt.figure(1, figsize=(16,14))#(20,7.5))
+    bkgd = fig.add_subplot(1, 1, 1, frameon=False)
     for i_c, cc in enumerate(sims_list): 
-        cat = '_'.join([cc, timescale]) 
-        logMstar, logSFR, weight, censat = Cat.Read(cat)
-        psat = Cat.GroupFinder(cat) # group finder 
-        iscen = (psat < 0.01)
-            
-        # fit the SFMS  
-        if cc == 'scsam': 
-            mlim = (logMstar > scsam_mmin)
-        elif cat == 'illustris_100myr': 
-            mlim = (logMstar > illustris_mmin)
-        elif cat == 'eagle_100myr': 
-            mlim = (logMstar > eagle_mmin)
-        elif cat == 'mufasa_100myr': 
-            mlim = (logMstar > mufasa_mmin)
-        else: 
-            mlim = np.ones(len(logMstar)).astype(bool) 
+        for i_mass_bin, mass_bin in enumerate([[9.2, 9.4], [9.8, 10.], [10.6, 10.8]]): 
+            cat = '_'.join([cc, timescale]) 
+            logMstar, logSFR, weight, censat = Cat.Read(cat)
+            psat = Cat.GroupFinder(cat) # group finder 
+            iscen = (psat < 0.01)
+                
+            # fit the SFMS  
+            if cc == 'scsam': 
+                mlim = (logMstar > scsam_mmin)
+            elif cat == 'illustris_100myr': 
+                mlim = (logMstar > illustris_mmin)
+            elif cat == 'eagle_100myr': 
+                mlim = (logMstar > eagle_mmin)
+            elif cat == 'mufasa_100myr': 
+                mlim = (logMstar > mufasa_mmin)
+            else: 
+                mlim = np.ones(len(logMstar)).astype(bool) 
 
-        if mass_bin[0] < logMstar[mlim].min(): # make sure there are galaxies in the mass bin 
-            continue 
+            # SFMS fit 
+            fSFS = pickle.load(open(f_gmm(cat), 'rb'))
 
-        # SFMS fit 
-        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+            # P(SSFR) plot within mass bin 
+            sub = fig.add_subplot(4,3,1+3*i_c+i_mass_bin) 
+            font0 = FontProperties() 
+            font0.set_weight('heavy') 
+            lbl = Cat.CatalogLabel(cat)
+            if i_mass_bin == 0: 
+                sub.text(0.05, 0.9, lbl.split('[')[0], ha='left', va='top', 
+                        transform=sub.transAxes, fontsize=25, fontproperties=font0)
 
-        # P(SSFR) plot within mass bin 
-        sub = fig.add_subplot(2,2,1+i_c) 
-        inmbin = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1])) 
-        inmbin_nz = (inmbin & iscen & mlim & ~Cat.zero_sfr)
-        inmbin_z = (inmbin & iscen & mlim & Cat.zero_sfr)
+            if mass_bin[0] >= logMstar[mlim].min(): # make sure there are galaxies in the massbin
 
-        ssfrs = np.concatenate([logSFR[inmbin_nz] - logMstar[inmbin_nz], 
-            np.repeat(-13., np.sum(inmbin_z))])
-        print('%i of %i galaxies have zero SFR' % 
-                (np.sum(inmbin_z), np.sum(inmbin_nz)+np.sum(inmbin_z)))
-        _ = sub.hist(ssfrs, bins=40, 
-                range=[-14., -8.], normed=True, histtype='step', 
-                color='k', linewidth=1.75)
+                inmbin = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1])) 
+                inmbin_nz = (inmbin & iscen & mlim & ~Cat.zero_sfr)
+                inmbin_z = (inmbin & iscen & mlim & Cat.zero_sfr)
 
-        gmm_weights = fSFS._gbests[0].weights_
-        gmm_means = fSFS._gbests[0].means_
-        gmm_vars = fSFS._gbests[0].covariances_
-        icomps = fSFS._GMM_idcomp(fSFS._gbests[0], SSFR_cut=-11.)
-        n_comp = len(gmm_means) 
-        #print i_sfms, i_q, i_int, i_sb
-        #print n_comp
-        x_ssfr = np.linspace(-14., -9, 100)
-        cs = ['C0', 'C1', 'C2', 'C4'] 
-        for ii, icomp in enumerate(icomps): 
-            if icomp is not None: 
-                sub.plot(x_ssfr, 
-                        gmm_weights[icomp] * MNorm.pdf(x_ssfr, gmm_means[icomp], gmm_vars[icomp]), c=cs[ii]) 
-        for gmm in fSFS._gmms: 
-            gmm_weights = fSFS._gmm[0].weights_
-            gmm_means = fSFS._gmm[0].means_
-            gmm_vars = fSFS._gmm[0].covariances_
-            n_comp = len(gmm_means) 
-            for i_comp in range(n_comp):  
-                sub.plot(x_ssfr, gmm_weights[icomp] * MNorm.pdf(x_ssfr, gmm_means[icomp], gmm_vars[icomp]), c='k') 
-        sub.set_xlim([-13.1, -9.]) 
-        sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
-        sub.set_ylim([0.,2.4]) 
-        if i_c in [0, 1]: sub.set_xticklabels([]) 
-        #sub.set_yticks([0., 0.5, 1., 1.5, 2.])
-        font0 = FontProperties() 
-        font0.set_weight('heavy') 
-        lbl = Cat.CatalogLabel(cat)
-        sub.text(0.05, 0.9, lbl.split('[')[0], ha='left', va='top', 
-                transform=sub.transAxes, fontsize=25, fontproperties=font0)
-        
+                ssfrs = np.concatenate([logSFR[inmbin_nz] - logMstar[inmbin_nz], 
+                    np.repeat(-13.5, np.sum(inmbin_z))])
+                print('%i of %i galaxies have zero SFR' % 
+                        (np.sum(inmbin_z), np.sum(inmbin_nz)+np.sum(inmbin_z)))
+                f_nz = float(np.sum(inmbin_nz)) / float(np.sum(inmbin_nz)+np.sum(inmbin_z))
+                _ = sub.hist(ssfrs, bins=40, 
+                        range=[-14., -8.], density=True, histtype='stepfilled', 
+                        color='k', alpha=0.25, linewidth=1.75)
+                i_mbin = np.where((fSFS._fit_logm > mass_bin[0]) & (fSFS._fit_logm < mass_bin[1]))[0]
+                if len(i_mbin) != 1: raise ValueError
+                i_mbin = i_mbin[0]
+                gmm_weights = fSFS._gbests[i_mbin].weights_
+                gmm_means = fSFS._gbests[i_mbin].means_
+                gmm_vars = fSFS._gbests[i_mbin].covariances_
+                icomps = fSFS._GMM_idcomp(fSFS._gbests[i_mbin], SSFR_cut=-11.)
+                n_comp_best = len(gmm_means) 
+                x_ssfr = np.linspace(-14., -9, 100)
+
+                for i_gmm, gmm, bic in zip(
+                        range(len(fSFS._gmms[i_mbin])), fSFS._gmms[i_mbin], fSFS._bics[i_mbin]):
+                    gmm_ws = gmm.weights_.flatten()
+                    gmm_mus = gmm.means_.flatten()
+                    gmm_vars = gmm.covariances_.flatten()
+                    n_comp = len(gmm_mus) 
+                
+                    sub.text(0.075, 0.72-float(i_gmm)*0.1, 
+                            '$\mathrm{BIC}_{k='+str(i_gmm+1)+'}='+str(round(bic,2))+'$', 
+                            ha='left', va='top', color='C'+str(i_gmm),
+                            transform=sub.transAxes, fontsize=15)
+                    lww = 0.75
+                    if n_comp == n_comp_best: 
+                        lww = 1
+
+                    allgmm = np.zeros(len(x_ssfr))
+                    for icomp in range(n_comp):  
+                        allgmm += f_nz * gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]) 
+                        sub.plot(x_ssfr, 
+                                f_nz * gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]), 
+                                c='C'+str(i_gmm), lw=0.75, ls='--') 
+                    sub.plot(x_ssfr, allgmm, c='C'+str(i_gmm), lw=1.5) 
+            if i_c == 0: 
+                sub.set_title(str(mass_bin[0])+'$<$ log $M_*$ $<$'+str(mass_bin[1])+'', 
+                        fontsize=25)
+                #sub.text(0.9, 0.95, 
+                #        str(mass_bin[0])+'$<$ log $M_*$ $<$'+str(mass_bin[1])+'', 
+                #        ha='right', va='top',
+                #        transform=sub.transAxes, fontsize=25)
+            sub.set_xlim([-13.6, -9.]) 
+            sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
+            sub.set_ylim([0.,2.]) 
+            if i_c in [0, 1, 2]: sub.set_xticklabels([]) 
+            if i_mass_bin in [1, 2]:  sub.set_yticklabels([]) 
+            #sub.set_yticks([0., 0.5, 1., 1.5, 2.])
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
     bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', 
             labelpad=5, fontsize=25)
-    
+        
     fig.subplots_adjust(wspace=0.1, hspace=0.075)
-    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_GMMcomps_', timescale, '_',  
-        str(mass_bin[0]), '_', str(mass_bin[1]), '.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/Pssfr_GMMcomps_', timescale, '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -1974,7 +1996,7 @@ def _GMM_comp_test(name):
 
 if __name__=="__main__": 
     #Catalogs_SFR_Mstar()
-    #Catalogs_Pssfr()
+    Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
     #for tt in ['inst', '100myr']:
@@ -1982,7 +2004,8 @@ if __name__=="__main__":
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
-    Pssfr_GMMcomps([9.2, 9.4], timescale='inst')
+    #Pssfr_GMMcomps(timescale='inst')
+    #Pssfr_GMMcomps(timescale='100myr')
     #GMMcomp_weights(n_bootstrap=100)
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
