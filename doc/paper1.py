@@ -369,6 +369,8 @@ def Catalogs_SFMS_powerlawfit():
                 pass 
             elif line[0] == '-': 
                 key = line.split(' ')[1]
+                if line.split(' ')[2] == 'logM*': 
+                    key += '_mlim'
                 m = float(f.readline().split(':')[-1])
                 b = float(f.readline().split(':')[-1])
                 power_fits[key] = [m, b]
@@ -387,7 +389,13 @@ def Catalogs_SFMS_powerlawfit():
             m, b = power_fits[cat] 
             f_sfms = lambda mm: m * (mm - 10.5) + b
             
-            sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
+            if 'mufasa' not in cat: 
+                sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
+            else: 
+                sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, ls=':')#, label=lbl.split('[')[0]) 
+                m, b = power_fits[cat+'_mlim'] 
+                f_sfms = lambda mm: m * (mm - 10.5) + b
+                sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=r'$\mathrm{'+lbl.split('[')[0]+'}^*$') 
             
             if i_c == 0: 
                 sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
@@ -1996,12 +2004,12 @@ def _GMM_comp_test(name):
 
 if __name__=="__main__": 
     #Catalogs_SFR_Mstar()
-    Catalogs_Pssfr()
+    #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
     #for tt in ['inst', '100myr']:
     #    Catalog_SFMS_fit(tt)
-    #Catalogs_SFMS_powerlawfit()
+    Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')

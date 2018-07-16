@@ -243,7 +243,7 @@ class fstarforms(object):
             self._fit_err_sig_logssfr = np.array(fit_err_sig_logssfr)
             return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
 
-    def powerlaw(self, logMfid=None, silent=True): 
+    def powerlaw(self, logMfid=None, mlim=None, silent=True): 
         ''' Find the best-fit power-law parameterization of the 
         SFMS from the logM* and log SFR_SFMS fit from the `fit` 
         method above. This is the simplest fit possible
@@ -272,9 +272,15 @@ class fstarforms(object):
         # now fit line to the fit_Mstar and fit_SSFR values
         xx = self._fit_logm - logMfid  # log Mstar - log M_fid
         yy = self._fit_logsfr
+        err = self._fit_err_logssfr
+        if mlim is not None: 
+            mcut = ((self._fit_logm > mlim[0]) & (self._fit_logm < mlim[1])) 
+            xx = xx[mcut]
+            yy = yy[mcut] 
+            err = err[mcut]
 
         # chi-squared
-        chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/self._fit_err_logssfr**2)
+        chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/err**2)
 
         #A = np.vstack([xx, np.ones(len(xx))]).T
         #m, c = np.linalg.lstsq(A, yy)[0] 

@@ -180,6 +180,11 @@ def gmmSFSpowerlaw(logMfid=10.5):
             f_table.write('--- %s --- \n' % name) 
             f_table.write('power-law m: %f \n' % fSFMS._powerlaw_m) 
             f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
+            if 'mufasa' in name: 
+                _ = fSFMS.powerlaw(logMfid=logMfid, mlim=[8., 10.5])
+                f_table.write('--- %s logM* < 10.5--- \n' % name) 
+                f_table.write('power-law m: %f \n' % fSFMS._powerlaw_m) 
+                f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
     
     # **for reference** fit the franken-SDSS sample 
     f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.p'])
@@ -222,12 +227,12 @@ def _mlim_fit(name, logMstar, cut):
 
 
 if __name__=="__main__": 
-    for t in ['inst', '100myr']: 
-        for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
-            gmmSFSfits(name+'_'+t)
-            dSFS(name+'_'+t) 
-    for name in ['nsa_dickey', 'tinkergroup']: 
-        gmmSFSfits(name)
-        dSFS(name) 
-    _gmmSFSfit_frankenSDSS()
-    #gmmSFSpowerlaw()
+    #for t in ['inst', '100myr']: 
+    #    for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
+    #        gmmSFSfits(name+'_'+t)
+    #        dSFS(name+'_'+t) 
+    #for name in ['nsa_dickey', 'tinkergroup']: 
+    #    gmmSFSfits(name)
+    #    dSFS(name) 
+    #_gmmSFSfit_frankenSDSS()
+    gmmSFSpowerlaw()
