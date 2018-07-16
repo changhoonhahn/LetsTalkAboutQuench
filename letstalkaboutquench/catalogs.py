@@ -2,7 +2,7 @@ import os
 import h5py
 import numpy as np 
 import warnings 
-
+from astropy import units as U
 # --- Local ---
 import util as UT
     
@@ -37,6 +37,14 @@ class Catalog:
                 'nsa_dickey': 'dickey_NSA_iso_lowmass_gals.txt', 
                 }
         self.catalog_list = self.catalog_dict.keys()
+        
+        # dictionary group catalog files 
+        self.groupfind_dict = { 
+                'illustris': 'illustris_groups_Mall.prob', 
+                'eagle': 'EAGLE_groups_allabove1.8e8.prob', 
+                'mufasa': 'MUFASA_groups.prob10.prob',
+                'scsam': 'SCSAM_groups3.prob', # 'SCSAM_updated_groups.prob'
+                }
 
     def Read(self, name, keepzeros=False, silent=False): 
         ''' Here we deal with the disparate outputs of the different catalogs and output
@@ -226,19 +234,87 @@ class Catalog:
         if cat_name not in ['illustris', 'eagle', 'mufasa', 'scsam']: 
             raise NotImplementedError("Group finder values not yet available for catalog") 
             
-        # dictionary group catalog files 
-        groupfind_dict = { 
-                'illustris': 'illustris_groups_Mall.prob', 
-                'eagle': 'EAGLE_groups_allabove1.8e8.prob', 
-                'mufasa': 'MUFASA_groups.prob10.prob',
-                'scsam': 'SCSAM_groups3.prob', # 'SCSAM_updated_groups.prob'
-                }
         # group finder file name
-        f_name = ''.join([UT.dat_dir(), 'group_finder/', groupfind_dict[cat_name]]) 
+        f_name = ''.join([UT.dat_dir(), 'group_finder/', self.groupfind_dict[cat_name]]) 
         psat = np.loadtxt(f_name, unpack=True, usecols=[5]) 
         assert psat.min() >= 0.
         assert psat.max() <= 1. 
         return psat
+    
+    def noGFSplashbacks(self, name, silent=True, test=False): 
+        ''' Using the output from the group finder remove pure central galaxies (psat < 0.01) 
+        that may potentially splashback galaxies
+        '''
+        from astropy.cosmology import WMAP7
+        from scipy.spatial import KDTree
+        cat_name = name.split('_')[0] # name of catalog
+        if cat_name not in ['illustris', 'eagle', 'mufasa', 'scsam']: 
+            raise NotImplementedError("Group finder values not yet available for catalog") 
+            
+        # read in pos 
+        if cat_name == 'illustris':
+            x, y, z = np.loadtxt(''.join([UT.dat_dir(), 'Illustris_pos_vel_M_all1e8Msunh_z0_for_group_finder.csv']), 
+                    unpack=True, delimiter=',', usecols=[0,1,2]) # in units of kpc/h
+            h_illustris = 0.704
+            x /= h_illustris
+            y /= h_illustris
+            z /= h_illustris
+        elif cat_name == 'eagle': 
+            x, y, z = np.loadtxt(''.join([UT.dat_dir(), 'EAGLE_RefL0100_PosVelMstar_allabove1.8e8Msun.txt']), skiprows=1, 
+                    unpack=True, usecols=[0,1,2,]) # in Mpc 
+            x *= 1000. 
+            y *= 1000. 
+            z *= 1000. 
+        elif cat_name == 'mufasa': 
+            x, y, z = np.loadtxt(''.join([UT.dat_dir(), 'MUFASA_GALAXY_extra.txt']), skiprows=17,
+                    unpack=True, usecols=[0,1,2]) 
+        elif cat_name == 'scsam': 
+            x, y, z = np.loadtxt(''.join([UT.dat_dir(), 'SCSAMgalprop_updatedVersion.dat']), skiprows=39,
+                    unpack=True, usecols=[33,34,35]) 
+            x *= 1000. 
+            y *= 1000. 
+            z *= 1000. 
+        else: 
+            raise NotImplementedError
+        xyz = np.array([x, y, z]).T
+        if not silent: 
+            print('x, y, z range of %s galaxies' % cat_name) 
+            print('%f < x < %f' % (x.min(), x.max()))
+            print('%f < y < %f' % (y.min(), y.max()))
+            print('%f < z < %f' % (z.min(), z.max()))
+
+        # group finder file name
+        f_name = ''.join([UT.dat_dir(), 'group_finder/', self.groupfind_dict[cat_name]]) 
+        psat, mhalo = np.loadtxt(f_name, unpack=True, usecols=[5,6]) 
+        assert psat.min() >= 0.
+        assert psat.max() <= 1. 
+        iscen = (psat < 0.01) 
+        isnotsplash = np.ones(xyz.shape[0]).astype(bool) 
+        isnotsplash[~iscen] = False 
+
+        mhalo *= U.M_sun 
+        delta_c = 200. 
+        rho_c = WMAP7.critical_density(0) # critical density at z=0
+        r_vir = (((3. * mhalo) / (4. * np.pi * delta_c * rho_c))**(1./3)).to(U.kpc) 
+
+        mhsort = np.argsort(mhalo.value[iscen])[::-1]
+
+        kdt = KDTree(xyz[iscen,:])
+        for i in (np.arange(xyz.shape[0])[iscen])[mhsort]: 
+            if not isnotsplash[i]:  
+                continue 
+            i_neigh = kdt.query_ball_point(xyz[i], 3*r_vir[i].value)
+            i_neigh = np.array(i_neigh) 
+            isnotsplash[np.arange(xyz.shape[0])[iscen][i_neigh]] = False
+            isnotsplash[i] = True
+
+        if not silent: 
+            print('of %i group finder centrals, %i are not splashbacks' % (np.sum(iscen), np.sum(isnotsplash)))
+    
+        if not test: 
+            return isnotsplash 
+        else: 
+            return isnotsplash, xyz, r_vir.value
 
     def _File(self, name): 
         ''' catalog file names
@@ -402,7 +478,6 @@ def _mufasa_groupfinder_pre():
     out_name = ''.join([UT.dat_dir(), 'group_finder/', 'MUFASA_groups.prob10.prob']) 
     np.savetxt(out_name, np.array(data_out).T) 
     return None
-
 
 
 if __name__=='__main__': 

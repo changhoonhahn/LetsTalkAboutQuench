@@ -247,7 +247,7 @@ def GroupFinder():
     return None 
 
 
-def Catalog_SFMS_fit(tscale, extdecon=False): 
+def Catalog_SFMS_fit(tscale, nosplashback=False): 
     ''' Compare the GMM fits to the SFMS 
     '''
     if tscale not in ['inst', '10myr', '100myr', '1gyr']: raise ValueError
@@ -258,7 +258,7 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
 
     # file with best-fit GMM 
-    f_gmm = lambda name: ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+    f_gmm = lambda name: _fGMM(name, nosplashback=nosplashback)
 
     fig = plt.figure(1, figsize=(12,8))
     bkgd = fig.add_subplot(111, frameon=False)
@@ -347,7 +347,10 @@ def Catalog_SFMS_fit(tscale, extdecon=False):
     
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
-    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
+    if not nosplashback: 
+        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
+    else: 
+        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.nosplbacks.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -1336,6 +1339,14 @@ def dSFS(method='interpexterp'):
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
+
+
+def _fGMM(name, nosplashback=False): 
+    if not nosplashback and name not in ['nsa_dickey', 'tinkergroup']: 
+        return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.nosplbacks.mlim.p'])
+    else: 
+        return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+
 
 ##############################
 # Appendix: 100Myr SFR Resolution Effect

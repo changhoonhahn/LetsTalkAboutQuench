@@ -1,15 +1,14 @@
 '''
 '''
 import numpy as np 
-
 # --- Local ---
-import env 
-from catalogs import Catalog as Cat
-import util as UT
+from letstalkaboutquench import util as UT
+from letstalkaboutquench.catalogs import Catalog as Cat
  
 import corner as DFM 
 import matplotlib as mpl
 import matplotlib.pyplot as plt 
+from mpl_toolkits.mplot3d import Axes3D
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
@@ -21,6 +20,68 @@ mpl.rcParams['ytick.labelsize'] = 'x-large'
 mpl.rcParams['ytick.major.size'] = 5
 mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
+
+def noGFSplashbacks(): 
+    names = ['eagle_100myr', 'illustris_100myr', 'mufasa_100myr', 'scsam_100myr']
+    name = names[0] 
+    
+    Cata = Cat()
+    mbins = np.linspace(8., 12., 20) 
+    f_splashes = [] 
+    for name in names: 
+        nosb, xyz, rvir = Cata.noGFSplashbacks(name, silent=False, test=True) 
+
+        logM, _, _, censat = Cata.Read(name, keepzeros=True) 
+        psat = Cata.GroupFinder(name)
+        iscen = (psat < 0.01) 
+
+        fig = plt.figure(figsize=(8,12))
+        for ii in range(3): 
+            sub = fig.add_subplot(3,2,2*ii+1)
+            igal = np.random.choice(np.arange(len(logM))[nosb & (logM > 11.)])
+
+            zslice = (xyz[:,2] < (xyz[igal,2] + 3*rvir[igal])) & (xyz[:,2] > (xyz[igal,2] - 3*rvir[igal]))
+            sub.scatter(xyz[iscen & zslice,0], xyz[iscen & zslice,1], c='k', s=3) 
+            sub.scatter(xyz[nosb & zslice,0], xyz[nosb & zslice,1], c='C1', s=10) 
+            rvir_circle = plt.Circle((xyz[igal,0], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            sub.add_artist(rvir_circle)
+            sub.set_xlim([xyz[igal,0] - 3*rvir[igal], xyz[igal,0] + 3*rvir[igal]]) 
+            sub.set_ylim([xyz[igal,1] - 3*rvir[igal], xyz[igal,1] + 3*rvir[igal]]) 
+
+            sub = fig.add_subplot(3,2,2*ii+2)
+            xslice = (xyz[:,0] < (xyz[igal,0] + 3*rvir[igal])) & (xyz[:,0] > (xyz[igal,0] - 3*rvir[igal]))
+            sub.scatter(xyz[iscen & xslice,2], xyz[iscen & xslice,1], c='k', s=3) 
+            sub.scatter(xyz[nosb & xslice,2], xyz[nosb & xslice,1], c='C1', s=10) 
+            rvir_circle = plt.Circle((xyz[igal,2], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            sub.add_artist(rvir_circle)
+            sub.set_xlim([xyz[igal,2] - 3*rvir[igal], xyz[igal,2] + 3*rvir[igal]]) 
+            sub.set_ylim([xyz[igal,1] - 3*rvir[igal], xyz[igal,1] + 3*rvir[igal]]) 
+
+        fig.savefig(''.join([UT.fig_dir(), name.split('_')[0], '_splashback.png']), bbox_inches='tight') 
+        plt.close() 
+        
+        # calculate fraction of splash backs 
+        f_splash = np.zeros(len(mbins)-1)
+        for i_m in range(len(mbins)-1): 
+            inmbin = ((logM > mbins[i_m]) & (logM <= mbins[i_m+1]))
+            if np.sum(iscen & inmbin) == 0: 
+                continue 
+            n_splash = float(np.sum(iscen & inmbin) - np.sum(nosb & inmbin))
+            f_splash[i_m] = n_splash / float(np.sum(iscen & inmbin))
+        f_splashes.append(f_splash)  
+
+    fig = plt.figure()
+    sub = fig.add_subplot(111)
+    for name, f_splash in zip(names, f_splashes): 
+        sub.plot(0.5*(mbins[:-1]+mbins[1:]), f_splash, label=name.split('_')[0].upper()) 
+    sub.legend(loc='upper left', prop={'size':20}) 
+    sub.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', fontsize=20) 
+    sub.set_xlim([8., 12.])
+    sub.set_ylabel(r'$f_\mathrm{splashback}$', labelpad=10, fontsize=25) 
+    sub.set_ylim([0., 1.]) 
+    fig.savefig(''.join([UT.fig_dir(), 'f_splashback.png']), bbox_inches='tight') 
+    plt.close() 
+    return None
 
 
 def GroupFinder_purity(): 
@@ -162,4 +223,4 @@ def pssfr(name, Mrange=[10.,10.5], xrange=None):
 
 
 if __name__=='__main__': 
-    GroupFinder_purity()
+    noGFSplashbacks()

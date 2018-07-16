@@ -121,6 +121,43 @@ def gmmSFSfits(name):
     return None 
 
 
+def gmmSFSfits_nosplashbacks(name): 
+    ''' same as above but only for group finder cenrals galaxies that are not 
+    splashbacks. 
+    '''
+    if name in ['nsa_dickey', 'tinkergroup']: 
+        # only for simulations 
+        raise ValueError
+    # read in catalog
+    Cat = Cats.Catalog()
+    logMstar, logSFR, weight, censat = Cat.Read(name)
+    nonzero = (~Cat.zero_sfr) 
+    
+    # group finder definition of centrals with no splashbacks
+    iscen = Cat.noGFSplashbacks(name) 
+    
+    # stellar mass range for SFMS fit and stellar mass limit  
+    fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero)) 
+
+    # sample cut for SFS fitting
+    # group finder centrals & non zero SFRs & stellar mass limit 
+    fit_cut = (iscen & nonzero & mlim)      
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr, fit_sig_logsfr = fSFMS.fit(
+            logMstar[fit_cut], logSFR[fit_cut],
+            method='gaussmix', 
+            fit_range=fitrange, 
+            dlogm=0.2,              # stellar mass bins of 0.2 dex
+            SSFR_cut=-11., 
+            Nbin_thresh=100,        # at least 100 galaxies in bin 
+            fit_error='bootstrap',  # uncertainty estimate method 
+            n_bootstrap=100)        # number of bootstrap bins
+    
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.nosplbacks.mlim.p'])
+    pickle.dump(fSFMS, open(f_out, 'wb'))
+    return None 
+
+
 def _gmmSFSfit_frankenSDSS(): 
     ''' GMM SFS fit to the unholy combination of Claire's NSA catalog
     with Jeremy's SDSS catalog. This is for reference only! 
@@ -227,12 +264,13 @@ def _mlim_fit(name, logMstar, cut):
 
 
 if __name__=="__main__": 
-    #for t in ['inst', '100myr']: 
-    #    for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
-    #        gmmSFSfits(name+'_'+t)
-    #        dSFS(name+'_'+t) 
+    for t in ['inst', '100myr']: 
+        for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
+            #gmmSFSfits(name+'_'+t)
+            #dSFS(name+'_'+t) 
+             gmmSFSfits_nosplashbacks(name+'_'+t)
     #for name in ['nsa_dickey', 'tinkergroup']: 
     #    gmmSFSfits(name)
     #    dSFS(name) 
     #_gmmSFSfit_frankenSDSS()
-    gmmSFSpowerlaw()
+    #gmmSFSpowerlaw()
