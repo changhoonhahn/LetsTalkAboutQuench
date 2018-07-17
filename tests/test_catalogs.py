@@ -22,7 +22,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 def noGFSplashbacks(): 
-    names = ['eagle_100myr', 'illustris_100myr', 'mufasa_100myr', 'scsam_100myr']
+    names = ['mufasa_100myr', 'eagle_100myr', 'illustris_100myr', 'scsam_100myr']
     name = names[0] 
     
     Cata = Cat()
@@ -36,9 +36,10 @@ def noGFSplashbacks():
         iscen = (psat < 0.01) 
 
         fig = plt.figure(figsize=(8,12))
+        igals = np.random.choice(np.arange(len(logM))[nosb & (logM > 11.)], size=3, replace=False)
         for ii in range(3): 
             sub = fig.add_subplot(3,2,2*ii+1)
-            igal = np.random.choice(np.arange(len(logM))[nosb & (logM > 11.)])
+            igal = igals[ii]
 
             zslice = (xyz[:,2] < (xyz[igal,2] + 3*rvir[igal])) & (xyz[:,2] > (xyz[igal,2] - 3*rvir[igal]))
             sub.scatter(xyz[iscen & zslice,0], xyz[iscen & zslice,1], c='k', s=3) 
