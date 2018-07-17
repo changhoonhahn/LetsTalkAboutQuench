@@ -60,6 +60,8 @@ def dSFS(name, method='interpexterp'):
         if 'illustris' in name: 
             if name == 'illustris_10myr': 
                 f_sfs = ''.join([f_hz.split('.txt')[0], '.10myr.dsfs.', method, '.txt']) 
+            elif name == 'illustris_100myr': 
+                f_sfs = ''.join([f_hz.split('.txt')[0], '.100myr.dsfs.', method, '.txt']) 
             elif name == 'illustris_1gyr': 
                 f_sfs = ''.join([f_hz.split('.txt')[0], '.1gyr.dsfs.', method, '.txt']) 
             else: raise ValueError
@@ -69,7 +71,7 @@ def dSFS(name, method='interpexterp'):
             hdr = '\n'.join(['distance to the SF sequence', 
                 'SFMS fit choices: dlogm=0.4, SSFR_cut=-10.5, Nbin_thresh=100', 
                 'dSFS choices: logM_fid = 10.5']) 
-        elif method == 'interpexterp'
+        elif method == 'interpexterp':
             hdr = '\n'.join(['distance to the SF sequence', 
                 'SFMS fit choices: dlogm=0.4, SSFR_cut=-10.5, Nbin_thresh=100', 
                 'dSFS choices: interp=True, extrap=True, err_thresh=0.2']) 
@@ -271,9 +273,11 @@ def readHighz(name, i_z, keepzeros=False):
         notzero = (sfr != 0.)
     elif 'illustris' in name: 
         if name == 'illustris_10myr': 
-            ms, sfr, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            ms, sfr, _, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+        elif name == 'illustris_100myr': 
+            ms, _, _, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
         elif name == 'illustris_1gyr': 
-            ms, _, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            ms, _, sfr, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
         logms = np.log10(ms) 
         logsfr = np.log10(sfr) 
         notzero = (sfr != 0.)
@@ -305,8 +309,8 @@ def fHighz(name, i_z):
 
 
 if __name__=="__main__": 
-    #highz_sfms('eagle')
     #sfms_comparison()
-    for name in ['eagle', 'illustris_10myr', 'illustris_1gyr']:
+    for name in ['illustris_100myr']: #'eagle', 'illustris_10myr', 'illustris_1gyr']:
         for method in ['interpexterp', 'powerlaw']:  
+            #highz_sfms(name)
             dSFS(name, method=method) 
