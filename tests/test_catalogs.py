@@ -21,7 +21,7 @@ mpl.rcParams['ytick.major.size'] = 5
 mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
-def noGFSplashbacks(): 
+def noGFSplashbacks(cut='geha'): 
     names = ['mufasa_100myr', 'eagle_100myr', 'illustris_100myr', 'scsam_100myr']
     name = names[0] 
     
@@ -29,12 +29,12 @@ def noGFSplashbacks():
     mbins = np.linspace(8., 12., 20) 
     f_splashes = [] 
     for name in names: 
-        nosb, xyz, rvir = Cata.noGFSplashbacks(name, silent=False, test=True) 
+        nosb, xyz, rvir = Cata.noGFSplashbacks(name, cut=cut, silent=False, test=True) 
 
         logM, _, _, censat = Cata.Read(name, keepzeros=True) 
         psat = Cata.GroupFinder(name)
         iscen = (psat < 0.01) 
-
+        
         fig = plt.figure(figsize=(8,12))
         igals = np.random.choice(np.arange(len(logM))[nosb & (logM > 11.)], size=3, replace=False)
         for ii in range(3): 
@@ -44,7 +44,10 @@ def noGFSplashbacks():
             zslice = (xyz[:,2] < (xyz[igal,2] + 3*rvir[igal])) & (xyz[:,2] > (xyz[igal,2] - 3*rvir[igal]))
             sub.scatter(xyz[iscen & zslice,0], xyz[iscen & zslice,1], c='k', s=3) 
             sub.scatter(xyz[nosb & zslice,0], xyz[nosb & zslice,1], c='C1', s=10) 
-            rvir_circle = plt.Circle((xyz[igal,0], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            if cut == '3vir': 
+                rvir_circle = plt.Circle((xyz[igal,0], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            elif cut == 'geha': 
+                rvir_circle = plt.Circle((xyz[igal,0], xyz[igal,1]), 1500., color='k', linestyle='--', fill=False)
             sub.add_artist(rvir_circle)
             sub.set_xlim([xyz[igal,0] - 3*rvir[igal], xyz[igal,0] + 3*rvir[igal]]) 
             sub.set_ylim([xyz[igal,1] - 3*rvir[igal], xyz[igal,1] + 3*rvir[igal]]) 
@@ -53,12 +56,15 @@ def noGFSplashbacks():
             xslice = (xyz[:,0] < (xyz[igal,0] + 3*rvir[igal])) & (xyz[:,0] > (xyz[igal,0] - 3*rvir[igal]))
             sub.scatter(xyz[iscen & xslice,2], xyz[iscen & xslice,1], c='k', s=3) 
             sub.scatter(xyz[nosb & xslice,2], xyz[nosb & xslice,1], c='C1', s=10) 
-            rvir_circle = plt.Circle((xyz[igal,2], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            if cut == '3vir': 
+                rvir_circle = plt.Circle((xyz[igal,2], xyz[igal,1]), 3*rvir[igal], color='k', linestyle='--', fill=False)
+            elif cut == 'geha': 
+                rvir_circle = plt.Circle((xyz[igal,2], xyz[igal,1]), 1500., color='k', linestyle='--', fill=False)
             sub.add_artist(rvir_circle)
             sub.set_xlim([xyz[igal,2] - 3*rvir[igal], xyz[igal,2] + 3*rvir[igal]]) 
             sub.set_ylim([xyz[igal,1] - 3*rvir[igal], xyz[igal,1] + 3*rvir[igal]]) 
 
-        fig.savefig(''.join([UT.fig_dir(), name.split('_')[0], '_splashback.png']), bbox_inches='tight') 
+        fig.savefig(''.join([UT.fig_dir(), name.split('_')[0], '_splashback.', cut, '.png']), bbox_inches='tight') 
         plt.close() 
         
         # calculate fraction of splash backs 
@@ -80,7 +86,7 @@ def noGFSplashbacks():
     sub.set_xlim([8., 12.])
     sub.set_ylabel(r'$f_\mathrm{splashback}$', labelpad=10, fontsize=25) 
     sub.set_ylim([0., 1.]) 
-    fig.savefig(''.join([UT.fig_dir(), 'f_splashback.png']), bbox_inches='tight') 
+    fig.savefig(''.join([UT.fig_dir(), 'f_splashback.', cut, '.png']), bbox_inches='tight') 
     plt.close() 
     return None
 

@@ -241,14 +241,17 @@ class Catalog:
         assert psat.max() <= 1. 
         return psat
     
-    def noGFSplashbacks(self, name, silent=True, overwrite=False, test=False): 
+    def noGFSplashbacks(self, name, cut='3vir', silent=True, overwrite=False, test=False): 
         ''' Using the output from the group finder remove pure central galaxies (psat < 0.01) 
         that may potentially splashback galaxies
         '''
         cat_name = name.split('_')[0] # name of catalog
         if cat_name not in ['illustris', 'eagle', 'mufasa', 'scsam']: 
             raise NotImplementedError("Group finder values not yet available for catalog") 
-        f_gfsplback = ''.join([UT.dat_dir(), cat_name, '.GF_splashback.dat']) 
+        if cut == '3vir': 
+            f_gfsplback = ''.join([UT.dat_dir(), cat_name, '.GF_splashback.3vir.dat']) 
+        elif cut == 'geha':
+            f_gfsplback = ''.join([UT.dat_dir(), cat_name, '.GF_splashback.geha.dat']) 
         
         if not os.path.isfile(f_gfsplback) or overwrite: 
             if not silent: print('constructing %s ...' % f_gfsplback)
@@ -297,28 +300,49 @@ class Catalog:
             isnotsplash[~iscen] = False 
 
             mhalo *= U.M_sun 
+
             delta_c = 200. 
             rho_c = WMAP7.critical_density(0) # critical density at z=0
             r_vir = (((3. * mhalo) / (4. * np.pi * delta_c * rho_c))**(1./3)).to(U.kpc) 
 
-            mhsort = np.argsort(mhalo.value[iscen])[::-1]
+            if cut == '3vir': # 3 virial radii
+                mhsort = np.argsort(mhalo.value[iscen])[::-1]
 
-            kdt = KDTree(xyz[iscen,:])
-            for i in (np.arange(xyz.shape[0])[iscen])[mhsort]: 
-                if not isnotsplash[i]:  
-                    continue 
-                i_neigh = kdt.query_ball_point(xyz[i], 3*r_vir[i].value)
-                i_neigh = np.array(i_neigh) 
-                ii_neigh = np.arange(xyz.shape[0])[iscen][i_neigh]
-                assert mhalo[i] == mhalo[ii_neigh][isnotsplash[ii_neigh]].max() 
-                isnotsplash[ii_neigh] = False
-                isnotsplash[i] = True
+                kdt = KDTree(xyz[iscen,:])
+                for i in (np.arange(xyz.shape[0])[iscen])[mhsort]: 
+                    if not isnotsplash[i]:  
+                        continue 
+                    i_neigh = kdt.query_ball_point(xyz[i], 3*r_vir[i].value)
+                    i_neigh = np.array(i_neigh) 
+                    ii_neigh = np.arange(xyz.shape[0])[iscen][i_neigh]
+                    assert mhalo[i] == mhalo[ii_neigh][isnotsplash[ii_neigh]].max() 
+                    isnotsplash[ii_neigh] = False
+                    isnotsplash[i] = True
+            elif cut == 'geha': 
+                logm, _, _, _ = self.Read(name)
+                luminous = (logm > np.log10(2.5) + 10.) # luminous sample
+                i_lum = np.arange(xyz.shape[0])[luminous]
+        
+                # calculate d_host 
+                kdt = KDTree(xyz[luminous,:]) 
+                d_host, _ = kdt.query(xyz[iscen,:], k=2) 
+                iszero = (d_host[:,0] == 0)
+                d_host[iszero,0] = d_host[iszero,1]
+                d_host = d_host[:,0]
 
+                rvir = np.tile(-999., xyz.shape[0])
+                rvir[iscen] = d_host * U.kpc
+                
+                gehacut = (d_host > 1500.) 
+                isnotsplash[np.arange(xyz.shape[0])[iscen][gehacut]] = False
             if not silent: 
                 print('of %i group finder centrals, %i are not splashbacks' % (np.sum(iscen), np.sum(isnotsplash)))
             r_vir = r_vir.value
             datas = np.vstack([isnotsplash.astype(int), iscen.astype(int), xyz[:,0], xyz[:,1], xyz[:,2], r_vir]).T
-            hdr = '\n'.join(['1 = not splashback; 0 = splashback', 'splashback, gf cen, x, y, z, r_vir']) 
+            if cut == '3vir': 
+                hdr = '\n'.join(['1 = not splashback; 0 = splashback', 'splashback, gf cen, x, y, z, r_vir']) 
+            elif cut == 'geha': 
+                hdr = '\n'.join(['1 = not splashback; 0 = splashback', 'splashback, gf cen, x, y, z, d_host']) 
             np.savetxt(f_gfsplback, datas, header=hdr, delimiter='\t', fmt="%i %i %f %f %f %f") 
         else: 
             datas = np.loadtxt(f_gfsplback, skiprows=2, unpack=True) 

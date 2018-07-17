@@ -247,7 +247,7 @@ def GroupFinder():
     return None 
 
 
-def Catalog_SFMS_fit(tscale, nosplashback=False): 
+def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'): 
     ''' Compare the GMM fits to the SFMS 
     '''
     if tscale not in ['inst', '10myr', '100myr', '1gyr']: raise ValueError
@@ -258,7 +258,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False):
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
 
     # file with best-fit GMM 
-    f_gmm = lambda name: _fGMM(name, nosplashback=nosplashback)
+    f_gmm = lambda name: _fGMM(name, nosplashback=nosplashback, sb_cut=sb_cut)
 
     fig = plt.figure(1, figsize=(12,8))
     bkgd = fig.add_subplot(111, frameon=False)
@@ -350,7 +350,8 @@ def Catalog_SFMS_fit(tscale, nosplashback=False):
     if not nosplashback: 
         fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
     else: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.nosplbacks.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'figs/', 
+            'Catalogs_SFMSfit_SFR', tscale, '.nosplbacks.', sb_cut, '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -832,7 +833,7 @@ def Pssfr_GMMcomps(timescale='inst'):
     return None 
 
 
-def GMMcomp_weights(n_bootstrap=10, nosplashback=False): 
+def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'): 
     ''' Plot the fractional composition of the different GMM components 
     along with galaxies with zero SFRs for the different catalogs
     '''
@@ -847,8 +848,8 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False):
         gs_i = mpl.gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[i_c])
         for i_t, tscale in enumerate(tscales):
             name = c+'_'+tscale
-            mbins, f_comps, f_comps_unc = _GMM_fcomp(name, groupfinder=True, n_bootstrap=n_bootstrap, 
-                    nosplashback=nosplashback)
+            mbins, f_comps, f_comps_unc = _GMM_fcomp(name, groupfinder=True, 
+                    n_bootstrap=n_bootstrap, nosplashback=nosplashback, sb_cut=sb_cut)
             mbinss.append(mbins)
             f_compss.append(f_comps)
             f_comps_uncs.append(f_comps_unc)
@@ -940,7 +941,7 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False):
     if not nosplashback: 
         fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_composition.pdf'])
     else: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_composition.nosplbacks.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_composition.nosplbacks.', sb_cut, '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
     
@@ -1030,13 +1031,13 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False):
     if not nosplashback: 
         fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.pdf'])
     else: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.nosplbacks.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.nosplbacks.', sb_cut, '.pdf'])
     fig1.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
 
 
-def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, silent=True):         
+def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, sb_cut='3vir', silent=True):         
     Cat = Cats.Catalog()
     logM, logSFR, w, censat = Cat.Read(name, keepzeros=True, silent=True)
     if groupfinder: 
@@ -1044,7 +1045,7 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, silen
             psat = Cat.GroupFinder(name) 
             iscen = (psat < 0.01)
         else: 
-            iscen = Cat.noGFSplashbacks(name) 
+            iscen = Cat.noGFSplashbacks(name, cut=sb_cut) 
     else: 
         iscen = (censat == 1)
 
@@ -1065,7 +1066,7 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, silen
         mlim = np.ones(len(logM)).astype(bool) 
 
     # read in the best-fit SFS from the GMM fitting
-    f_gmm = _fGMM(name, nosplashback=nosplashback) 
+    f_gmm = _fGMM(name, nosplashback=nosplashback, sb_cut=sb_cut) 
     fSFMS = pickle.load(open(f_gmm, 'rb'))
     
     fit_logm = fSFMS._fit_logm 
@@ -2016,9 +2017,10 @@ def _GMM_comp_test(name):
     return None
 
 
-def _fGMM(name, nosplashback=False): 
+def _fGMM(name, nosplashback=False, sb_cut='3vir'): 
     if nosplashback and name not in ['nsa_dickey', 'tinkergroup']: 
-        fgmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.nosplbacks.mlim.p'])
+        fgmm = ''.join([UT.dat_dir(), 'paper1/', 
+            'gmmSFSfit.', name, '.gfcentral.nosplbacks.', sb_cut, '.mlim.p'])
         print fgmm
         return fgmm 
     else: 
@@ -2032,14 +2034,14 @@ if __name__=="__main__":
     #SFMSfit_example()
     #for tt in ['inst', '100myr']:
     #    Catalog_SFMS_fit(tt)
-    #    Catalog_SFMS_fit(tt, nosplashback=True)
+    #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    GMMcomp_weights(n_bootstrap=10)
-    #GMMcomp_weights(n_bootstrap=10, nosplashback=True)
+    #GMMcomp_weights(n_bootstrap=10)
+    GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #rhoSF()

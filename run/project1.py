@@ -121,7 +121,7 @@ def gmmSFSfits(name):
     return None 
 
 
-def gmmSFSfits_nosplashbacks(name): 
+def gmmSFSfits_nosplashbacks(name, cut='3vir'): 
     ''' same as above but only for group finder cenrals galaxies that are not 
     splashbacks. 
     '''
@@ -134,7 +134,7 @@ def gmmSFSfits_nosplashbacks(name):
     nonzero = (~Cat.zero_sfr) 
     
     # group finder definition of centrals with no splashbacks
-    iscen = Cat.noGFSplashbacks(name) 
+    iscen = Cat.noGFSplashbacks(name, cut=cut) 
     
     # stellar mass range for SFMS fit and stellar mass limit  
     fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero)) 
@@ -153,7 +153,8 @@ def gmmSFSfits_nosplashbacks(name):
             fit_error='bootstrap',  # uncertainty estimate method 
             n_bootstrap=100)        # number of bootstrap bins
     
-    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.nosplbacks.mlim.p'])
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 
+        'gmmSFSfit.', name, '.gfcentral.nosplbacks.', cut, '.mlim.p'])
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
 
@@ -268,7 +269,7 @@ if __name__=="__main__":
         for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
             #gmmSFSfits(name+'_'+t)
             #dSFS(name+'_'+t) 
-             gmmSFSfits_nosplashbacks(name+'_'+t)
+             gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
     #for name in ['nsa_dickey', 'tinkergroup']: 
     #    gmmSFSfits(name)
     #    dSFS(name) 
