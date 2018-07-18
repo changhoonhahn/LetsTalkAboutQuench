@@ -121,6 +121,45 @@ def gmmSFSfits(name):
     return None 
 
 
+def gmmSFSfits_lowthresh(name): 
+    ''' GMM SFS fits to the specified simulation+SFR timescale with
+    a particularly lower Nbin_thresh. This is specifically for the
+    GMM component figures 
+    '''
+    # read in catalog
+    Cat = Cats.Catalog()
+    logMstar, logSFR, weight, censat = Cat.Read(name)
+    
+    # group finder definition of centrals 
+    if name not in ['nsa_dickey', 'tinkergroup']: 
+        psat = Cat.GroupFinder(name) 
+        iscen = (psat < 0.01) 
+    else: 
+        iscen = (censat == 1) 
+    nonzero = (~Cat.zero_sfr) 
+    
+    # stellar mass range for SFMS fit and stellar mass limit  
+    fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero)) 
+
+    # sample cut for SFS fitting
+    # group finder centrals & non zero SFRs & stellar mass limit 
+    fit_cut = (iscen & nonzero & mlim)      
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr, fit_sig_logsfr = fSFMS.fit(
+            logMstar[fit_cut], logSFR[fit_cut],
+            method='gaussmix', 
+            fit_range=fitrange, 
+            dlogm=0.2,              # stellar mass bins of 0.2 dex
+            SSFR_cut=-11., 
+            Nbin_thresh=10,         # only require 10 galaxies in bin 
+            fit_error='bootstrap',  # uncertainty estimate method 
+            n_bootstrap=100)        # number of bootstrap bins
+    
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.p'])
+    pickle.dump(fSFMS, open(f_out, 'wb'))
+    return None 
+
+
 def gmmSFSfits_nosplashbacks(name, cut='3vir'): 
     ''' same as above but only for group finder cenrals galaxies that are not 
     splashbacks. 
@@ -265,13 +304,15 @@ def _mlim_fit(name, logMstar, cut):
 
 
 if __name__=="__main__": 
-    for t in ['inst', '100myr']: 
-        for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
-            #gmmSFSfits(name+'_'+t)
-            #dSFS(name+'_'+t) 
-             gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
+    #for t in ['inst', '100myr']: 
+    #    for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
+    #        #gmmSFSfits(name+'_'+t)
+    #        #dSFS(name+'_'+t) 
+    #        gmmSFSfits_lowthresh(name+'_'+t)
+    #        #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
     #for name in ['nsa_dickey', 'tinkergroup']: 
-    #    gmmSFSfits(name)
+    #    #gmmSFSfits(name)
+    #    gmmSFSfits_lowthresh(name)
     #    dSFS(name) 
-    #_gmmSFSfit_frankenSDSS()
-    #gmmSFSpowerlaw()
+    _gmmSFSfit_frankenSDSS()
+    gmmSFSpowerlaw()
