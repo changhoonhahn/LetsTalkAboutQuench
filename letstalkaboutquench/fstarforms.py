@@ -138,6 +138,8 @@ class fstarforms(object):
         mbin_high = mbin_low + dlogm
         mbins = np.array([mbin_low, mbin_high]).T
         self._mbins = mbins
+        self._mbins_nbinthresh = np.ones(mbins.shape[0]).astype(bool)
+        self._mbins_sfs = np.ones(mbins.shape[0]).astype(bool)
         self._dlogm = dlogm
         self._Nbin_thresh = Nbin_thresh
 
@@ -165,7 +167,8 @@ class fstarforms(object):
                     Xerr = logsfr_err[in_mbin] 
                     Xerr = np.reshape(Xerr, (-1,1,1))
 
-                if np.sum(in_mbin) <= Nbin_thresh: # not enough galaxies
+                if np.sum(in_mbin) < Nbin_thresh: # not enough galaxies
+                    self._mbins_nbinthresh[i] = False
                     continue
 
                 n_comps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
@@ -185,15 +188,18 @@ class fstarforms(object):
                 i_best = np.array(bics).argmin()
                 n_best = n_comps[i_best] # number of components of the best-fit 
                 gbest = gmms[i_best] # best fit GMM 
+                
+                # save the best gmm, all the gmms, and bics 
+                gbests.append(gbest)
+                _gmms.append(gmms) 
+                _bics.append(bics)
 
                 # identify the different components
                 i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, SSFR_cut=SSFR_cut, silent=True)
     
                 if i_sfms is None: 
+                    self._mbins_sfs[i] = False 
                     continue 
-                gbests.append(gbest)
-                _gmms.append(gmms) 
-                _bics.append(bics)
                 
                 # save the SFMS log M* and log SSFR values 
                 fit_logm.append(np.median(logmstar[in_mbin])) 
@@ -222,8 +228,7 @@ class fstarforms(object):
                 else: 
                     raise NotImplementedError("not yet implemented") 
                 
-            # save the bestfit GMM  
-            self._gbests = gbests
+            self._gbests = gbests # save the bestfit GMM  
             self._gmms = _gmms
             self._bics = _bics
         else: 

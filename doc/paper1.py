@@ -690,10 +690,14 @@ def Catalog_GMMcomps():
                 if np.sum(quenched) > 0: 
                     sub.errorbar([fitlogm+0.01], _means[quenched]+fitlogm, yerr=np.sqrt(_covs[quenched]), fmt='.C1')
                 # other component 
-                other = ((_means != fit_logsfr[i_m]-fit_logm[i_m]) & (_means != _means.min()))
-                if np.sum(other) > 0: 
-                    sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(other))], _means[other]+fitlogm, 
-                                 yerr=np.sqrt(_covs[other]), fmt='.C2')
+                starburst = (_means > fit_logsfr[i_m]-fit_logm[i_m])
+                if np.sum(starburst) > 0: 
+                    sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(starburst))], _means[starburst]+fitlogm, 
+                                 yerr=np.sqrt(_covs[starburst]), fmt='.C4')
+                transition = (~sfms & ~quenched & ~starburst) 
+                if np.sum(transition) > 0: 
+                    sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(transition))], _means[transition]+fitlogm, 
+                                 yerr=np.sqrt(_covs[transition]), fmt='.C2')
             sub.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
             sub.set_xlim([8., 12.]) 
 
@@ -871,6 +875,10 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
                 mmin = mufasa_mmin
                 sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], 
                         linewidth=0, color='k', alpha=0.8) 
+            elif 'scsam' in name: 
+                mmin = scsam_mmin
+                sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], 
+                        linewidth=0, color='k', alpha=0.8) 
             if c == 'mufasa': 
                 sub.set_xlim([8.8, 11.3])
             else: 
@@ -971,7 +979,9 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
             sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
                     color='C4', alpha=0.5, linewidth=1) # Star-burst 
             if (c == 'mufasa') and (tscale == '100myr'):  
-                sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
+                sub.fill_between([0., mufasa_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
+            elif (c == 'scsam'):
+                sub.fill_between([0., scsam_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
             
             if c == 'mufasa': sub.set_xlim([8.8, 11.3])
             else: sub.set_xlim([8.8, 11.5])
@@ -1066,21 +1076,13 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, sb_cu
         mlim = np.ones(len(logM)).astype(bool) 
 
     # read in the best-fit SFS from the GMM fitting
-    f_gmm = _fGMM(name, nosplashback=nosplashback, sb_cut=sb_cut) 
+    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.p'])
     fSFMS = pickle.load(open(f_gmm, 'rb'))
     
-    fit_logm = fSFMS._fit_logm 
-    hasfits = np.zeros(fSFMS._mbins.shape[0]).astype(bool) 
-    for i_m in range(fSFMS._mbins.shape[0]): 
-        hasfit = (fit_logm >= fSFMS._mbins[i_m,0]) & (fit_logm < fSFMS._mbins[i_m,1]) 
-        if np.sum(hasfit == 1): 
-            hasfits[i_m] = True
-        elif np.sum(hasfit) > 1: 
-            raise ValueError
-
-    mbin0 = fSFMS._mbins[hasfits,0]
-    mbin1 = fSFMS._mbins[hasfits,1]
+    mbin0 = fSFMS._mbins[fSFMS._mbins_nbinthresh,0]
+    mbin1 = fSFMS._mbins[fSFMS._mbins_nbinthresh,1]
     gbests = fSFMS._gbests
+    assert len(mbin0) == len(gbests)
        
     nmbin = len(mbin0) 
     f_comps = np.zeros((5, nmbin)) # zero, sfms, q, other0, other1
@@ -2037,11 +2039,11 @@ if __name__=="__main__":
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
-    #Catalog_GMMcomps()
+    Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    #GMMcomp_weights(n_bootstrap=10)
-    GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
+    #GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
     #rhoSF()
