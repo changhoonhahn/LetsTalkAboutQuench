@@ -74,8 +74,12 @@ def Catalogs_SFR_Mstar():
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, 
                 ax=sub0) 
+        sub0.set_xlim([7.8, 11.8]) 
+        sub0.set_xticks([8., 9., 10., 11.]) 
+        sub0.set_ylim([-3.5, 2.]) 
+        sub0.set_yticks([-3, -2., -1., 0., 1, 2.]) 
 
-    sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
+    sub0.text(0.95, 0.05, 'SDSS Centrals', ha='right', va='bottom', 
                 transform=sub0.transAxes, fontsize=20)
 
     for i_c, cc in enumerate(sims_list): 
@@ -87,10 +91,10 @@ def Catalogs_SFR_Mstar():
             logMstar, logSFR, weight, censat = Cat.Read(cat)
 
             if i_c == 0: 
-                sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
-                        ha='left', va='center', transform=sub.transAxes, fontsize=20)
+                sub.text(0.05, 0.95, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='left', va='top', transform=sub.transAxes, fontsize=20)
             if i_t == 1: 
-                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
+                sub.text(0.95, 0.05, lbl.split('[')[0], ha='right', va='bottom', 
                         transform=sub.transAxes, fontsize=20)
 
             # only pure central galaxies identified from the group catalog
@@ -101,11 +105,17 @@ def Catalogs_SFR_Mstar():
             DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
+            sub.set_xlim([7.8, 11.8]) 
+            sub.set_xticks([8., 9., 10., 11.]) 
+            if i_t == 0: sub.set_xticklabels([]) 
+            sub.set_ylim([-3.5, 2.]) 
+            sub.set_yticks([-3, -2., -1., 0., 1, 2.]) 
+            #if i_c != 0: sub.set_yticklabels([]) 
 
-    fig.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
-    fig.text(0.075, 0.5, r'log ( SFR $[M_\odot \, yr^{-1}]$ )', 
-            rotation='vertical', va='center', fontsize=25) 
-    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+    fig.text(0.5, 0.01, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
+    fig.text(0.08, 0.5, r'log ( SFR $[M_\odot \, yr^{-1}]$ )', 
+            rotation='vertical', va='center', fontsize=30) 
+    fig.subplots_adjust(wspace=0.15, hspace=0.05)
     fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
@@ -903,7 +913,7 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
                 p5 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C4")
-                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'other', 'SFMS'][::-1], 
+                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR=0', 'low SF', 'intermediate SF', 'high SF', 'SFS'][::-1], 
                         loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     obvs = ['nsa_dickey', 'tinkergroup']
@@ -1003,7 +1013,7 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C0")
                 p5 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C4")
-                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR = 0', '``quenched"', 'other', 'other', 'SFMS'][::-1], 
+                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR=0', 'low SF', 'intermediate SF', 'high SF', 'SFS'][::-1], 
                         ncol=2, loc='upper right', frameon=False, prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     mbins = np.concatenate([mbins_nsa, mbins_sdss]) 
@@ -2030,7 +2040,7 @@ def _fGMM(name, nosplashback=False, sb_cut='3vir'):
 
 
 if __name__=="__main__": 
-    #Catalogs_SFR_Mstar()
+    Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
@@ -2039,7 +2049,7 @@ if __name__=="__main__":
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
-    Catalog_GMMcomps()
+    #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
     #GMMcomp_weights(n_bootstrap=100)
