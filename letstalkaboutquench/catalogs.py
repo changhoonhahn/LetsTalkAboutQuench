@@ -378,7 +378,7 @@ class Catalog:
         elif 'mufasa' in name: 
             name_cat = 'MUFASA'
         elif 'scsam' in name: 
-            name_cat = 'Santa Cruz SAM'
+            name_cat = 'SC-SAM'
         elif 'tinkergroup' in name: 
             return 'SDSS DR7 Group Catalog'
         elif 'nsa_dickey' in name: 

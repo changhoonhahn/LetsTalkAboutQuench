@@ -2039,8 +2039,138 @@ def _fGMM(name, nosplashback=False, sb_cut='3vir'):
         return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
 
 
+##############################
+# Appendix: previous method 
+##############################
+def Catalogs_SFR_Mstar_SD14like():
+    ''' Compare SFR vs M* relation plotted like in Somerville & Dave 2014 (fits from the different modelers)
+    '''
+    Cat = Cats.Catalog()
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    fig = plt.figure(figsize=(5,5))
+    sub = fig.add_subplot(111)
+    for i_c, sim in enumerate(sims_list):
+        cat = '_'.join([sim, 'inst'])
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+
+        lbl = Cat.CatalogLabel(cat)
+        if i_c == 0:
+            sub.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
+                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+
+        if sim == 'illustris': 
+            nbins, binsize, fitmin = 12, 0.3, 8.05
+            all_or_sf = 'all'
+        elif sim == 'eagle': 
+            nbins, binsize, fitmin = 12, 0.3, 8.1
+            all_or_sf = 'sf'
+        elif sim == 'mufasa': 
+            nbins, binsize, fitmin = 11, 0.25, 8.525
+            all_or_sf = 'all'
+        elif sim == 'scsam': 
+            nbins, binsize, fitmin = 10, 0.3, 8.7
+            all_or_sf = 'sf'
+
+        logSFRfit1 = np.zeros(nbins)
+        logSFRfit2 = np.zeros(nbins)
+        logMstarfit = np.zeros(nbins)
+        for i_b in range(nbins):
+            # in stellar mass bin 
+            inbin = ((logMstar > fitmin + binsize * i_b) & (logMstar < fitmin + binsize * (i_b+1)))
+            logMstarfit[i_b] = fitmin + binsize*(i_b+0.5)
+            logSFRfit2[i_b] = np.log10(np.median(10.0**(logSFR[inbin])))
+        
+            # in stellar mass bin above ssfr > -11
+            inbinsf = (inbin & (logSFR-logMstar > -11.0)) 
+            logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
+
+        if all_or_sf == 'all': 
+            sub.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
+                    label=lbl.split('[')[0]+' (all galaxies)')
+            #sub.scatter(logMstarfit, logSFRfit2, color='C'+str(i_c+2))
+        elif all_or_sf == 'sf': 
+            sub.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2), 
+                    label=lbl.split('[')[0]+' ($\log\,\mathrm{SSFR} > -11$)')
+        sub.set_xlim([8, 12])
+        sub.set_ylim([-3, 3])
+    sub.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15)
+    sub.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', fontsize=25)
+    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', fontsize=25)
+    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar_SD14like.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+
+def Catalogs_SFR_Mstar_testSimpleFits():
+    ''' Compare SFR vs M* relation plotting medians for SF galaxies or all galaxies
+    '''
+    Cat = Cats.Catalog()
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    fig = plt.figure(figsize=(10,5))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub1 = fig.add_subplot(121)
+    sub2 = fig.add_subplot(122)
+    for i_c, sim in enumerate(sims_list):
+        cat = '_'.join([sim, 'inst'])
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+
+        lbl = Cat.CatalogLabel(cat)
+        if i_c == 0:
+            sub2.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
+                     ha='right', va='bottom', transform=sub2.transAxes, fontsize=25)
+
+        if sim == 'illustris': 
+            nbins, binsize, fitmin = 12, 0.3, 8.05
+            all_or_sf = 'all'
+        elif sim == 'eagle': 
+            nbins, binsize, fitmin = 12, 0.3, 8.1
+            all_or_sf = 'sf'
+        elif sim == 'mufasa': 
+            nbins, binsize, fitmin = 11, 0.25, 8.525
+            all_or_sf = 'all'
+        elif sim == 'scsam': 
+            nbins, binsize, fitmin = 10, 0.3, 8.7
+            all_or_sf = 'sf'
+
+        logSFRfit1 = np.zeros(nbins)
+        logSFRfit2 = np.zeros(nbins)
+        logMstarfit = np.zeros(nbins)
+        for i_b in range(nbins):
+            # in stellar mass bin 
+            inbin = ((logMstar > fitmin + binsize * i_b) & (logMstar < fitmin + binsize * (i_b+1)))
+            logMstarfit[i_b] = fitmin + binsize*(i_b+0.5)
+            logSFRfit2[i_b] = np.log10(np.median(10.0**(logSFR[inbin])))
+        
+            # in stellar mass bin above ssfr > -11
+            inbinsf = (inbin & (logSFR-logMstar > -11.0)) 
+            logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
+
+        sub1.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
+                label=lbl.split('[')[0])
+        sub2.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
+        sub1.set_xlim([8, 12])
+        sub1.set_ylim([-3, 3])
+        sub2.set_xlim([8, 12])
+        sub2.set_ylim([-3, 3])
+    sub1.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=20)
+    sub1.set_title('All Galaxies', fontsize=20) 
+    sub2.set_title('Galaxies w/ $\log(\mathrm{SSFR}) > -11$', fontsize=20) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar_SimpleFitsMedian.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+
 if __name__=="__main__": 
-    Catalogs_SFR_Mstar()
+    #Catalogs_SFR_Mstar()
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
@@ -2075,3 +2205,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('nsa_dickey', fit_range=(8.4, 9.7), method='gaussmix')
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
+    Catalogs_SFR_Mstar_SD14like()
+    Catalogs_SFR_Mstar_testSimpleFits()
