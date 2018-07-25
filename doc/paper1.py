@@ -461,18 +461,22 @@ def Catalogs_SFMS_width():
                     fSFMS._fit_sig_logssfr - fSFMS._fit_err_sig_logssfr, 
                     fSFMS._fit_sig_logssfr + fSFMS._fit_err_sig_logssfr, 
                     color='C'+str(i_c+2), alpha=0.75, linewidth=0, label=_label) 
-            sub.legend(loc='lower right', frameon=False, handletextpad=0.1, prop={'size': 15}) 
+            sub.legend(loc='lower right', frameon=False, handletextpad=0.2, prop={'size': 15}) 
             if i_c == 0: 
                 sub.text(0.05, 0.95, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='top', transform=sub.transAxes, fontsize=20)
             
             # fit the widths to a line 
             xx = fSFMS._fit_logm - 10.5   # log Mstar - log M_fid
-            yy = np.sqrt(fSFMS._fit_sig_logssfr)
-            chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
-            tt = sp.optimize.minimize(chisq, np.array([0.0, 0.2])) 
-            print('--%s--' % cc)
-            print('slope %f; y-int %f' % (tt['x'][0], tt['x'][1])) 
+            yy = fSFMS._fit_sig_logssfr
+            #yy = np.sqrt(fSFMS._fit_sig_logssfr)
+            #chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
+            #tt = sp.optimize.minimize(chisq, np.array([0.0, 0.2])) 
+            chisq = lambda theta: np.sum((theta[0] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
+            tt = sp.optimize.minimize(chisq, np.array([0.2])) 
+            print('--%s--' % cat)
+            #print('slope %f; y-int %f' % (tt['x'][0], tt['x'][1])) 
+            print('amplitude %f' % (tt['x'][0])) 
 
         sub.plot([8., 12.], [0.3, 0.3], c='k', ls='--') 
         sub.set_xlim([8.2, 11.5]) 
@@ -1007,14 +1011,17 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
             if i_t == 1: 
                 sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='k', #'white', 
                         transform=sub.transAxes, fontsize=20) 
-            if (i_t == 0) and (i_c == len(cats)-1):  
-                p1 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C3")
-                p2 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C1")
+            if (i_t == 0) and (i_c == len(cats)-2):  
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C0")
                 p5 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C4")
-                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR=0', 'low SF', 'intermediate SF', 'high SF', 'SFS'][::-1], 
-                        ncol=2, loc='upper right', frameon=False, prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
+                sub.legend([p4, p5, p3][::-1], ['SFS', 'high SF', 'intermediate SF'][::-1], 
+                        ncol=1, loc='upper left', frameon=False, prop={'size': 12})
+            elif (i_t == 0) and (i_c == len(cats)-1): 
+                p1 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C3")
+                p2 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C1")
+                sub.legend([p2, p1], ['low SF', 'SFR=0'],
+                        ncol=1, loc='upper left', frameon=False, prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     mbins = np.concatenate([mbins_nsa, mbins_sdss]) 
     f_comps = np.concatenate((f_comps_nsa, f_comps_sdss), axis=1) 
@@ -1153,7 +1160,7 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, sb_cu
     return 0.5*(mbin0 + mbin1),  f_comps, f_comps_unc 
 
 
-def rhoSF():
+def rhoSF(cumulative=True):
     ''' Calculate the star formation density of the simulations
     '''
     tscales = ['inst', '100myr']
@@ -1163,8 +1170,9 @@ def rhoSF():
     mbin = np.linspace(8.8, 12., 20) 
     Cat = Cats.Catalog()
     for i_t, tscale in enumerate(tscales): 
-        fig = plt.figure(figsize=(16,5))
+        fig = plt.figure(figsize=(6,6))
         bkgd = fig.add_subplot(111, frameon=False)
+        sub = fig.add_subplot(111)
         for i_c, cc in enumerate(sims_list): 
             cat = '_'.join([cc, tscale]) 
             logMstar, logSFR, weight, censat = Cat.Read(cat)
@@ -1172,12 +1180,14 @@ def rhoSF():
             sfr_tot = np.sum(10**logSFR) # Msun/yr
             print("%s %s, log(SF density) %f Msun/yr/Mpc^3" % (cc, tscale, np.log10(sfr_tot/sims_vol[i_c])))
 
-            sub = fig.add_subplot(1,4,i_c+1)
             rho_cum = np.zeros(len(mbin))
             rho_cum_cen = np.zeros(len(mbin))
             rho_cum_sat = np.zeros(len(mbin))
-            for i_m, m in enumerate(mbin): 
-                lessthan = (logMstar < m) & np.isfinite(logSFR)
+            for i_m in range(len(mbin)-1): #, m in enumerate(mbin): 
+                if cumulative: 
+                    lessthan = (logMstar < mbin[i_m]) & np.isfinite(logSFR)
+                else: 
+                    lessthan = (logMstar > mbin[i_m]) & (logMstar < mbin[i_m+1]) & np.isfinite(logSFR)
                 lessthan_cen = lessthan & (censat == 1)
                 lessthan_sat = lessthan & (censat != 1)
                 if np.sum(lessthan) == 0: 
@@ -1188,22 +1198,29 @@ def rhoSF():
                 if np.sum(lessthan_sat) > 0: 
                     rho_cum_sat[i_m] = np.log10(np.sum(10**logSFR[lessthan_sat])/sims_vol[i_c])
 
-            sub.plot(mbin, rho_cum, c='k') 
-            sub.plot(mbin, rho_cum_cen, c='C0', label='Centrals') 
-            sub.plot(mbin, rho_cum_sat, c='C1', label='Satellites') 
-            sub.set_xlim([8.8, 12.]) 
-            sub.set_ylim([-4., -1.5]) 
-            if i_c != 0: 
-                sub.set_yticklabels([])
-            if i_c == 3: sub.legend(loc='upper left', frameon=False, prop={'size': 20})
             lbl = Cat.CatalogLabel(cat)
-            sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', transform=sub.transAxes, fontsize=20)
+            sub.plot(mbin, 10.**rho_cum, c='C'+str(i_c+2), label=lbl.split('[')[0]) 
+            sub.plot(mbin, 10.**rho_cum_cen, c='C'+str(i_c+2), ls='--')#, label='Centrals') 
+            sub.plot(mbin, 10.**rho_cum_sat, c='C'+str(i_c+2), ls=':')#, label='Satellites') 
+            sub.set_xlim([8.8, 12.]) 
+            if cumulative:
+                sub.set_ylim([1e-4, 1e-1]) 
+            else: 
+                sub.set_ylim([1e-5, 10**-1.5]) 
+            sub.set_yscale('log') 
+            #if i_c != 0: sub.set_yticklabels([])
+            #if i_c == 0: sub.legend(loc='upper left', frameon=False, prop={'size': 20})
+            #sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', transform=sub.transAxes, fontsize=20)
+        sub.legend(loc='upper left', frameon=False, prop={'size': 20})
         bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
         bkgd.set_ylabel(r'cumulative log $\rho_\mathrm{SFR}$  $[M_\odot/yr/\mathrm{Mpc}^3])$', labelpad=10, fontsize=20)
         bkgd.set_xlabel(r'log $M_*$  $[M_\odot]$', labelpad=10, fontsize=20)
 
         fig.subplots_adjust(wspace=0.05, hspace=0.05)
-        fig_name = ''.join([UT.doc_dir(), 'figs/rhoSFR_cum_', tscale, '.pdf'])
+        if cumulative:
+            fig_name = ''.join([UT.doc_dir(), 'figs/rhoSFR_cum_', tscale, '.pdf'])
+        else: 
+            fig_name = ''.join([UT.doc_dir(), 'figs/rhoSFR_', tscale, '.pdf'])
         fig.savefig(fig_name, bbox_inches='tight')
     return None 
 
@@ -1234,7 +1251,7 @@ def SMF():
             phi_sat.append(float(np.sum(inmbin_sat)) / sims_vol[i_c])
     
         lbl = Cat.CatalogLabel(cat)
-        sub0.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi), c='C'+str(i_c), label=lbl.split('[')[0]) 
+        sub0.plot(0.5*(mbin[1:] + mbin[:-1]), np.log10(phi), c='C'+str(i_c+2), label=lbl.split('[')[0]) 
         sub0.set_xlim([8.8, 12.]) 
         sub0.set_ylim([-5., -1.8]) 
     
@@ -2110,6 +2127,8 @@ def Catalogs_SFR_Mstar_testSimpleFits():
     Cat = Cats.Catalog()
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
+    f_gmm = lambda name: _fGMM(name)
+        
     fig = plt.figure(figsize=(10,5))
     bkgd = fig.add_subplot(111, frameon=False)
     sub1 = fig.add_subplot(121)
@@ -2149,6 +2168,11 @@ def Catalogs_SFR_Mstar_testSimpleFits():
             inbinsf = (inbin & (logSFR-logMstar > -11.0)) 
             logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
 
+        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+        sub2.errorbar(fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr, 
+                fmt='.C'+str(i_c+2), label='Hahn et al.(2018) \nCentral SFS GMM fit')#, linewidth=0.5, alpha=0.75) 
+        if i_c == 0: sub2.legend(loc='upper left', handletextpad=0., frameon=False, fontsize=20) 
+
         sub1.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
                 label=lbl.split('[')[0])
         sub2.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
@@ -2158,10 +2182,10 @@ def Catalogs_SFR_Mstar_testSimpleFits():
         sub2.set_ylim([-3, 3])
     sub1.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=20)
     sub1.set_title('All Galaxies', fontsize=20) 
-    sub2.set_title('Galaxies w/ $\log(\mathrm{SSFR}) > -11$', fontsize=20) 
+    sub2.set_title('All Galaxies w/ $\log(\mathrm{SSFR}){>}-11$', fontsize=20) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25) 
-    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25) 
+    bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25) 
     fig.subplots_adjust(wspace=0.1)
     fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar_SimpleFitsMedian.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
@@ -2182,11 +2206,12 @@ if __name__=="__main__":
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    #GMMcomp_weights(n_bootstrap=100)
+    GMMcomp_weights(n_bootstrap=100)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
-    #rhoSF()
+    #rhoSF(cumulative=False)
+    #rhoSF(cumulative=True)
     #SMF()
     #fsat()
     #dSFS('powerlaw')
@@ -2205,5 +2230,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('nsa_dickey', fit_range=(8.4, 9.7), method='gaussmix')
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
-    Catalogs_SFR_Mstar_SD14like()
-    Catalogs_SFR_Mstar_testSimpleFits()
+    #Catalogs_SFR_Mstar_SD14like()
+    #Catalogs_SFR_Mstar_testSimpleFits()
