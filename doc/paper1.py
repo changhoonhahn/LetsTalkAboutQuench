@@ -779,6 +779,9 @@ def Pssfr_GMMcomps(timescale='inst'):
             if i_mass_bin == 0: 
                 sub.text(0.05, 0.9, lbl.split('[')[0], ha='left', va='top', 
                         transform=sub.transAxes, fontsize=25, fontproperties=font0)
+            if (i_c == 0) and (i_mass_bin == 2): 
+                sub.text(0.95, 0.955, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='right', va='top', transform=sub.transAxes, fontsize=25)
 
             if mass_bin[0] >= logMstar[mlim].min(): # make sure there are galaxies in the massbin
 
@@ -829,10 +832,6 @@ def Pssfr_GMMcomps(timescale='inst'):
             if i_c == 0: 
                 sub.set_title(str(mass_bin[0])+'$<$ log $M_*$ $<$'+str(mass_bin[1])+'', 
                         fontsize=25)
-                #sub.text(0.9, 0.95, 
-                #        str(mass_bin[0])+'$<$ log $M_*$ $<$'+str(mass_bin[1])+'', 
-                #        ha='right', va='top',
-                #        transform=sub.transAxes, fontsize=25)
             sub.set_xlim([-13.6, -9.]) 
             sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
             sub.set_ylim([0.,2.]) 
@@ -1576,11 +1575,12 @@ def Mlim_res_impact(n_mc=20, seed=10, threshold=0.2):
 
         #sub.scatter(fit_logm_ns, fit_logsfr_ns, marker='x', color='k', lw=1, s=40, 
         #        label='w/ Res. Effect')
-        if i_n == 1: lbl0 = 'with SFR resolution'
+        if i_n == 1: lbl0 = 'w/ SFR res. effect'
         else: lbl0 = None 
         sub.errorbar(fit_logm_ns, fit_logsfr_ns, sig_fit_logsfr_ns, fmt='.k',
                 label=lbl0)
-        if i_n == 2: lbl1 = 'without SFR resolution' #r"$\mathrm{SFR}_i' \in [\mathrm{SFR}_i, \mathrm{SFR}_i+\Delta_\mathrm{SFR}]$"
+        if i_n == 2: lbl1 = r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$"
+        #'without SFR resolution' 
         else: lbl1 = None 
         sub.scatter(fit_logm_s, fit_logsfr_s, marker='x', color='C1', lw=1, s=40, 
                 label=lbl1)
@@ -1654,7 +1654,7 @@ def GMMcomp_weights_res_impact(n_bootstrap=10):
             p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
             p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
             p5 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C4")
-            sub.legend([p2, p3, p5, p4][::-1], ['``quenched"', 'other', 'other', 'SFMS'][::-1], 
+            sub.legend([p2, p3, p5, p4], ['``quenched"', 'intermediate SF', 'high SF', 'SFS'], 
                     loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
         # plot the uncertainties from bootstrap resampling 
@@ -2059,23 +2059,21 @@ def _fGMM(name, nosplashback=False, sb_cut='3vir'):
 ##############################
 # Appendix: previous method 
 ##############################
-def Catalogs_SFR_Mstar_SD14like():
+def Catalogs_SFS_lit():
     ''' Compare SFR vs M* relation plotted like in Somerville & Dave 2014 (fits from the different modelers)
     '''
     Cat = Cats.Catalog()
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
-    fig = plt.figure(figsize=(5,5))
-    sub = fig.add_subplot(111)
+    fig = plt.figure(figsize=(10,5))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub = fig.add_subplot(121)
+    sub1 = fig.add_subplot(122)
     for i_c, sim in enumerate(sims_list):
         cat = '_'.join([sim, 'inst'])
         logMstar, logSFR, weight, censat = Cat.Read(cat)
 
         lbl = Cat.CatalogLabel(cat)
-        if i_c == 0:
-            sub.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
-                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
-
         if sim == 'illustris': 
             nbins, binsize, fitmin = 12, 0.3, 8.05
             all_or_sf = 'all'
@@ -2099,99 +2097,36 @@ def Catalogs_SFR_Mstar_SD14like():
             logSFRfit2[i_b] = np.log10(np.median(10.0**(logSFR[inbin])))
         
             # in stellar mass bin above ssfr > -11
-            inbinsf = (inbin & (logSFR-logMstar > -11.0)) 
+            inbinsf = (inbin & (logSFR-logMstar > -11.)) 
             logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
 
         if all_or_sf == 'all': 
             sub.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
-                    label=lbl.split('[')[0]+' (all galaxies)')
+                    label=lbl.split('[')[0]+' (no cut)')
             #sub.scatter(logMstarfit, logSFRfit2, color='C'+str(i_c+2))
         elif all_or_sf == 'sf': 
             sub.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2), 
                     label=lbl.split('[')[0]+' ($\log\,\mathrm{SSFR} > -11$)')
-        sub.set_xlim([8, 12])
+        sub.set_xlim([8, 11.5])
         sub.set_ylim([-3, 3])
-    sub.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15)
-    sub.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', fontsize=25)
-    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', fontsize=25)
-    fig.subplots_adjust(wspace=0.2, hspace=0.15)
-    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar_SD14like.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
-    plt.close()
-    return None
-
-
-def Catalogs_SFR_Mstar_testSimpleFits():
-    ''' Compare SFR vs M* relation plotting medians for SF galaxies or all galaxies
-    '''
-    Cat = Cats.Catalog()
-    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
-
-    f_gmm = lambda name: _fGMM(name)
-        
-    fig = plt.figure(figsize=(10,5))
-    bkgd = fig.add_subplot(111, frameon=False)
-    sub1 = fig.add_subplot(121)
-    sub2 = fig.add_subplot(122)
-    for i_c, sim in enumerate(sims_list):
-        cat = '_'.join([sim, 'inst'])
-        logMstar, logSFR, weight, censat = Cat.Read(cat)
-
-        lbl = Cat.CatalogLabel(cat)
-        if i_c == 0:
-            sub2.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
-                     ha='right', va='bottom', transform=sub2.transAxes, fontsize=25)
-
-        if sim == 'illustris': 
-            nbins, binsize, fitmin = 12, 0.3, 8.05
-            all_or_sf = 'all'
-        elif sim == 'eagle': 
-            nbins, binsize, fitmin = 12, 0.3, 8.1
-            all_or_sf = 'sf'
-        elif sim == 'mufasa': 
-            nbins, binsize, fitmin = 11, 0.25, 8.525
-            all_or_sf = 'all'
-        elif sim == 'scsam': 
-            nbins, binsize, fitmin = 10, 0.3, 8.7
-            all_or_sf = 'sf'
-
-        logSFRfit1 = np.zeros(nbins)
-        logSFRfit2 = np.zeros(nbins)
-        logMstarfit = np.zeros(nbins)
-        for i_b in range(nbins):
-            # in stellar mass bin 
-            inbin = ((logMstar > fitmin + binsize * i_b) & (logMstar < fitmin + binsize * (i_b+1)))
-            logMstarfit[i_b] = fitmin + binsize*(i_b+0.5)
-            logSFRfit2[i_b] = np.log10(np.median(10.0**(logSFR[inbin])))
-        
-            # in stellar mass bin above ssfr > -11
-            inbinsf = (inbin & (logSFR-logMstar > -11.0)) 
-            logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
-
-        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
-        sub2.errorbar(fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr, 
-                fmt='.C'+str(i_c+2), label='Hahn et al.(2018) \nCentral SFS GMM fit')#, linewidth=0.5, alpha=0.75) 
-        if i_c == 0: sub2.legend(loc='upper left', handletextpad=0., frameon=False, fontsize=20) 
-
-        sub1.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
-                label=lbl.split('[')[0])
-        sub2.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
-        sub1.set_xlim([8, 12])
+        sub1.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
+        print logSFRfit1[np.abs(logMstarfit - 10.).argmin()]
+        sub1.set_xlim([8, 11.5])
         sub1.set_ylim([-3, 3])
-        sub2.set_xlim([8, 12])
-        sub2.set_ylim([-3, 3])
-    sub1.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=20)
-    sub1.set_title('All Galaxies', fontsize=20) 
-    sub2.set_title('All Galaxies w/ $\log(\mathrm{SSFR}){>}-11$', fontsize=20) 
+
+    sub1.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
+             ha='right', va='bottom', transform=sub1.transAxes, fontsize=25)
+    sub1.text(0.05, 0.9, r'$\log\,\mathrm{SSFR} > -11$ for all sim.',
+             ha='left', va='top', transform=sub1.transAxes, fontsize=20)
+    sub.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15)
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25) 
-    bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25) 
-    fig.subplots_adjust(wspace=0.1)
-    fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar_SimpleFitsMedian.pdf'])
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25)
+    bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25)
+    fig.subplots_adjust(wspace=0.15)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalog_SFS_lit.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
-
 
 if __name__=="__main__": 
     #Catalogs_SFR_Mstar()
@@ -2206,7 +2141,7 @@ if __name__=="__main__":
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=100)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
@@ -2230,5 +2165,4 @@ if __name__=="__main__":
     #_SFMSfit_assess('nsa_dickey', fit_range=(8.4, 9.7), method='gaussmix')
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
-    #Catalogs_SFR_Mstar_SD14like()
-    #Catalogs_SFR_Mstar_testSimpleFits()
+    Catalogs_SFS_lit()
