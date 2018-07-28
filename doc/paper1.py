@@ -1823,6 +1823,38 @@ def _GMM_fcomp_res_impact(name, groupfinder=True, n_bootstrap=10, seed=1, silent
     return 0.5*(mbin0 + mbin1),  f_comps, f_comps_unc 
 
 
+def GMM_3pluscomp(): 
+    '''
+    '''
+    fgmm0 = lambda name: _fGMM(name)
+    fgmm1 = lambda name: _fGMM(name, morecomp=True) 
+
+    Cat = Cats.Catalog()
+    # Read in various data sets
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+    obvs_list = ['tinkergroup', 'nsa_dickey'] 
+
+    for i_c, cat in enumerate(obvs_list): 
+        #fSFS0 = pickle.load(open(fgmm0(cat), 'rb'))
+
+        fSFS1 = pickle.load(open(fgmm1(cat), 'rb'))
+        mbins = fSFS1._mbins[fSFS1._mbins_nbinthresh,:]
+
+        for i_g, gmm in enumerate(fSFS1._gbests): 
+            if gmm.n_components > 3: 
+                print('%s : %i components (%f - %f)' % (cat, gmm.n_components, mbins[i_g,0], mbins[i_g,1]))
+
+    for tscale in ['inst', '100myr']: 
+        for i_c, cc in enumerate(sims_list): 
+            cat = '_'.join([cc, tscale]) 
+            fSFS1 = pickle.load(open(fgmm1(cat), 'rb'))
+            mbins = fSFS1._mbins[fSFS1._mbins_nbinthresh,:]
+            for i_g, gmm in enumerate(fSFS1._gbests): 
+                if gmm.n_components > 3: 
+                    print('%s : %i components (%f - %f)' % (cat, gmm.n_components, mbins[i_g,0], mbins[i_g,1]))
+    return None 
+
+
 def _SFMSfit_assess(name, fit_range=None, method='gaussmix'):
     ''' Assess the quality of the SFMS fits by comparing to the actual 
     P(sSFR) in mass bins. 
@@ -2046,11 +2078,15 @@ def _GMM_comp_test(name):
     return None
 
 
-def _fGMM(name, nosplashback=False, sb_cut='3vir'): 
+def _fGMM(name, morecomp=False, nosplashback=False, sb_cut='3vir'): 
     if nosplashback and name not in ['nsa_dickey', 'tinkergroup']: 
         fgmm = ''.join([UT.dat_dir(), 'paper1/', 
             'gmmSFSfit.', name, '.gfcentral.nosplbacks.', sb_cut, '.mlim.p'])
         print fgmm
+        return fgmm 
+    elif morecomp: 
+        fgmm = ''.join([UT.dat_dir(), 'paper1/', 
+            'gmmSFSfit.', name, '.gfcentral.morecomp.mlim.p'])
         return fgmm 
     else: 
         return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
@@ -2165,4 +2201,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('nsa_dickey', fit_range=(8.4, 9.7), method='gaussmix')
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
-    Catalogs_SFS_lit()
+    #Catalogs_SFS_lit()
+    GMM_3pluscomp()
