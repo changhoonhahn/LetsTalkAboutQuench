@@ -197,7 +197,8 @@ class Catalog:
             w = np.ones(len(logM))
             censat = np.ones(len(logM)) # all centrals
             zerosfr = np.zeros(len(logM), dtype=bool)  
-            zerosfr[np.invert(np.isfinite(logSFR))] = True
+            zerosfr[tink_logSSFR == -99.] = True
+            #zerosfr[np.invert(np.isfinite(logSFR))] = True
 
         elif name == 'nsa_dickey': 
             dic_logM, dic_logSFR =  np.loadtxt(f_name, unpack=True, skiprows=1, usecols=[1,5]) 
