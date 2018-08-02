@@ -1833,16 +1833,61 @@ def GMM_3pluscomp():
     # Read in various data sets
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
-
+    
     for i_c, cat in enumerate(obvs_list): 
-        #fSFS0 = pickle.load(open(fgmm0(cat), 'rb'))
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+        if cat == 'nsa_dickey': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar < dickey_mmax)) 
+        elif cat == 'tinkergroup': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
 
         fSFS1 = pickle.load(open(fgmm1(cat), 'rb'))
         mbins = fSFS1._mbins[fSFS1._mbins_nbinthresh,:]
 
+        mlow, mhigh, gmms = [], [], [] 
         for i_g, gmm in enumerate(fSFS1._gbests): 
             if gmm.n_components > 3: 
                 print('%s : %i components (%f - %f)' % (cat, gmm.n_components, mbins[i_g,0], mbins[i_g,1]))
+                mlow.append(mbins[i_g,0]) 
+                mhigh.append(mbins[i_g,1])
+                gmms.append(gmm) 
+        
+        if len(mlow) == 0: continue 
+        
+        fig = plt.figure(figsize=(8,4*len(mlow)))
+        for ii in range(len(mlow)): 
+            inmbin = (sample_cut & (logMstar > mlow[ii]) & (logMstar < mhigh[ii]))
+            ssfr_i = logSFR[inmbin] - logMstar[inmbin]
+            sub = fig.add_subplot(len(mlow),1,ii+1)
+            _ = sub.hist(ssfr_i, bins=40, 
+                    range=[-14., -8.], 
+                    density=True, histtype='step', color='k', linewidth=1.75)
+            sub.set_xlim([-13.25, -9.]) 
+            sub.set_xticks([-9., -10., -11., -12., -13.][::-1])
+            sub.set_ylim([0.,2.4]) 
+            sub.set_yticks([0., 0.5, 1., 1.5, 2.])
+                
+            x_ssfr = np.linspace(-14., -9, 100)
+
+            gmm = gmms[ii]
+            gmm_ws = gmm.weights_.flatten()
+            print(gmm_ws)
+            gmm_mus = gmm.means_.flatten()
+            print(gmm_mus)
+            gmm_vars = gmm.covariances_.flatten()
+            n_comp = len(gmm_mus) 
+            allgmm = np.zeros(len(x_ssfr))
+            for icomp in range(n_comp):  
+                allgmm += gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]) 
+                sub.plot(x_ssfr, 
+                        gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]), 
+                        c='C1', lw=0.75, ls='--') 
+            sub.plot(x_ssfr, allgmm, c='C1', lw=1.5) 
+
+        fig.subplots_adjust(wspace=0.15)
+        fig_name = ''.join([UT.doc_dir(), 'figs/', cat, '.GMM_3pluscomp.pdf'])
+        fig.savefig(fig_name, bbox_inches='tight')
+        plt.close()
 
     for tscale in ['inst', '100myr']: 
         for i_c, cc in enumerate(sims_list): 
