@@ -5,6 +5,7 @@
 \usepackage{txfonts} %use times font for math
 \usepackage[figure,figure*]{hypcap} %Figure refs go figures
 \usepackage{bm}
+\usepackage{chngcntr}
 
 \renewcommand*{\sectionautorefname}{Section} %for \autoref
 \renewcommand*{\subsectionautorefname}{Section} %for \autoref
@@ -13,12 +14,11 @@
 \newcommand{\todo}[1]{{\bf \textcolor{red}{ #1}}}
 
 \shorttitle{}
-\shortauthors{the IQ (Isolated \& Quenched) collaboratory}
+\shortauthors{the IQ (Isolated \& Quiescent) collaboratory}
 
 \begin{document}
 
-
-\title{Paper I: The Main Sequence of Simulated Galaxies}
+\title{IQ-Collaboratory 1.1: the Star Forming Sequence of Simulated Galaxies}
 %\title{Distributions of star-forming galaxies: predictions}
 \author{ChangHoon Hahn}
 \altaffiliation{changhoonhahn@lbl.gov}
@@ -36,27 +36,26 @@
 Principled comparisons between the galaxy populations of simulations and 
 observations play a pivotal role in validating our theories of galaxy 
 formation and evolution. %are necessary to validate our theories of galaxy formation and  evolution. 
-Key features in galaxy property-space like the star forming main sequence
-(SFMS), which track %encapsulate %the evolution of 
-star forming galaxies since $z<2$,
-and a consistent  way to identify them are critical for such comparisons. 
-We present a data-driven approach to fitting the SFMS using Gaussian 
-Mixture Models that can be flexibly applied to a wide range of star 
+Key features in galaxy property-space like the star forming sequence
+(SFS) %,\todo{tjitske I think this subsentence should be removed: \emph{which track %encapsulate %the evolution of  star forming galaxies since $z<2$,} because it is not as essential and it kind of steals away attention from the rest of the sentence which is actually the main point you want to make. Also, you say the z<2 part clearly in the introduction}
+and a consistent way to identify them are critical for such comparisons. 
+We present a data-driven approach to fitting the SFS using Gaussian 
+Mixture Model that can be flexibly applied to a wide range of star 
 formation to stellar mass relations down to $M_*{\sim}10^{8}M_\odot$. %and across four orders of magnitude in stellar mass.
-Using this method, we identify the SFMS of central galaxies in 
-the Illustris, EAGLE, and MUFASA hydrodynamic simulations, the Santa Cruz 
-Semi-Analytic Model simulation, and observations from the Sloan Digital 
+Using this method, we identify the SFS of central galaxies in 
+the Illustris, EAGLE, and {\sc Mufasa} hydrodynamic simulations, the Santa Cruz 
+Semi-Analytic Model, and observations from the Sloan Digital 
 Sky Survey Data Release 7 and the NASA Sloan Atlas. Among our simulations, 
-we find discrepancies on the order of a magnitude in the amplitudes of the 
-SFMSs. In addition, our fitting method also identifies subpopulations 
-that correspond to quenched, transitioning, and star-burst galaxies. We 
-find overall consistent subpopulations among our hydrodynamic 
-simulations but not with the semi-analytic model. Using these subpopulations, 
-we find that the quiescent fractions of the hydrodynamic simulations do 
-not reproduce measurements from observations. Moreover, in \emph{all} of the 
-simulations we find a significant fraction of quenched galaxies at 
-$M_* < 10^9M_\odot$, in conflict with the literature. %below the established \cite{geha2012} threshold. 
-The SFMS fitting method we present provides a data-driven framework to 
+we find order of magnitude discrepancies in the amplitudes of the SFSs. 
+In addition to the SFS, our fitting method also identifies subpopulations 
+that correspond to quiescent, transitioning, and star-burst galaxies. 
+We find overall consistent subpopulations among our hydrodynamic simulations 
+%using subpopulations such as quiescent galaxies, also identified by our fitting method, we find  % also identifies subpopulations  that correspond to quiescent, transitioning, and star-burst galaxies. We 
+but differences with the semi-analytic model. We also find that the quiescent 
+fractions of the hydrodynamic simulations do not reproduce observations. 
+Moreover, in \emph{all} of the simulations we find a significant fraction 
+of quiescent galaxies at $M_*{<}\,10^9M_\odot$, in conflict with the literature. %below the established \cite{geha2012} threshold. 
+The SFS fitting method we present provides a data-driven framework to 
 consistently compare galaxy samples from both simulations and observations. 
 \end{abstract}
 \keywords{cosmology: observations --- galaxies: star formation --- galaxies:statistics}
@@ -73,85 +72,87 @@ with disk-like morphologies
 for a recent review see~\citealt{blanton2009}). 
 Star forming galaxies, furthermore, are found to have a tight relationship 
 between their star formation rates (SFR) and stellar masses placing them
-on the so-called ``star formation main sequence'' (hereafter 
-SFMS)~\citep[\emph{e.g.}][]{noeske2007, daddi2007, salim2007}.
+on the so-called ``star formation sequence'' (hereafter 
+SFS)~\citep[\emph{e.g.}][]{noeske2007, daddi2007, salim2007}.
 
 %Star forming galaxies are found to have tightly correlated 
 %star formation rates (SFR) and stellar 
 %masses~\citep[\emph{e.g.}][\todo{more}]{noeske2007, daddi2007, salim2007}.
 
-% Galaxy evolution from the perspective of the SFMS. 
+% Galaxy evolution from the perspective of the SFS. 
 In fact, this sequence of star forming galaxies is found in observations 
 well beyond the local universe out to $z > 2$~\citep{wang2013, schreiber2015}.
-But more than its persistence, the SFMS plays a crucial role in characterizing 
-the evolving galaxy population. The most dramatic transformations of 
-galaxies over the past $10\,\mathrm{Gyr}$ can be described by the SFMS. 
+But more than its persistence, the SFS plays a crucial role in characterizing 
+the evolving galaxy population~\citep[but see also][]{leja2015}. The most dramatic transformations of 
+galaxies over the past $10\,\mathrm{Gyr}$ can be described by the SFS. 
 For instance, the decline in the number density of massive 
 star forming galaxies and the accompanying growth in number density of 
 quiescent galaxies reflects the cessation of star formation in 
 star forming galaxies migrating off of the 
-SFMS~\citep{blanton2006, borch2006, bundy2006, moustakas2013}. 
+SFS~\citep{blanton2006, borch2006, bundy2006, moustakas2013}. 
 Similarly, the cosmic decline in star formation~\citep{hopkins2006,
 behroozi2013a, madau2014} reflects the overall decline of star 
-formation of the SFMS~\citep{schreiber2015}. 
+formation of the SFS~\citep{schreiber2015}. 
 
 %in the continuing effort to understand  the physical processes governing galaxy formation and evolution, 
-Numerical simulations today \emph{qualitatively} reproduce the SFMS and 
-similar global relations of galaxy properties 
+Numerical simulations today \emph{qualitatively} reproduce the SFS and 
+similar global relations of galaxy properties and provide insights into the key physical processes governing those relations 
 (\emph{e.g.}~\citealt{ vogelsberger2014,genel2014, schaye2015, dave2017}; 
 for a recent review see~\citealt{somerville2015}). These hydrodynamic and 
 semi-analytic simulations each seek to capture the complex physics of 
 gas heating and cooling, star formation, stellar feedback, chemical 
 evolution, black hole formation and evolution, and AGN feedback using 
 their distinct sub-grid model prescriptions. Both as an effort to shed 
-light on the underlying physics and to valid their simulations, many 
-works have already compared simulations to 
-observations~\citep[\emph{e.g.}][]{vogelsberger2014, 
-genel2014, torrey2014, sparre2015, schaye2015, bluck2016, dave2017}. 
+light on the underlying physics and to validate their simulations and make predictions for new observations, many 
+works have already compared the simulations considered in this paper to 
+observations of for example galaxy masses, colors, and star formation rates ~\citep[\emph{e.g.}][]{vogelsberger2014, 
+genel2014, torrey2014, sparre2015, schaye2015, bluck2016, dave2017, somerville2015}. 
 These works, however, primarily focus on comparing one specific simulated 
-galaxy sample to one or a few observational datasets. Extending such 
+galaxy sample to one or a few observational datasets (which can differ significantly as well as demonstrated in~\citealt{speagle2014}). Extending such 
 comparisons to include multiple simulations, observations, and a 
 consistent framework for comparing the data-sets would allow us to make 
 detailed comparison of the different sub-grid models and thereby provide 
 key insights into the physics that govern galaxy formation and evolution.  
 
-%At the same time a general understanding of the key physical processes  in the formation and evolution of galaxies has arisen from numerical simulations. Global galaxy properties, correlations, and distribution  functions can nowadays (approximately) be reproduced by hydrodynamical,  and semi-analytical cosmological and zoom simulations that include gas  heating and cooling, star formation and stellar feedback, chemical  evolution, and black hole formation, evolution, and AGN feedback. Due to the immense range in scales that needs to be covered by these simulations, many  of these processes are implemented using sub-grid models, that vary in their prescriptions depending on simulation method, code, and resolution. Even  though the effects can be similar, the detailed processes in these feedback schemes may differ, for example whether feedback due to AGN in simulations  is most effective in suppressing cold gas accretion and star formation when modeled as thermal, kinetic, or radiative feedback, or any combination of  these depending on central black hole and galaxy properties \todo{refs}.  Present-day galaxy formation models do qualitatively reproduce the evolution of the SFMS and similar global scaling relations \citep{SomervilleDave2015ARAA, vogelsberger2014,genel2014, schaye2015, dave2016, dave2017}\todo{and more}. Many comparisons of the SFMS between observations and simulations have been made, but these usually focus on comparing one specific simulated galaxy sample to one or a few observational datasets \citep{vogelsberger2014,genel2014, schaye2015, dave2016,bluck2016, torrey2014,sparre2015}\todo{and more}. 
+%At the same time a general understanding of the key physical processes  in the formation and evolution of galaxies has arisen from numerical simulations. Global galaxy properties, correlations, and distribution  functions can nowadays (approximately) be reproduced by hydrodynamic,  and semi-analytical cosmological and zoom simulations that include gas  heating and cooling, star formation and stellar feedback, chemical  evolution, and black hole formation, evolution, and AGN feedback. Due to the immense range in scales that needs to be covered by these simulations, many  of these processes are implemented using sub-grid models, that vary in their prescriptions depending on simulation method, code, and resolution. Even  though the effects can be similar, the detailed processes in these feedback schemes may differ, for example whether feedback due to AGN in simulations  is most effective in suppressing cold gas accretion and star formation when modeled as thermal, kinetic, or radiative feedback, or any combination of  these depending on central black hole and galaxy properties \todo{refs}.  Present-day galaxy formation models do qualitatively reproduce the evolution of the SFS and similar global scaling relations \citep{SomervilleDave2015ARAA, vogelsberger2014,genel2014, schaye2015, dave2016, dave2017}\todo{and more}. Many comparisons of the SFS between observations and simulations have been made, but these usually focus on comparing one specific simulated galaxy sample to one or a few observational datasets \citep{vogelsberger2014,genel2014, schaye2015, dave2016,bluck2016, torrey2014,sparre2015}\todo{and more}. 
 
-%Nonetheless, with the key role that starforming galaxies play in our understanding of the formation and evolution of galaxies, the SFMS is an important relation to compare to for simulations. Moreover, the SFMS can form a tool to understand the starforming and non-starforming galaxy populations and the processes that create those. Therefore we argue that a comparing the galaxy populations in the SFR-$M_{\star}$ plane between different simulations that vary in technique and in descriptions of key physical processes, is important. The SFMS serves as a key feature in galaxy sample data for comparison. Therefore in this paper we compare different simulations by conducting a data-driven comparison centered around the star formation main  sequences of different data sets. 
-The SFMS, given its \todo{prominence(?) markedness(?) ubiquitousness(?)}, naturally presents itself as a key feature in the data-space of
-galaxy properties to compare galaxy populations across both observations 
-and simulations. Moreover, with the important role it plays for 
-understanding galaxy evolution, the SFMS provides a way to understand the 
-star forming and non-star forming galaxy populations and the processes 
-that create them. Two main challenges lie in conducting a principled 
-comparison of the SFMS in galaxy populations. First is the lack of a 
-universal data-driven method for identifying the SFMS given a dataset 
-of galaxy properties. The other is the difference in methodology for 
-deriving galaxy properties (SFR, $M_*$) in different data-sets, which 
-alone dramatically impacts the SFMS~\citep[\emph{e.g.}][]{speagle2014}. 
+%Nonetheless, with the key role that starforming galaxies play in our understanding of the formation and evolution of galaxies, the SFS is an important relation to compare to for simulations. Moreover, the SFS can form a tool to understand the starforming and non-starforming galaxy populations and the processes that create those. Therefore we argue that a comparing the galaxy populations in the SFR-$M_{\star}$ plane between different simulations that vary in technique and in descriptions of key physical processes, is important. The SFS serves as a key feature in galaxy sample data for comparison. Therefore in this paper we compare different simulations by conducting a data-driven comparison centered around the star formation main  sequences of different data sets. 
+The SFS, given its prominence, naturally presents itself as a key feature 
+in the data-space of galaxy properties to compare galaxy populations across 
+both observations and simulations. Moreover, with the important role it plays 
+for understanding galaxy evolution, the SFS provides a way to understand the 
+different galaxy subpopulations and the processes that create them. Two main 
+challenges lie in conducting a principled comparison of the SFS. First is the 
+lack of a consistent and data-driven method for identifying the SFS given a 
+dataset of galaxy properties. {\color{red} In fact, previously found agreement 
+among the SFSs of simulations and observations~\citep[\emph{e.g.}][]{somerville2015b} 
+is primarily driven by discrepancies in how the SFS is identified (Appendix~\ref{app:literature}).}
+The other is the difference in methodology for 
+deriving galaxy properties (such as SFR, $M_*$) in different data-sets, which 
+alone dramatically impacts the SFS~\citep[\emph{e.g.}][]{speagle2014}. 
 In this paper we address the first challenge by presenting a flexible, 
-data-driven method for fitting the SFMS. Then we use this method to conduct
+data-driven method for fitting the SFS. Then we use this method to conduct
 a principled comparison between the central galaxy populations from the Illustris,
-EAGLE, and MUFASA hydrodynamic simulations, the Santa Cruz Semi-Analytic 
+EAGLE, and {\sc Mufasa} hydrodynamic simulations, the Santa Cruz Semi-Analytic 
 Model (SAM) simulation and observations from the SDSS and NASA-Sloan Atlas
 (hereafter NSA) catalogs. 
 
-In Section~\ref{sec:ourgals}, we describe the simulated and observed 
+In Section~\ref{sec:galsims}, we describe the simulated and observed 
 galaxies of our dataset and how we specifically select our galaxy sample. 
-Then in Section~\ref{sec:sfmsfit}, we describe our data-driven SFMS 
+Then in Section~\ref{sec:sfmsfit}, we describe our data-driven SFS 
 fitting method, which makes use of Gaussian Mixture Modeling. We present 
-the results from applying our SFMS fitting to our simulated and observed
+the results from applying our SFS fitting to our simulated and observed
 galaxies in Section~\ref{sec:results} and compare the galaxy populations
 of our simulations and observations. Finally, we conclude and summarize
 the results of our comparison in Section~\ref{sec:summary}.
 This paper is the first in a series studying the star formation and 
 quenching properties of galaxies. The series is initialized by the 
-IQ (Isolated \& Quenched) Collaboratory. %This first paper will focus on the rate of star formation in observed and simulated galaxies. 
+IQ (Isolated \& Quiescent) Collaboratory. %This first paper will focus on the rate of star formation in observed and simulated galaxies. 
 In the subsequent paper we will address the discrepancies in measured 
 galaxy properties by constructing mock observational spectra of simulated 
 galaxies in our sample and measuring the properties of these galaxies
-in the same manner as observations (Starkenburg et al. in prep.).
-%for comparing the galaxy populations in simulations with observations.  One challenge is however not one unified way to fit and describe the SFMS, and depending on both the dataset and the fitting technique used its properties can vary \citep[see e.g.][]{speagle2014}, adding to the complexity of the discussion on its meaning.
+in the same manner as observations (Starkenburg et al. in prep).
+%for comparing the galaxy populations in simulations with observations.  One challenge is however not one unified way to fit and describe the SFS, and depending on both the dataset and the fitting technique used its properties can vary \citep[see e.g.][]{speagle2014}, adding to the complexity of the discussion on its meaning.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure 1 
@@ -160,7 +161,7 @@ in the same manner as observations (Starkenburg et al. in prep.).
 \begin{center}
 \includegraphics[width=\textwidth]{figs/Catalogs_SFR_Mstar.pdf} 
 \caption{The SFR--$M_*$ relations of central galaxies from the Illustris, 
-EAGLE, MUFASA, and Santa Cruz SAM simulations (left to right). The 
+EAGLE, {\sc Mufasa}, and SC-SAM simulations (left to right). The 
 top panels use instantaneous SFRs while the bottom panels use SFRs 
 averaged over $100\,\mathrm{Myr}$. The simulations and how they derive 
 the SFRs are described in Section~\ref{sec:galsims}. Although a
@@ -168,8 +169,8 @@ direct comparison to observations is tenuous due to the fact that
 the SFRs and $M_*$s of the observed SDSS galaxies are \emph{not} 
 derived consistently as simulations, we include, for reference, the 
 observed  SDSS galaxies (Section~\ref{sec:obvs}) on the right. 
-\emph{The $\mathrm{SFR}--M_*$ relations in every panel reveals a 
-clear star forming main sequence.}} 
+\emph{The SFR--$M_*$ relations in every panel reveals a clear star 
+forming sequence.}} 
 \label{fig:sfrmstar}
 \end{center}
 \end{figure*}
@@ -182,62 +183,64 @@ clear star forming main sequence.}}
 \begin{center}
 \includegraphics[width=0.475\textwidth]{figs/Catalogs_pSSFR.pdf} 
 \caption{The SSFR distributions, $p(\log\,\mathrm{SSFR})$, of the 
-central galaxies in the Illustris (green), 
-EAGLE (red),  MUFASA (purple), and  Santa Cruz SAM (brown) simulations 
-with $10.4 < \log\,M_* < 10.6$. We use instantaneous SFRs on the left
-and SFRs averaged over $100\,\mathrm{Myr}$ on the right. Although the
-SFMS is universal (Figure~\ref{fig:sfrmstar}), 
-\emph{the significant discrepancies among the $p(\log\,\mathrm{SSFR})$s,
-and thus SFR--$M_*$ relations, make the SFMS difficult to consistently 
-quantify.}} \label{fig:pssfr}
+central galaxies in the Illustris (green), EAGLE (red), 
+{\sc Mufasa} (purple), and  SC-SAM (brown) simulations with 
+$10.4 < \log\,M_* < 10.6$. We use instantaneous SFRs on the left
+and SFRs averaged over $100\,\mathrm{Myr}$ on the right. Simulated
+galaxies with $\mathrm{SFR}{=}0$ are assigned $\log\,\mathrm{SSFR}{=}-13.2$ 
+so that they can be included in the figure. Although the SFS is 
+universal (Figure~\ref{fig:sfrmstar}), \emph{the significant 
+discrepancies among the $p(\log\,\mathrm{SSFR})$s make the SFS 
+difficult to consistently quantify.}} \label{fig:pssfr}
 \end{center}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Our galaxies} \label{sec:ourgals}
-In this work, we primarily focus on simulated galaxy samples from four 
-large-scale cosmological simulations: three hydrodynamic (Illustris, EAGLE, 
-and MUFASA) and one semi-analytic (Santa Cruz SAM). Although we mainly 
-focus on the simulated galaxies, for reference, we also include two observed 
-galaxy samples: a volume-limited sample from SDSS and a selected isolated 
-dwarf galaxy sample from the NSA catalog. We briefly describe the four 
-simulations in Section~\ref{sec:galsims} and our observed galaxy sample 
-in Section~\ref{sec:obvs}. %These descriptions primarily focus on the  derivation of SFR's and $M_*$'s in our galaxy samples. 
-Lastly in Section~\ref{sec:central}, we describe how we consistently 
-identify the central galaxies in both our simulations and observations. 
+\section{Our Simulated Galaxies} \label{sec:galsims}% \label{sec:ourgals}
+In this work, our main focus is to compare simulated central galaxies 
+from four large-scale cosmological simulations: three hydrodynamic 
+(Illustris, EAGLE, and {\sc Mufasa}) and one semi-analytic (SC-SAM). 
+A consistent comparison of the different galaxy populations requires 
+consistently defined galaxy properties. Therefore, for all of our 
+simulated galaxies, we derive their stellar masses using the same 
+definition and SFRs on two timescales: instantaneous and averaged over 
+$100\,\mathrm{Myr}$. We choose these timescales because they correspond
+to $H{\alpha}$ and $UV$ based SFR measurements, which represent the 
+formation of young stars with ages ${\lesssim}10\,\mathrm{Myr}$ 
+and star formation in the last ${\sim}100\,\mathrm{Myr}$~\citep[e.g.][]{kennicutt2012}, 
+respectively. 
 
-\subsection{Simulated Galaxies} \label{sec:galsims}
-A consistent comparison of the different galaxy populations in our 
-simulations requires consistently defined galaxy properties. Hence, 
-for all of our simulated galaxies, we derive SFRs consistently on 
-two timescales: instantaneous and averaged over $100\,\mathrm{Myr}$. 
-Our choice of these timescales is respectively motivated by the fact 
-that observed SFR measurements based on $H{\alpha}$ correspond to 
-formation of young stars with ages $\lesssim 10\,\mathrm{Myr}$ and 
-measurements based on $UV$ brightness correspond to star formation 
-in the last $\sim 100\,\mathrm{Myr}$~\citep[e.g.][]{kennicutt2012}. 
+In our hydrodynamic simulations, we derive the $100\,\mathrm{Myr}$ 
+averaged SFRs from the ages, or formation times, of star particles 
+in the galaxies and instantaneous SFRs from the rate of 
+star formation in the dense and cold gas. For the SAM, we derive 
+the $100\,\mathrm{Myr}$ averaged SFRs from the total stellar 
+mass formed in the galaxies, which is outputted from the model 
+every $10\,\mathrm{Myr}$. The instantaneous SFR, we derive using 
+the Kennicutt-Schmidt relation for molecular hydrogen~\citep{bigiel2008} 
+and the derived H$_2$ surface density in radial bins. The spatial, 
+mass, and temporal resolution of our simulation can significantly 
+impact the SFRs --- particularly the $100\,\mathrm{Myr}$ averaged 
+SFRs in the hydrodynamic simulations. In Appendix~\ref{app:zerosfr}, 
+we discuss how we treat these resolution effects in our analysis. 
+Meanwhile, for the stellar mass of our simulated galaxies, we 
+measure the total stellar mass within the host halos, discounting the 
+stellar mass in any subhalo within the halo. Although halos are 
+identified differently in the simulations, nearly all the stellar 
+mass is in the center of halos. Therefore, the stellar masses are
+consistently defined among our simulations.
+
+In the rest of this section we provide a brief description of the 
+Illustris, EAGLE, {\sc Mufasa}, and Santa-Cruz SAM simulations and each 
+of their key sub-grid and feedback prescriptions. Furthermore, in 
+Section~\ref{sec:obvs}, we briefly describe galaxy samples from 
+observation, a volume-limited sample from SDSS and a selected isolated 
+dwarf galaxy sample from the NSA catalog, which we include for reference.
+Lastly in Section~\ref{sec:central}, we describe how we consistently 
+identify central galaxies among our simulations and observations. 
 
 %We compare the population of the SFR--$M_{\star}$ plane between the different large-scale cosmological simulations and the observational datasets. To ensure that we compare similar star formation rate timescales, we use averaged star formation rates over chosen recent timescales for all the simulated galaxies. For our analysis, however, we use SFRs averaged 
 %over $100\,\mathrm{Myr}$ and instantaneous SFR, to be roughly consistent with respectively observed SFRs based on $H{\alpha}$ observations, corresponding to young stars with ages $\lesssim 10\,\mathrm{Myr}$, and observed SFRs based on $UV$ brightness, corresponding to stars formed in the last $\sim 100\,\mathrm{Myr}$ \citep[e.g.][]{kennicutt2012}. 
-More specifically, in our hydrodynamic simulations, we derive the 
-$100\,\mathrm{Myr}$ averaged SFRs from the ages, or formation times, 
-of star particles in the simulated galaxies and instantaneous SFRs 
-from the rate of star formation in the dense and cold gas. For the 
-SAM, we derive the $100\,\mathrm{Myr}$ averaged SFRs from the total stellar 
-mass formed in a galaxy, which is saved every $10\,\mathrm{Myr}$, and 
-the instantaneous SFR based on a Kennicutt-Schmidt relation for 
-molecular hydrogen~\citep{bigiel2008} and the derived H$_2$ surface 
-density in radial bins.
-We note that the spatial \todo{(chang: @tjitske: is spatial correct? Shouldn't the resolution effect be from the mass and time resolution?)} and temporal resolution of our hydrodynamic 
-simulation can significantly impact the averaged SFRs. In 
-Appendix~\ref{app:zerosfr}, we discuss how we treat
-these resolution effects in our analysis.
-
-\todo{chang: How do we derive $M_*$?}
-
-In the rest of this section we provide a brief description of the 
-Illustris, EAGLE, MUFASA, and Santa-Cruz SAM simulations and their 
-key sub-grid and feedback prescriptions. 
 
 %and how  we derive the instantaneous and $100\,\mathrm{Myr}$ averaged SFRs for  each simulation.
 
@@ -247,18 +250,17 @@ key sub-grid and feedback prescriptions.
 
 %Our figures will mostly focus on comparisons of the observationally most relevant timescales (instantaneous, $10\,\mathrm{Myr}$ and $100\,\mathrm{Myr}$) but we will comment on deviations for longer or shorter timescales.
 
-
-\subsubsection{The Illustris simulation}
+\subsection{The Illustris simulation}
 The Illustris simulation \citep{vogelsberger2014,genel2014} evolves a
 cosmological volume of $(106\ \rm{Mpc})^3$ with a uniform baryonic mass
-resolution of $1.6\times10^6M_{\sun}$ using the Arepo moving-mesh code \todo{(chang: citation for code?)}. 
+resolution of $1.6\times10^6M_{\sun}$ using the Arepo moving-mesh 
+code~\citep{springel2010}. 
 The full halo mass range of $2 \times 10^8$ to $3\times 10^{14}\ M_{\sun}$ 
 is set by resolution (32 particles) at the low-mass end and by volume at 
 the high-mass end (e.g.~including 10 halos with $M>10^{14}M_{\sun}$). 
 It employs sub-grid models for star-formation~\citep{springel2003},
 Bondi-like SMBH accretion, a phenomenological model for galactic winds, and 
-two main modes for energy injection from 
-SMBHs~\citep[\emph{see}][]{vogelsberger2013}. 
+two main modes for energy injection from SMBHs~\citep[\emph{see}][]{vogelsberger2013}. 
 When accretion occurs at Eddington ratios $>0.05$, thermal energy is 
 injected continuously in the local environment of the SMBH, while at 
 lower accretion rates, the energy injection occurs in bursts at large
@@ -268,47 +270,83 @@ Previous works discussing aspects of the star-formation main-sequence and/or
 quenching in the Illustris simulation include 
 \citet{vogelsberger2014, sparre2015, bluck2016, terrazas2017}.
 
-\subsubsection{EAGLE}
+\subsection{EAGLE}
 The Virgo Consortium's Evolution and Assembly of GaLaxies and their 
-Environment (EAGLE) project~\citep{schaye2015, crain2015} exists as 
-a suite of cosmological, hydrodynamic simulations of a standard 
+Environment (EAGLE) project~\citep{schaye2015, crain2015} is a suite 
+of cosmological, hydrodynamic simulations of a standard 
 $\Lambda$ cold dark matter universe using $\mathtt{ANARCHY}$ (Dalla 
 Vecchia et al. in prep.; see also Appendix A of \citealt{schaye2015} and 
-\citealt{schaller2015}), a modified version of the $\mathtt{Gadget}$ 3 
-$N$-body/SPH code ~\citep{springel2005}. 
-Modifications include the SPH formulation, time stepping, and subgrid 
-physics. The subgrid model for feedback from massive stars and AGN is 
+\citealt{schaller2015}). $\mathtt{ANARCHY}$ is a modified version of 
+the $\mathtt{Gadget}$ 3 $N$-body/SPH code ~\citep{springel2005} that
+includes modifications to the SPH formulation, time stepping, and sub-grid 
+physics. The sub-grid model for feedback from massive stars and AGN is 
 based on thermal energy injection in the ISM without the need to turn-off
 cooling or hydrodynamic decoupling of winds~\citep{dallavecchia2012}. 
-Similar to SAMs the subgrid parameters for stellar feedback and BH 
-accretion are calibrated based on present-day galaxy 
-stellar mass function while also requiring reasonable galaxy sizes, and 
-the AGN feedback efficiency is constrained by the amplitude of the 
-central black hole-galaxy mass relation \todo{(chang: I'm a little confused by this sentence. @tjitske can this be rephrased?)}. 
-The simulations resolve galaxies over the stellar mass range 
-$10^{8} < M_{\star}/M_{\sun} \lesssim 10^{11}$ and reproduce the galaxy 
-stellar mass function to $\lesssim 0.2~\mathrm{dex}$ over this range. 
+Similar to semi-analytical models, the sub-grid parameters for stellar 
+feedback and BH accretion are calibrated based on present-day galaxy 
+stellar mass function while also requiring reasonable galaxy sizes.
+Additionally the AGN feedback efficiency is constrained by the central 
+black hole-galaxy mass relation. The simulations resolve galaxies over 
+the range $10^{8} < M_{\star}/M_{\sun} \lesssim 10^{11}$. % and reproduce the galaxy  stellar mass function to $\lesssim 0.2~\mathrm{dex}$ over this range. 
 Of the EAGLE project simulations, we use L0100Ref, which has a volume 
-of $(100\,\mathrm{cMpc})^3$ and barynoic mass resolution of 
-$1.81\times 10^6M_{\sun}$. The SFR--$M_*$ relation and quenched fractions 
+of $(100\,\mathrm{comoving\,Mpc})^3$ and baryonic mass resolution of 
+$1.81\times 10^6M_{\sun}$. The SFR--$M_*$ relation and quiescent fractions 
 in the EAGLE simulations have been previously discussed 
 in~\citet{furlong2015, trayford2015, trayford2017}. 
 
-\subsubsection{MUFASA \todo{[Romeel]}}
-\begin{itemize}
-	\item \todo{Need to describe the z-dependent halo mass based quenching with continued star formation if self-shielded H2 is present, because we think that causes the turnover in the MUFASA SFMSs.}
-\end{itemize}
+\subsection{{\sc Mufasa}} \label{sec:mufasa}
+{\sc Mufasa} is a hydrodynamic simulation constructed with {\sc Gizmo}, which 
+is a code built on {\sc Gadget} that uses the Meshless Finite Mass (MFM) 
+hydrodynamics method~\citep{hopkins2015a} rather than SPH.  %{\sc Mufasa} is constructed  using {\sc Gizmo}, a code built  upon {\sc Gadget} where we employ the Meshless Finite Mass (MFM) hydrodynamics  method~\citep{hopkins2015a} rather than SPH.
+{\sc Mufasa} includes star formation via a Kennicutt-Schmidt law based on the 
+molecular hydrogen density as computed using the sub-grid recipe in~\citep{krumholz2011}, 
+two-phase kinetic outflows with scalings as predicted in the Feedback in 
+Realistic Environments (FIRE) simulations~\citep{muratov2015}, and quenching 
+in massive galaxies by keeping all non-self shielded gas within halos above 
+a mass of $M_q>(1+0.48z)10^{12}M_\odot$~\citep{mitra2015} near the halos' 
+virial temperature~\citep{gabor2015}. {\sc Mufasa} has a box size of 
+$50\,h^{-1}\ {\rm Mpc}$ and particle masses of $9.6 \times 10^7\ M_{\odot}$ 
+and $1.82 \times 10^7\ M_{\odot}$ for dark matter and baryons, respectively. 
+The stellar mass function evolution, gas and metal content of galaxies, and 
+color-mass diagram of {\sc Mufasa} have been previously discussed in~\citet{dave2016,dave2017,dave2017b}]
+%These prescriptions yield predictions  that are in good agreement with a range of observations across cosmic time, including the galaxy stellar mass function evolution~\citep{dave2016}, the  gas and metal content of galaxies~\citep{dave2017b} and the color-mass diagram~\citep{dave2017}. It has some difficulties in over-quenching satellite galaxies in massive halos~\citep{rafieferantsoa2018} and likely producing  too high X-ray luminosities~(Robson et al., in prep.). 
+%Modulo these caveats, {\sc Mufasa} represents a state of the art model for studying galaxy assembly, particularly for central galaxies.
 
-\subsubsection{the Santa-Cruz Semi-Analytic Model \todo{[Rachel, Viraj]}}
+\subsection{the Santa-Cruz Semi-Analytic Model} \label{sec:scsam}
+The `Santa Cruz' SAM (SC-SAM) is a semi-analytic model run on 
+merger trees from the Bolshoi--Planck dark matter only $N$-body 
+simulations~\citep{rodriguez-puebla2016}. The model includes 
+schematic prescriptions for gas heating and cooling, multi-phase 
+gas partitioning, star formation, chemical evolution, feedback 
+from stars, supernovae and SMBHs, the sizes of galactic disks and 
+bulges, and merger-induced starbursts and structural transformations. 
+The SC-SAM was first presented in~\cite{somerville1999} and 
+\cite{somerville2001}, with significant updates described 
+in~\cite{somerville2008, somerville2008a, somerville2012, porter2014, 
+popping2014, somerville2015a}. In this work, we use the version of 
+the SC-SAM described in~\cite{popping2014} and~\cite{somerville2015a}, 
+which includes recipes for partitioning multi-phase gas into H I, 
+H$_2$ and H II (specifically we adopt the~\citealt{gnedin2011} 
+partitioning recipe). The Bolshoi--Planck simulations have particle 
+masses of $1.5 \times 10^8 M_\odot$. Based on this resolution limit, 
+we focus our analysis on halos with $M_h > 10^{11} M_\odot$.
+Since this roughly corresponds to $M_* \sim 10^{8.5} M_\odot$ at 
+$z\sim 0$, we impose a conservative $M_* > 10^{8.8}M_\odot$ cut 
+to our SC-SAM galaxy sample. We use a ($100$ comoving Mpc/$h$)$^3$
+sub-volume for this paper. The properties of the SC-SAM galaxy population, 
+such as the quiescent fraction have been previously discussed 
+in~\cite{brennan2015,somerville2015b,brennan2017,pandya2017}.
+
+%We run the SC-SAM on merger  trees extracted directly from the Bolshoi--Planck dark matter-only $N$-body simulations~\citep{rodriguez-puebla2016}, using a subvolume spanning  ($100$ comoving Mpc/$h$)$^3$ for this paper. 
+%Previous studies have shown that the SC-SAM reproduces well many properties  of the galaxy population both nearby and out to moderately  high-redshift~\citep[\emph{e.g.}][]{somerville2015b}. In particular,  \cite{brennan2015,brennan2017,pandya2017} showed that the SC-SAM reproduces  the observed quenched fraction at $z\sim 0$ but significantly underestimates  it at $z\sim 2$. 
 
 \subsection{Observed SDSS Galaxies} \label{sec:obvs}
-\todo{chang: @claire could you check the NSA dwarf galaxy sample description?}
-Our main focus in this work is to compare galaxies from our simulation. 
-However, since the ultimate goal of the simulations are to reproduce 
-observations, we include in our analysis galaxies from the 
-SDSS volume-limited sample and the NSA low-luminosity galaxy sample. 
-We provide a brief description of the two observed galaxy samples 
-below. 
+Our main focus in this work is to compare galaxies from our 
+simulations. However, since the goal of simulations is to 
+reproduce observations, we include, for reference, galaxies 
+from the SDSS volume-limited sample and the NSA low-luminosity 
+galaxy sample. We provide a brief description of the two 
+observed galaxy samples below. 
 
 For the SDSS sample, we follow the sample selection of~\cite{tinker2011}. 
 We construct the SDSS volume-limited galaxy sample with $M_r - 5\log(h) < -18$ 
@@ -318,13 +356,15 @@ the SDSS Data Release 7~\citep[DR7;][]{abazajian2009} at redshift
 $z \approx 0.04$. For further details on the sample, we refer readers 
 to~\cite{tinker2011,wetzel2013,hahn2017}.
 
-At lower stellar masses, we use an isolated dwarf galaxy sample selected from the NSA catalog as described in \citet{geha2012}. Briefly, the NSA catalog is a reprocessing of SDSS DR8, optimized for low-luminosity 
-objects. It relies on the improved background subtraction technique of 
-\cite{blanton2011}. The catalog extends to $z \approx 0.055$ and includes 
-re-calibrated spectroscopy~\citep{yan2011,yan2012} with much
-smaller errors. However, this recalibration is mostly relevant only at small 
-equivalent width values and hence galaxies on the star formation main 
-sequence will be largely unaffected by this. Dwarf galaxies are considered isolated, and selected, when the distance from a more massive host is $> 1.5 {\rm Mpc}$ \citep{geha2012}.
+At lower stellar masses, we use an isolated dwarf galaxy sample 
+selected from the NSA catalog as described in \citet{geha2012}. 
+Briefly, the NSA catalog is a reprocessing of SDSS DR8, optimized 
+for low-luminosity objects. It relies on the improved background 
+subtraction technique of \cite{blanton2011}. The catalog extends 
+to $z \approx 0.055$ and includes re-calibrated spectroscopy~\citep{yan2011,yan2012} 
+with much smaller errors. However, this recalibration is mostly 
+relevant only at small equivalent width values and hence does not 
+largely affect galaxies on the SFS. %Dwarf galaxies are considered  isolated, and selected, when the distance from a more massive host  is $> 1.5 {\rm Mpc}$ \citep{geha2012}.
 
 For both galaxy samples, the stellar masses are estimated using the 
 \citet{blanton2007} $\mathtt{kcorrect}$ code, which assumes a 
@@ -334,7 +374,7 @@ where they are derived using the~\cite{bruzuala.1993} model with the
 \cite{charlot2000} dust prescription and CLOUDY \citep[version C90.04;][]{ferland1996} emission line modeling.  
 For galaxies classified as having an AGN or a composite spectrum, the 
 SFR is measured from the $D_n4000$ index~\citep{balogh1998}. 
-Additionally, for starforming galaxies that have low S/N spectra, the SFR 
+Additionally, for star-forming galaxies that have low S/N spectra, the SFR 
 is derived from the $H{\alpha}$ luminosity~\citep{brinchmann2004}. 
 We emphasize that SSFRs $\lesssim 10^{-12} \mathrm{yr}^{-1}$ should only be 
 considered upper limits to the true value~\citep{salim2007}.
@@ -346,64 +386,67 @@ considered upper limits to the true value~\citep{salim2007}.
 % Section 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Identifying Isolated/Central Galaxies} \label{sec:central}
-Galaxies and their detailed properties carry the 
-imprint of their environment (~\citealt{hubble1936, oemler1974, dressler1980, guzzo1997}, 
-for a recent review see~\citealp{blanton2009}). The environment
-dependence of, for instance, the quiescent 
-fraction~\citep[\emph{e.g.}][]{baldry2006,peng2010,hahn2015}
-and the timescale of star formation quenching~\citep{wetzel2013,hahn2017}, 
-suggest that different physical mechanisms act in different environments 
-to impact galaxy star formation. Also, there may be significant 
-discrepancies between the SFMSs of central versus satellite 
-galaxies~\citep{wang2018}. Without delving further into the 
-environment dependence, \emph{we focus solely on the central galaxies, 
-which constitute the majority of massive galaxies ($M_* > 10^{9.5}M_\odot$) 
-at $z \sim 0$}. 
+%Galaxies carry the imprint of their environment (~\citealt{hubble1936, oemler1974, dressler1980, guzzo1997},  for a recent review see~\citealp{blanton2009}). 
+As quiescent fraction~\citep[\emph{e.g.}][]{baldry2006,peng2010,hahn2015}
+and star formation quenching timescale~\citep{wetzel2013,hahn2017} 
+measurements suggest, depending on whether a galaxy is a central or satellite, 
+its star formation is subject to different physical mechanisms. There may 
+also be significant discrepancies between the SFSs of central versus
+satellite galaxies~\citep{wang2018}. Without delving further into the 
+environment dependence, in this paper \emph{we focus solely on the 
+central galaxies, which constitute the majority of massive galaxies 
+($M_* > 10^{9.5}M_\odot$) at $z \sim 0$}. 
+%Galaxies and their detailed properties carry the  imprint of their environment (~\citealt{hubble1936, oemler1974, dressler1980, guzzo1997},  for a recent review see~\citealp{blanton2009}). The environment dependence of, for instance, the quiescent  fraction~\citep[\emph{e.g.}][]{baldry2006,peng2010,hahn2015} and the timescale of star formation quenching~\citep{wetzel2013,hahn2017},  suggest that different physical mechanisms act in different environments  to impact galaxy star formation. 
 
-Despite its long recognized importance, galaxy environment is often 
-heterogeneously defined in the literature~\cite{muldrew2012}. Even among our 
-simulations, the classification of centrals depends on 
+Galaxy environment (centrals/satellites), despite its importance, 
+is often heterogeneously defined in the literature~\cite{muldrew2012}. 
+Even among our simulations, the classification of centrals depends on 
 the definition of halo properties, and thus on the underlying halo 
 finders. EAGLE and Illustris use $\mathtt{SUBFIND}$~\citep{springel2001},
 where halos are defined as locally overdense, gravitationally bound
 (sub)structures within a connected region selected through a 
-friend-of-friends~\citep[FOF;][]{davis1985} group finder. On the other hand 
-MUFASA and the Santa Cruz SAM are based on halos found using 
+friend-of-friends~\citep[FOF;][]{davis1985} group finder. {\sc Mufasa} 
+and the SC-SAM, meanwhile, are based on halos found using 
 $\mathtt{ROCKSTAR}$~\citep{behroozi2013}, which defines halos using a
-hierarchical phase-space based FOF technique and endeavors to maximize 
-the consistency of the halo through time.  
-Regardless of their differences, these central classifications use 
-information of the underlying dark matter. Such classifications 
-cannot be reproduced on observed galaxy samples and thus complicate 
-comparison to observations. Therefore, we identify central galaxies in 
-all of our simulations 
-consistently using an extended version of the~\cite{tinker2011} group 
-finder, designed to identify satellite/centrals in observations. 
-
+hierarchical phase-space based FOF technique and seeks to maximize 
+the consistency of the halo through time. In addition, these central 
+classifications also use information of the underlying dark 
+matter --- information {\em not} available in observations. Therefore, 
+we identify central galaxies in all of our simulations consistently 
+using %an extended version of 
+the~\cite{tinker2011} group finder, 
+designed to identify satellite/centrals in observations. 
 %Despite the consistent definition of centrals in the simulations we use, the classification depends on the definition of halo properties in the simulation and thus differences can arise due  to differences in the underlying halo finders used. In the case of our set of simulations both EAGLE and Illustris use
-%SUBFIND~\citep{springel2001}, where halos are defined as locally overdense, gravitationally bound (sub)structures within a connected region selected through a friend-of-friends~\citep[FOF]{davis1985} group finder. On the other hand MUFASA and the Santa Cruz SAM are based on halos found using ROCKSTAR~\citep{behroozi2013}, which defines halos using a hierarchical phase-space based FOF technique and endeavors to maximize the consistency of the halo through time. Comparison projects have shown that the halo (central)/subhalo (satellite) classification generally agrees well (although the (sub)halo mass estimation can vary significantly), except when the subhalo is close to the center of the host for example during major mergers, and in late stages of minor mergers~\citep{knebe2011, behroozi2015}. 
+%SUBFIND~\citep{springel2001}, where halos are defined as locally overdense, gravitationally bound (sub)structures within a connected region selected through a friend-of-friends~\citep[FOF]{davis1985} group finder. On the other hand {\sc Mufasa} and the Santa Cruz SAM are based on halos found using ROCKSTAR~\citep{behroozi2013}, which defines halos using a hierarchical phase-space based FOF technique and endeavors to maximize the consistency of the halo through time. Comparison projects have shown that the halo (central)/subhalo (satellite) classification generally agrees well (although the (sub)halo mass estimation can vary significantly), except when the subhalo is close to the center of the host for example during major mergers, and in late stages of minor mergers~\citep{knebe2011, behroozi2015}. 
 
-
-\begin{itemize}
-    \item \todo{paragraph describing Jeremy's new group finder code} 
-\end{itemize}
-\emph{Galaxies with $P_\mathrm{sat} < 0.01$ are designated as centrals.} 
+The~\cite{tinker2011} group finder is a halo-based algorithm that uses 
+the abundance matching ansatz to iteratively assign halo masses to groups. 
+It assigns a tentative halo mass to each galaxy by matching the abundance 
+of the objects. Then starting with the most massive galaxy, nearby lower
+mass galaxies are assigned a probability of being a satellite. Once all 
+the galaxies are assigned to a group, the halo masses of the central galaxies 
+are updated by abundance matching with the total stellar mass in the groups. 
+This entire process is repeated until convergence. In the resulting catalog, 
+every group contains one central galaxy, which by definition is the 
+most massive, and a group can contain zero, one, or many satellites.
+For a detailed description we refer readers to~\cite{tinker2011,wetzel2012}. 
 
 Overall, we find good agreement between the central classifications of 
 the group finder and simulations. Using purity and completeness as defined 
 in Eqs.~13 and~15 of~\cite{campbell2015}, we find central galaxy classification purities of 
 $99\%, 93\%, 84\%$, and $90\%$ and completenesses of $86\%$, $89\%$, 
-$91\%$, and $86\%$  for the Illustris, EAGLE, MUFASA and Santa Cruz SAM 
+$91\%$, and $86\%$  for the Illustris, EAGLE, {\sc Mufasa} and SC-SAM 
 simulations respectively. Differences in the purity and completeness for the 
 simulations is likely due to the different halo finders used in the 
 simulations as described above. For the hydrodynamic simulations, we find no 
-significant stellar mass dependence in the purities. However, the Santa 
-Cruz SAM has purity of $44\%$ at $M_*$ below $10^{8.5}M_\odot$ and $97\%$ 
-above. Consequently, we impose a stellar mass limit of $M_* > 10^{8.5} M_\odot$
-for the Santa Cruz SAM. In addition to the overall agreement in central 
-classifications, we confirm that the group finder classification does \emph{not} 
-impact the results of this paper. In the next section, we proceed to fitting 
-the star formation main sequence of simulated galaxies identified as centrals.
+significant stellar mass dependence in the purities. The SC-SAM, due to 
+its mass resolution, has purity of $44\%$ at $M_*$ below $10^{8.5}M_\odot$ 
+and $97\%$ above. However, as we discuss in Section~\ref{sec:scsam}, we 
+impose a conservative stellar mass limit of $M_* > 10^{8.8} M_\odot$. 
+As expected from the high purity and completeness, the group finder 
+classification does \emph{not} impact the results of this paper. In 
+the next section, we proceed to fitting the star formation sequence 
+of simulated galaxies identified as centrals.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -413,78 +456,78 @@ the star formation main sequence of simulated galaxies identified as centrals.
 \begin{center}
 \includegraphics[width = 0.9\textwidth]{figs/SFMSfit_demo.pdf} 
 \caption{
-We illustrate our GMM SFMS fitting method for Illustris central galaxies in two 
+We illustrate our GMM SFS fitting method for Illustris central galaxies in two 
 stellar mass bins highlighted on the SFR--$M_*$ relation of the left panel: 
 $10.4 < \log\,M_* < 10.6$ and $11.0 < \log\,M_* < 11.2$. On the right, we compare the SSFR 
 distributions, $p(\log\,\mathrm{SSFR})$, in the two stellar 
 mass bins to their best-fit GMMs. The $p(\log\,\mathrm{SSFR})$ in the center panel is best described by a 
 GMM with three components (orange, green, and blue) while the
 $p(\log\,\mathrm{SSFR})$ in the right panel is best described by 
-a GMM with two components (orange and blue). The SFMS components of the 
-best-fit GMMs are plotted in blue. \emph{Our GMM SFMS fitting provides
-a flexible and data-driven way to identify the SFMS for a wide variety 
+a GMM with two components (orange and blue). The SFS components of the 
+best-fit GMMs are plotted in blue. \emph{Our GMM SFS fitting provides
+a flexible and data-driven way to identify the SFS for a wide variety 
 of SSFR distributions without hard assumptions or cuts to the sample.}
 }\label{fig:fitdemo}
 \end{center}
 \end{figure*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Fitting the Star Formation Main Sequence}\label{sec:sfmsfit}
-We present the SFR--$M_*$ relation of central galaxies identified 
-from the simulations and observations of Section~\ref{sec:ourgals} in 
+\section{Fitting the Star Forming Sequence}\label{sec:sfmsfit}
+We present the SFR--$M_*$ relation of central galaxies from the 
+simulations and observations of Section~\ref{sec:galsims} in 
 Figure~\ref{fig:sfrmstar}. Regardless of SFR timescale (top/bottom),
 for both simulations and observations, and over four orders of magnitude 
 in stellar mass, \emph{the SFR and $M_*$ of star-forming galaxies lie 
-tightly correlated on the SFMS}. A well-defined SFMS can be found in 
+tightly correlated on the SFS}. A well-defined SFS can be found in 
 each panel of Figure~\ref{fig:sfrmstar}.
 
-Despite its universality among multiple observations and simulations, 
-different datasets give rise to significantly SFR--$M_*$ distributions.
-This makes the SFMS difficult to \emph{consistently} quantify. So far 
-in the literature, a wide variety 
-of fitting methods have been applied to data. For instance, \cite{bluck2016} 
-fit the SFMS using median $\log\mathrm{SFR}$s of galaxies with 
-$M_* < 10^{10}M_\odot$ and extrapolate to higher masses. This method, however, 
-assumes that all $M_* < 10^{10}M_\odot$ galaxies lie on the SFMS and that 
-there is no variation in the slope of the SFMS at higher stellar masses. 
-Alternatively, \cite{lee2015} fit the SFMS using median 
-$\log\,\mathrm{SFR}$s of galaxies in the sample after some color-color cut 
-to identify SF galaxies. Other recent works in the literature have opted 
+Despite its universality among observations and simulations, 
+different datasets give rise to significantly different SFR--$M_*$ 
+distributions. This makes the SFS difficult to \emph{consistently} 
+quantify. So far in the literature, a wide variety of fitting 
+methods have been applied to data --- even in the same comparison 
+(see Appendix~\ref{app:literature}). \cite{bluck2016} fit the SFS 
+using median $\log\mathrm{SFR}$s of galaxies with $M_* < 10^{10}M_\odot$ 
+and extrapolate to higher masses. This method, however, assumes that 
+all $M_* < 10^{10}M_\odot$ galaxies lie on the SFS and that there 
+is no variation in the slope of the SFS at higher stellar masses. 
+Alternatively, \cite{lee2015} fit the SFS using median 
+$\log\,\mathrm{SFR}$s of galaxies in the sample after some color-color 
+cut to identify SF galaxies. Other recent works in the literature have opted 
 for more sophisticated methods such as fitting a three-component
 Gaussian~\citep{bisigello2018} or a zero-inflated negative binomial 
 distribution~\citep{feldmann2017}. 
 
 All of these methods require arbitrary assumptions or hard cuts on the 
-sample. Moreover, these methods struggle with fitting the SFMS over a 
-wide SFR or $M_*$ range and for the wide variety of SSFR distributions we see 
-in simulations and observations. Even for fixed a stellar mass bin 
-($10.4 < \log M_* < 10.6$), Figure~\ref{fig:pssfr} reveals the 
-significant discrepancies in the SSFR distributions of our four simulations. 
-Therefore, in an effort to better fit a wide variety of star formation--stellar
-mass distributions and to relax the assumptions and cuts imposed on the data, 
-\emph{we present a flexible and data-driven method for fitting the SFMS that 
-makes use of Gaussian Mixture 
-Models}~\citep[][]{Press:1992:NRC:148286, 9780471006268}. 
+sample. Moreover, these methods struggle to flexibly account for 
+the different features in the galaxy property space over a wide 
+SFR or $M_*$ range and in different simulations and observations. %for the wide variety of SSFR distributions we see  in simulations and observations. 
+Even for fixed a stellar mass bin ($10.4 < \log M_* < 10.6$), 
+Figure~\ref{fig:pssfr} reveals the significant discrepancies in 
+the SSFR distributions of our four simulations. In an effort to 
+better fit a wide variety of SFR--$M_*$ distributions and to relax the assumptions and cuts imposed 
+on the data, \emph{we present a flexible and data-driven method for 
+fitting the SFS that makes use of Gaussian Mixture Models}.
 
 \subsection{Using Gaussian Mixture Models}
 Gaussian mixture models (hereafter GMM), and mixture models in general, provide 
 a probabilistic way of describing the distribution of a population by 
-identifying subpopulations from the data. Besides their extensive use 
-in machine learning and statistics, GMMs has also been used in wide range 
-of astronomical analyses~\citep{bovy2011,lee2012,taylor2015}. 
+identifying subpopulations from the data~\citep[][]{Press:1992:NRC:148286, 9780471006268}.
+Besides their extensive use in machine learning and statistics, 
+GMMs have also been used in wide range of astronomical analyses~\citep[\emph{e.g.}][]{bovy2011,lee2012,taylor2015}. 
 Since identifying the subpopulation of star forming galaxies from the overall
-galaxy population is equivalent to fitting the SFMS, GMMs provides a 
+galaxy population is equivalent to fitting the SFS, GMMs provides a 
 well-motivated, data-driven, and effective method to tackle the problem. 
 
 A GMM, more precisely, is a weighted sum of $k$ Gaussian component densities 
 \begin{equation} \label{eq:gmm}
 \hat{p}(x;\bm{\theta}) = \sum\limits_{i=1}^{k} \pi_i \, \mathcal{N}(x; \bm{\theta}_i),
 \end{equation}
-to estimate the density. The weights, $\pi_i$, mean, and variance  
-$\bm{\theta}_i=\{\mu_i, \sigma_i\}$ 
-of the components are free parameters in the GMM. For a given data set 
-$\{x_1, ..., x_n\}$, these parameters are most commonly estimated through
-the expectation-maximization algorithm~\citep[EM;]{dempster1977,neal1998}. 
+which can be used to estimate the density. The weights, $\pi_i$, mean, and 
+variance $\bm{\theta}_i=\{\mu_i, \sigma_i\}$ of the components are free 
+parameters in the GMM. For a given data set $\{x_1, ..., x_n\}$, these 
+parameters are most commonly estimated through the expectation-maximization 
+algorithm~\citep[EM;]{dempster1977,neal1998}. 
 
 Starting with randomly assigned $\bm{\theta}_{i}^0$ to the $k$ GMM components, 
 the EM algorithm iterates between two steps. First, for every data point, 
@@ -496,59 +539,57 @@ data. $\pi_i$ are also updated by summing up the assignment weights and
 normalizing the sum by the total number of data points. These steps are 
 repeated until convergence --- \emph{i.e.} when $p(\{x_1, ..., x_n\} ; \bm{\theta}_t)$ 
 converges. Instead of starting with randomly assigning $\bm{\theta}_{i}^0$, 
-we initiate our EM algorithm using a $k$-means clustering algorithm~\citep{lloyd1982}.
-More specifically, for our Gaussian mixture density estimation we use 
-the $k$-$\mathtt{means}$++ algorithm of~\cite{arthur2007}. 
+we initiate our EM algorithm using a $k$-means clustering algorithm~\citep{lloyd1982},
+more specifically we use the $k$-$\mathtt{means}$++ algorithm~\citep{arthur2007}. 
 
-For our actual SFMS fitting method, we first divide the galaxy 
-sample into stellar mass bins of width $\Delta \log\,M∗$. In 
-this paper we use bins of $\Delta \log\,M∗ = 0.2\  \mathrm{dex}$; however, 
-this choice does not significantly impact the final fit. For each stellar 
-mass bin, if there are more than $N_\mathrm{thresh}=100$ galaxies in the bin, 
-we fit the SSFR distribution using Gaussian mixture models (GMMs) 
-with 1 to 3 components with parameters determined from the EM algorithm 
-described above. Our restriction to models with a maximum of 3 components 
-is motivated by the three main galaxy classifications: quiescent, 
-star-forming, and transitioning populations. Furthermore, for our observed 
-galaxy samples, even when we allow for more than 3 components, 
-the best-fit GMMs have $k\leq3$. We confirm that restricting ourselves 
-to 3 components does not significantly impact the results of this work
-(Appendix~\ref{app:gmm}). 
+For our actual SFS fitting method, we first divide the galaxy 
+sample into stellar mass bins of width $\Delta \log\,M∗$. In this paper 
+we use bins of $\Delta \log\,M∗ = 0.2\ \mathrm{dex}$; however, this 
+choice does not significantly impact the final fit. For each stellar 
+mass bin, if there are more than $N_\mathrm{thresh}{=}100$ galaxies in the bin, 
+we fit the SSFR distribution using GMMs with $k{=}1$ to 3 components with 
+parameters determined from the EM algorithm described above. 
+Our restriction to models with a maximum of 3 components is 
+motivated by the three main galaxy subpopulations: quiescent, star-forming, 
+and transitioning galaxies. More importantly, for our observed galaxy samples
+and hydrodynamic simulations, even when we allow for more than 3 components,
+the best-fit GMMs have $k\leq3$. Hence, the choice of $k\leq3$ does not 
+significantly the results of this work.
+%Our restriction  to models with a maximum of 3 components is motivated by the three main  galaxy classifications: quiescent, star-forming, and transitioning  populations. Furthermore, for our observed galaxy samples, even when we allow for more than 3 components,  the best-fit GMMs have $k\leq3$. We confirm that restricting ourselves  to 3 components does not significantly impact the results of this work (Appendix~\ref{app:gmm}). 
 
-Out of the three ($k\leq3$) GMMs, we select the ``best-fit'' model with the lowest Bayesian Information 
-Criteria~\citep[BIC;][]{schwarz1978}. BIC is often used in conjunction with 
-GMMs~\citep[\emph{e.g.}][]{leroux1992,roeder1997,fraley1998,steele2010performance} 
+Out of the three ($k{\leq}3$) GMMs, we select the one with the lowest Bayesian 
+Information Criteria~\citep[BIC;][]{schwarz1978} as our ``best-fit'' model. 
+BIC is often used in conjunction with GMMs~\citep[\emph{e.g.}][]{leroux1992,roeder1997,fraley1998,steele2010performance} 
 and also more generally for model selection in 
 astronomy~\citep[\emph{e.g.}][]{liddle2007,broderick2011,vakili2016}.
 In addition to the likelihood, BIC introduces a penalty term for the number
 of parameters in the model. This way, using BIC not only finds a good fit to 
 the data, but it also addresses the concern of over-fitting. 
-% CHH: not sure if we want to include this figure}.
-% In Figure~\ref{fig:gmm_pedagog},  
+Next, we designate the component of the best-fit GMM with mean 
+$\log\,\mathrm{SSFR} > −11$ as the SFS component. If there are more 
+than one GMM component with mean $\log\,\mathrm{SSFR} > −11$, 
+we take the component with the larger weight (\emph{i.e.} the mode) 
+as the SFS component. 
+{\color{red} In Appendix~\ref{app:gmm_pssfr}, we present a detailed 
+comparison of the GMM fits to the SSFR distributions of our simulations 
+and discuss the advantages of our SFS fitting method in further detail.} 
 
-In the best-fit GMM, we designate the Gaussian component of the 
-best-fit GMM with mean $\log\,\mathrm{SSFR} > −11$ as the SFMS component.
-In the case when more than one GMM component has mean 
-$\log\,\mathrm{SSFR} > −11$, the component with the larger weight 
-(\emph{i.e.} the mode) is designated as the SFMS component. Typically in such a 
-situation, the SFRs of the SFMS is not well described by a log-normal
-distribution. In observations, we do not encounter this situation. 
-In simulations, however, we encounter this situation in lower stellar mass bins 
-($\log\,M_* < 10^{9}\ M_\odot$) of the Illustris and EAGLE simulations. 
+%When we compare  the $k\leq3$ GMM fits to the SSFR distribution of our simulations in three  stellar mass bins, we find good agreement between the lowest BIC best-fit  models and the SSFR distributions (Appendix~\ref{app:gmm_pssfr};  Figures~\ref{fig:pssfr_gmm_inst} and~\ref{fig:pssfr_gmm_100myr}).
 
-In Figure~\ref{fig:fitdemo}, we illustrate our GMM SFMS fitting for the 
+In Figure~\ref{fig:fitdemo}, we illustrate our GMM SFS fitting for the 
 central galaxies of the Illustris simulation in two stellar mass 
 ranges highlighted in the left panel: $10.4 < \log\,M_* < 10.6$ (center) 
 and $11.0 < \log\,M_* < 11.2$ (right). For the two stellar mass bins, 
 we compare the SSFR distributions of the bins to the components of the 
-best-fit GMMs derived from our SFMS fitting method. The SFMS component 
+best-fit GMMs derived from our SFS fitting method. The SFS component 
 is plotted in blue. The SSFR distribution of the center panel is best 
 described by a GMM with three components while the SSFR distribution 
 in the right  panel is best described by a GMM with only two components.
 %The right panels illustrate the wide variation in SSFR distributions of the galaxy samples. 
 These comparisons highlights the flexibility and effectiveness 
-of our fitting method in identifying the SFMS for different SSFR 
-distributions. All the code used for our SFMS fitting is publicly available 
+of our fitting method in identifying the SFS for different SSFR 
+distributions. 
+All the code used for our SFS fitting is publicly available 
 at \url{https://github.com/changhoonhahn/LetsTalkAboutQuench}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -557,13 +598,13 @@ at \url{https://github.com/changhoonhahn/LetsTalkAboutQuench}.
 \begin{figure*}
 \begin{center}
 \includegraphics[width = 0.8\textwidth]{figs/Catalogs_SFMSfit_SFRinst.pdf} 
-\caption{Best-fit SFMS of the central galaxies in the Illustris, EAGLE, MUFASA, 
-    and Santa Cruz SAM simulations as identified by our SFMS GMM fitting method 
-    (Section~\ref{sec:sfmsfit}). The SFMSs above are fit from the instantaneous 
-    SFR--$M_*$ relation. For reference, we include the best-fit SFMS of the SDSS 
-    sample in the top right panel. The uncertainties of the best-fit SFMS are
-    derived usig bootstrap resampling. When we compare the SFMS fits
-    (bottom right panel), \emph{the SFMSs of the simulations have similar 
+\caption{Best-fit SFS of the central galaxies in the Illustris, EAGLE, {\sc Mufasa}, 
+    and SC-SAM simulations as identified by our SFS GMM fitting method 
+    (Section~\ref{sec:sfmsfit}). The SFSs above are fit from the instantaneous 
+    SFR--$M_*$ relation. For reference, we include the best-fit SFS of the SDSS 
+    sample in the top right panel. The uncertainties of the best-fit SFS are
+    derived using bootstrap resampling. When we compare the SFS fits (bottom 
+    right panel), we find that \emph{the SFSs of the simulations have similar 
     overall stellar mass dependence, but their amplitude vary roughly by an 
     order of magnitude.}} \label{fig:sfmsfit_inst}
 \end{center}
@@ -576,8 +617,8 @@ at \url{https://github.com/changhoonhahn/LetsTalkAboutQuench}.
 \begin{figure*}
 \begin{center}
 \includegraphics[width = 0.8\textwidth]{figs/Catalogs_SFMSfit_SFR100myr.pdf} 
-    \caption{Same as Figure~\ref{fig:sfmsfit_inst} but for the $100\,\mathrm{Myr}$ 
-    SFR--$M_*$ relation. As in Figure~\ref{fig:sfmsfit_inst}, \emph{the SFMSs of the simulations have 
+    \caption{Same as Figure~\ref{fig:sfmsfit_inst} but for $100\,\mathrm{Myr}$ SFR. 
+    As in Figure~\ref{fig:sfmsfit_inst}, \emph{the SFSs of the simulations have 
     similar stellar mass dependence but vary roughly by an order of magnitude in amplitude.}}
 \label{fig:sfmsfit_100myr}
 \end{center}
@@ -589,167 +630,194 @@ at \url{https://github.com/changhoonhahn/LetsTalkAboutQuench}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}
 \begin{center}
-\includegraphics[width = 0.5\textwidth]{figs/Catalogs_SFMS_powerlawfit.pdf} 
-\caption{Power-law fits to the best-fit SFMS for the Illustris (green), 
-    EAGLE (red), MUFASA (purple), and Santa Cruz SAM (brown) simulations. 
-    The left and right panels use instantaneous SFR and $100\,\mathrm{Myr}$ 
-    SFR, respectively. We list the power-law fit parameters in 
-    Table~\ref{tab:sfms_powerlaw}. The power-law fit to the MUFASA SFMS 
-    is impacted by the high stellar mass turnover. The power-law fits for 
-    the Illustris, EAGLE, and Santa Cruz SAM SFMS differ by \todo{${\sim}0.5\,\mathrm{dex}$}
-    with no significant mass dependence.}
+\includegraphics[width = 0.48\textwidth]{figs/Catalogs_SFMS_powerlawfit.pdf} 
+\caption{Power-law fits to the best-fit SFS for the Illustris (green), 
+    EAGLE (red), {\sc Mufasa} (purple), and SC-SAM (brown) simulations. 
+    We use instantaneous SFR and $100\,\mathrm{Myr}$ SFR in the left
+    and right panels respectively. We list the best-fit parameters 
+    in Table~\ref{tab:sfms_powerlaw}. For a more consistent 
+    comparison, we restrict the power-law fit to the {\sc Mufasa} SFS 
+    to $\log\,M_* < 10.6$ (purple solid) since the fit is 
+    significantly impacted by the high stellar mass turnover (purple dotted). 
+    The power-law fits further illustrate the ${\sim}1\,\mathrm{dex}$ 
+    discrepancy among the SFSs of the simulations.}
     \label{fig:sfmsfit_powerlaw}
 \end{center}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Results} \label{sec:results}
-\subsection{SFMS of simulated galaxies}
-Now with our method for fitting the SFMS, which can be flexibly 
-applied a wide range of SSFR distributions, we identify the SFMSs of our simulated
-central galaxies from Section~\ref{sec:ourgals}. For the instantaneous and 
-$100\,\mathrm{Myr}$ SFR timescales, we present the best-fit SFMSs of our 
-simulated galaxies from the Illustris, EAGLE, MUFASA, and Santa Cruz SAM 
-simulations in Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}, 
-respectively. %For reference we include the best-fit SFMS of the SDSS central galaxies in the top right panel. 
+\subsection{SFS of simulated galaxies} \label{sec:sfs}
+Now using our SFS fitting method from above, % for fitting the SFS, which can be flexibly  applied a wide range of SSFR distributions, 
+we can identify the SFSs of our simulated central galaxies from 
+Section~\ref{sec:galsims}. We present the best-fit SFSs of our
+simulated galaxies from the Illustris, EAGLE, {\sc Mufasa}, and SC-SAM 
+simulations for the instantaneous and $100\,\mathrm{Myr}$ SFR 
+timescales in Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}, 
+respectively. %For reference we include the best-fit SFS of the SDSS central galaxies in the top right panel. 
+Overall, the best-fit SFSs of the simulations exhibit a similar monotonic
+relation between SFR and $M_*$ out to $M_* \gtrsim 10^{11}M_\odot$, for 
+both SFR timescales. However, when we compare the best-fit SFSs in more
+detail (bottom right panels of Figures~\ref{fig:sfmsfit_inst} 
+and~\ref{fig:sfmsfit_100myr}), we find \emph{order of magnitude discrepancies 
+in SFR among the best-fit SFSs throughout the stellar mass range of the 
+simulations for both SFR timescales}. 
 
-The best-fit SFMSs of the Illustris, EAGLE, and Santa Cruz SAM simulations
-exhibit a similar monotonic relation between SFR and $M_*$ out to 
-$M_* \gtrsim 10^{11}M_\odot$, for both SFR timescales. The best-fit SFMSs 
-for MUFASA, however, turn over at 
-$M_*{\sim}10^{10.5} M_\odot$ and decreases in SFR at high stellar masses. 
-We confirm that this turnover is \emph{not} caused by misidentification of 
-the SFMS or some systematic effect of the fitting by examining the 
-best-fit GMM components  and the $p(\log\mathrm{SSFR})$ in these higher 
-stellar mass bins. Between the two SFR timescales, we find little difference 
-between the best-fit SFMSs for each simulation. However, when we compare the 
-best-fit SFMSs of the simulations altogether in more detail, we find 
-\emph{order of magnitude discrepancies in SFR among the best-fits throughout 
-the stellar mass range of the simulations for both SFR timescales} (bottom 
-right panels of Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}). 
-%These best-fit SFMSs allow us to make detailed comparison among the simulations. 
-
-The uncertainties for the best-fit SFMSs in Figures~\ref{fig:sfmsfit_inst} 
+%The best-fit SFSs of the Illustris, EAGLE, and SC-SAM simulations
+%exhibit a similar monotonic relation between SFR and $M_*$ out to 
+%$M_* \gtrsim 10^{11}M_\odot$, for both SFR timescales. 
+%Between the two SFR timescales, we find little difference 
+%between the best-fit SFSs for each simulation. However, when we compare the 
+%best-fit SFSs of the simulations altogether in more detail, we find 
+%These best-fit SFSs allow us to make detailed comparison among the simulations. 
+The uncertainties for the best-fit SFSs in Figures~\ref{fig:sfmsfit_inst} 
 and~\ref{fig:sfmsfit_100myr} are derived from bootstrap resampling~\citep{efron1979} 
-in each stellar mass bin of the fitting. These uncertainties are \emph{underestimates} because 
-they do not account for ``cosmic variance'' --- \emph{i.e.} we only have one 
-finite volume realization of each simulation. Furthermore, uncertainty of the best-fit 
-SFMS corresponds to the uncertainty of the means of the SFMS GMM component, 
-which is only one of the parameters in the GMM. Uncertainties from bootstrap 
-resampling, however, do \emph{not} account for the correlations between the 
-mean of the SFMS GMM and other
-parameters of the GMM (Eq.~\ref{eq:gmm}). A more robust estimate of the 
-uncertainties would involve estimating the marginalized posterior distribution 
-of the SFMS GMM component mean using a method like MCMC. Since this still 
-does not account for cosmic variance, we use bootstrap uncertainties. 
+in each stellar mass bin of the fitting. These uncertainties are 
+\emph{underestimates} because they do not account for 
+``cosmic variance'' --- \emph{i.e.} we only have one finite volume realization 
+of each simulation. Furthermore, uncertainty of the best-fit SFS corresponds 
+to the uncertainty of the means of the SFS GMM component, which is only one 
+of the parameters in the GMM. Uncertainties from bootstrap resampling, 
+however, do \emph{not} account for the correlations between the mean of 
+the SFS GMM and other parameters of the GMM in Eq.~\ref{eq:gmm}. A more 
+robust estimate of the uncertainties would involve estimating the marginalized 
+posterior distribution of the SFS GMM component mean using a method like MCMC. 
+Since this still does not account for cosmic variance, we use bootstrap 
+uncertainties. 
 
-From the best-fit SFMSs, we can further 
-parameterize the SFMS to some functional form as often done in the 
-literature --- \emph{e.g.} power-law~\citep{speagle2014} or broken 
-power-law~\citep{lee2015}. With little evidence of a turnover in the 
-SFMS for most of our galaxies, we fit a power-law of the form 
+Given the best-fit SFSs, we can further parameterize the SFS to some 
+functional form as often done in the literature --- \emph{e.g.} 
+power-law~\citep{speagle2014} or broken power-law~\citep{lee2015}. With 
+little evidence of a turnover in the SFS in {\em most} of simulations, 
+we fit a power-law of the form 
 \begin{equation} \label{eq:powerlaw}
 \log\,\mathrm{SFR}_\mathrm{MS} = m\,(\log\,M_* - 10.5) + b
 \end{equation}
-to the SFMSs in Figure~\ref{fig:sfmsfit_powerlaw}. We list the best-fit 
-(maximum likelihood) parameter values of Eq.~\ref{eq:powerlaw} in 
-Table~\ref{tab:sfms_powerlaw}. The power-law parameterizations accentuate 
-the stellar mass dependence of the SFMSs and can reveal the mass dependence 
-in the SFMS discrepancies. Putting aside MUFASA, whose power-law fit is 
-impacted by the turnover at high stellar masses, we find significant
-discrepancies in the slopes of the SFMSs of the simulations with Santa Cruz 
-SAM having the steepest SFMS and EAGLE having the shallowest SFMS. The 
-power-law SFMS fits, however, reveal little 
-mass dependence in the discrepancies of the SFMSs. For instantaneous SFR, 
-the discrepancies between the SFMSs of Illustris, EAGLE, and Santa Cruz SAM are 
-$\sim 0.5\,\mathrm{dex}$ throughout the stellar mass range. Meanwhile, 
-for $100\,\mathrm{Myr}$ SFR, we find slightly
-greater discrepancies among Illustris, EAGLE, and Santa Cruz SAM throughout
-the stellar mass range.
+to the SFSs in Figure~\ref{fig:sfmsfit_powerlaw}. Unlike the SFS of 
+other simulations, the best-fit SFSs for {\sc Mufasa} have a significant 
+turnover at $M_*{\sim}10^{10.5}M_\odot$. This turnover is \emph{not} 
+caused by  misidentification of the SFS or some systematic effect of the 
+fitting. {\color{red} Instead, the turnover is due to the halo mass 
+dependent quenching prescription in {\sc Mufasa} (Section~\ref{sec:mufasa}), 
+which causes a sharp cut-off in the SFS, in comparison to the other more 
+self-consistent AGN feedback models. Since we're primarily interested in
+the SFS, we fit Eq.~\ref{eq:powerlaw} to {\sc Mufasa}'s SFS over the range 
+$M_*{<}10^{10.6} M_\odot$, below the turnover.} 
 
-%At lower stellar masses (), for both instantaneous SFRs and $100\,\mathrm{Myr}$ SFRs, the SFMS disagree with each  other by more than an order of magnitude. \todo{talk about how MUFASA for 100 Myr is an outlier because of the high  stellar mass limit and the high mass turnover.}
-Things to discuss at the workshop: 
-\begin{itemize}
-\item \todo{What's causing the simulations to have SFMSs that are almost an 
-order of magnitude different?} 
-\item \todo{How come this doesn't cause cosmic star-formation rate 
-density estimates to also be an order of magnitude different? Is it that they agree better on the total or average SFR in a stellar mass bin than on how we model the SFMS??}
-\item \todo{what's up with MUFASA. why does MUFASA have a turnover? -- 
-Due to MUFASA's quenching method being based on halo mass?}
-\end{itemize}
+Comparing the best-fit (maximum likelihood) parameters of Eq.~\ref{eq:powerlaw}
+that we list in Table~\ref{tab:sfms_powerlaw},  we find significant
+%The power-law parameterizations accentuate the stellar mass dependence of  the SFSs and can reveal the mass dependence in the SFS discrepancies. 
+discrepancies in the slopes of the SFSs of the simulations with SC-SAM 
+having the steepest SFS with $m > 1$. Furthermore, we also find significant
+discrepancies ($> 0.5\,\mathrm{dex}$) in the amplitudes of the SFSs at 
+$M_* = 10^{10.5} M_\odot$ ($b$ in Eq.~\ref{eq:powerlaw}). Although the power-law
+SFS fits highlight the stellar mass dependence of the SFSs, they reveal  
+no consistent stellar mass dependence in the discrepancies of the SFSs. For 
+both SFR timescales, the discrepancies among the SFSs range from $0.5 - 1.\,\mathrm{dex}$ 
+throughout the stellar mass range (Figure~\ref{fig:sfmsfit_powerlaw}). 
 
-In addition to its position, $\mu_\mathrm{SFMS}$, the SFMS GMM component 
-is also described by $\sigma_\mathrm{SFMS}$ --- the width of the SFMS. 
-Using $\sigma_\mathrm{SFMS}$ derived from the SFMS GMM fitting, 
-we can compare the width of the SFMS among the simluations 
+%The discrepancies between the instantaneous SFR SFSs of Illustris, EAGLE, and SC-SAM range from $1.\,\mathrm{dex}$ at low $M_*$ to $0.5\,\mathrm{dex}$ at high $M_*$ . Meanwhile, 
+%for $100\,\mathrm{Myr}$ SFR, we find slightly greater discrepancies among Illustris, EAGLE, and SC-SAM throughout the stellar mass range.
+%\begin{itemize}
+%\item \todo{What's causing the simulations to have SFSs that are almost an 
+%order of magnitude different? -> Include reference to appendix \ref{app:literature}} 
+%\end{itemize}
+Despite the order of magnitude discrepancies among the SFRs of the SFSs,
+we find more consistent cosmic star formation densities among the 
+simulations. For Illustris, EAGLE, {\sc Mufasa}, and SC-SAM, respectively, 
+we estimate cosmic star formation densities of 
+$-1.66, -2.22, -1.87$, and $-1.94\,M_\odot yr^{-1} \mathrm{Mpc}^{-3}$ 
+using instantaneous SFRs and similarly 
+$-1.68, -2.20, -1.91$, and $-1.94$ $M_\odot yr^{-1} \mathrm{Mpc}^{-3}$ 
+using $100\,\mathrm{Myr}$ SFRs. In fact, these star formation densities
+are more or less consistent with observations~\citep{madau2014}. 
+{\color{red}
+The cosmic star formation densities roughly correspond to the total 
+star formation in the SFS weighted by the stellar mass function (SMF).
+The SMFs of our simulations are less discrepant than the SFSs; as
+a result, the cosmic SF densities have smaller discrepancies.
+For example, {\sc Mufasa} has the highest SFS for most of the 
+$M_*$ range in Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}), 
+however, its SMF has an overall lower amplitude than Illustris and 
+SC-SAM. Hence it has a SF density similar to SC-SAM and lower than 
+Illustris.}
+
+In addition to its position, $\mu_\mathrm{SFS}$, the SFS GMM component 
+is also described by $\sigma_\mathrm{SFS}$ --- the width of the SFS. 
+Using $\sigma_\mathrm{SFS}$ derived from the SFS GMM fitting, 
+we can compare the width of the SFS among the simulations 
 (Figure~\ref{fig:sfms_width}). The uncertainties for the widths are 
 calculated through bootstrap resampling in the same way as the 
-uncertainties for the SFMS fits. Overall, we find little stellar mass 
-dependence in $\sigma_\mathrm{SFMS}$ for the simulations. For Illustris, 
-EAGLE, MUFASA, and Santa Cruz SAM we respectively find 
-$\sigma_\mathrm{SFMS} \sim 0.16, 0.20, 0.21$, and $0.20\,\mathrm{dex}$ 
+uncertainties for the SFS fits. Overall, we find little stellar mass 
+dependence in $\sigma_\mathrm{SFS}$ for the simulations. For Illustris, 
+EAGLE, {\sc Mufasa}, and SC-SAM we respectively find 
+$\sigma_\mathrm{SFS} \sim 0.2, 0.26, 0.25$, and $0.24\,\mathrm{dex}$ 
 for instantaneous SFR and
-$\sigma_\mathrm{SFMS} \sim 0.17, 0.24, 0.23$, and $0.24\,\mathrm{dex}$
-for $100\,\mathrm{Myr}$ SFR. These $\sigma_\mathrm{SFMS}$ are narrower 
+$\sigma_\mathrm{SFS} \sim 0.18, 0.19, 0.27$, and $0.23\,\mathrm{dex}$
+for $100\,\mathrm{Myr}$ SFR. These $\sigma_\mathrm{SFS}$ are narrower 
 than the ${\sim}0.3\,\mathrm{dex}$ width measured in 
 observations~\citep[\emph{e.g.}][]{daddi2007, noeske2007, magdis2012, whitaker2012}. 
 This difference, however, does not account for the uncertainties in the 
 observed SFR measurements, which would reduce the discrepancy. We 
-therefore conclude that \emph{the width of the SFMS from our 
-simulations are in agreement with the observed SFMS width.}
-
+therefore conclude that \emph{the width of the SFS from our 
+simulations are in agreement with the observed SFS width.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Table
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{table}
-\caption{Power-law fit to the SFMS of our simulated central galaxies from the
-Illustris, EAGLE, MUFASA, and Santa Cruz SAM simulations.\todo{update}} 
+\caption{Power-law fit to the SFS of our simulated central galaxies from the
+Illustris, EAGLE, {\sc Mufasa}, and SC-SAM simulations.} 
 \begin{center}
-\begin{tabular}{p{5cm}cc} \toprule
-%\multicolumn{2}{c}{} \\[-7pt]
-\multicolumn{3}{c}{Star Forming Main Sequence fit} \\
-\multicolumn{3}{c}{$\log\,\mathrm{SFR}_\mathrm{MS} = m\,(\log\,M_* - 10.5) + b$  } \\ [5pt]
+\begin{tabular}{p{4cm}cc} \toprule
+\multicolumn{3}{c}{Star Forming Sequence power-law fit} \\ [3pt]
+\multicolumn{3}{c}{$\log\,\mathrm{SFR}_\mathrm{MS} = m\,(\log\,M_* - 10.5) + b$  } \\ [3pt]
 Simulation & $m$ & $b$ \\ 
 \hline
-Illustris [inst. SFR] & 0.96 & 0.51 \\ 
-Illustris [$100\,\mathrm{Myr}$ SFR] & 0.96 & 0.54 \\ [2pt]
-EAGLE [inst. SFR] & 0.86 & 0.17 \\ 
-EAGLE [$100\,\mathrm{Myr}$ SFR] & 0.76 & 0.18 \\ [2pt]
-MUFASA [inst. SFR] & 0.69 & 0.50 \\ 
-MUFASA [$100\,\mathrm{Myr}$ SFR] & 0.57 & 0.44 \\ [2pt]
-Santa Cruz SAM [inst. SFR] & 1.10 & 0.36 \\ 
-Santa Cruz SAM [$100\,\mathrm{Myr}$ SFR] & 1.11 & 0.36 \\ 
+\multicolumn{3}{c}{Instantaneous SFR} \\
+Illustris 	& 1.01 & 0.59 \\ 
+EAGLE 		& 0.92 & 0.24 \\ 
+{\sc Mufasa} 		& 0.76 & 0.59 \\ 
+{\sc Mufasa}$^*$ 	& 0.89 & 0.73 \\ 
+SC-SAM 		& 1.17 & 0.48 \\ 
+\hline \hline
+\multicolumn{3}{c}{$100\,\mathrm{Myr}$ SFR} \\
+Illustris 	& 0.93 & 0.52 \\
+EAGLE  		& 0.75 & 0.21 \\
+{\sc Mufasa}		& 0.43 & 0.36 \\
+{\sc Mufasa}$^*$ 	& 0.99 & 0.84 \\ 
+SC-SAM 		& 1.16 & 0.47 \\ 
 \hline
 \end{tabular} \label{tab:sfms_powerlaw}
 \end{center}
+$^*$ power-law fit to the {\sc Mufasa} SFS below its turnover ($\log\,M_* {<}\,10.6$)
 \end{table}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-One factor that impacts our SFMS fits is the strict lower limit of the 
+One factor that impacts our SFS fits is the strict lower limit of the 
 $\log\mathrm{SFR}$s caused by the resolution effects in the simulations. 
 This is particularly evident in the $100\,\mathrm{Myr}$ SFR--$M_*$ 
 relations of the hydrodynamic simulations of Figure~\ref{fig:sfrmstar}---especially 
-MUFASA. As we describe in Section~\ref{sec:galsims}, the $100\,\mathrm{Myr}$ 
+{\sc Mufasa}. As we describe in Section~\ref{sec:galsims}, the $100\,\mathrm{Myr}$ 
 SFRs are  calculated using the ages of all star particles in a galaxy. For a galaxy to 
 have star formation (\emph{i.e.} SFR $> 0$), it must \emph{at least} 
 form one star particle over the last $100\,\mathrm{Myr}$. A single star particle 
 forming over $100\,\mathrm{Myr}$ amounts to a SFR of 
-$\sim 0.02\ M_{\sun}\ yr^{-1}$ for Illustris and EAGLE and
-$\sim 0.2\ M_{\sun}\ yr^{-1}$ for MUFASA. This resolution limit, ultimately 
-impacts the SFMS fits at stellar masses below $10^{8.4}$, $10^{8.6}$, and 
-$10^{9.4}M_\odot$ for Illustris, EAGLE, and MUFASA respectively. 
-These stellar mass limits have accordingly been imposed on the SFMS fits
-and power-law SFMS fits in Figures~\ref{fig:sfmsfit_100myr} 
+${\sim}0.02\ M_{\sun}\ yr^{-1}$ for Illustris and EAGLE and
+${\sim}0.2\ M_{\sun}\ yr^{-1}$ for {\sc Mufasa}. This resolution limit, ultimately 
+impacts the SFS fits at stellar masses below $10^{8.4}$, $10^{8.4}$, and 
+$10^{9.2}M_\odot$ for Illustris, EAGLE, and {\sc Mufasa} respectively. 
+These stellar mass limits have accordingly been imposed on the SFS fits
+and power-law SFS fits in Figures~\ref{fig:sfmsfit_100myr} 
 and~\ref{fig:sfmsfit_powerlaw}. In Appendix~\ref{app:zerosfr}, we describe
 how we derive these stellar mass limits. 
 
-By using the SFMS fitting method we present in this paper, we're able to 
-conduct a principled data-driven comparison of the SFMSs of central galaxies 
-from the Illustris, EAGLE, MUFASA, and Santa Cruz SAM simulations. From 
-this comparison, we find that the amplitudes of the SFMSs differ from one 
+By using the SFS fitting method we present in this paper, we're able to 
+conduct a principled data-driven comparison of the SFSs of central galaxies 
+from the Illustris, EAGLE, {\sc Mufasa}, and SC-SAM simulations. From 
+this comparison, we find that the amplitudes of the SFSs differ from one 
 another by an order of magnitude, with no significant stellar mass dependence. 
-Furthermore, despite the discrepancies in their amplitude, the SFMSs of 
+Furthermore, despite the discrepancies in their amplitude, the SFSs of 
 our simulations have similar widths, consistent with observations. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure  
@@ -757,44 +825,41 @@ our simulations have similar widths, consistent with observations.
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.48\textwidth]{figs/Catalogs_SFMS_width.pdf}
-\caption{The width of the SFMS, $\sigma_\mathrm{SFMS}$, for our simulated 
-    central galaxies from Illustris, EAGLE, MUFASA, and Santa Cruz SAM 
+\caption{The width of the SFS, $\sigma_\mathrm{SFS}$, for our simulated 
+    central galaxies from Illustris, EAGLE, {\sc Mufasa}, and SC-SAM 
     (green, red, purple, and brown respectively). The widths are derived from  
-    the GMM SFMS fitting and its uncertainties are estimated using bootstrap
-    resampling in the same way as the SFMS fit uncertainties. 
-    $\sigma_\mathrm{SFMS}$s in our simulations have little stellar mass 
+    the GMM SFS fitting and its uncertainties are estimated using bootstrap
+    resampling in the same way as the SFS fit uncertainties. 
+    $\sigma_\mathrm{SFS}$s in our simulations have little stellar mass 
     dependence and, naively accounting for measurement errors in observed 
-    SFR, they are consistent with $\sigma_\mathrm{SFMS}{\sim}0.3\,\mathrm{dex}$ 
+    SFR, they are consistent with $\sigma_\mathrm{SFS}{\sim}0.3\,\mathrm{dex}$ 
     from observations (black dashed).} \label{fig:sfms_width}
 \end{center}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure*}
 \begin{center}
-\includegraphics[width=\textwidth]{figs/Catalogs_GMMcomps.pdf} 
-\caption{Components of the best-fit GMM from our SFMS fitting method for the
-    SFR-$M_*$ relations of central galaxies in the Illustris, EAGLE, MUFASA, and 
-    Santa Cruz SAM simulations (left to right). The top panels use instantaneous 
-    SFRs while the bottom panels use SFRs averaged over $100\,\mathrm{Myr}$.  %For reference, we also include observed centrals from SDSS (top right). 
-    We mark the SFMS components in blue, the components with lowest SFR in orange, 
-    and the other components in green. These components roughly correspond to the 
-    star-forming, quiescent, and transitioning or star-burst populations. 
-    Among the hydrodynamical simulations, despite the SFMS discrepancies,
-    (Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}), the GMM components 
-    reveal overall similarities in the galaxy populations. Meanwhile for the Santa Cruz 
-    SAM, the GMM components reveal its broad quenched component that extends beyond 
-    $\mathrm{SFR} < 10^{-4}M_\odot yr^{-1}$ and prominent transitioning components at 
-    $M_* > 10^{10}M_\odot$, different from the hydrodynamic simulations. 
-    } \label{fig:sfmsfit_comps}
+\includegraphics[width=0.95\textwidth]{figs/Catalogs_GMMcomps.pdf} 
+\caption{Components of the best-fit GMM from our SFS fitting method for the
+    SFR-$M_*$ relations of central galaxies in the Illustris, EAGLE, {\sc Mufasa}, and 
+    SC-SAM simulations (left to right). The top and bottom panels use instantaneous 
+    SFRs and $100\,\mathrm{Myr}$ SFRs respectively. In each $\log\,M_*$ bin, we mark 
+    the SFS component in blue, the lowest SFR component in orange, the intermediate 
+    SFR component in green, and the component above the SFS in purple. These components 
+    \emph{loosely} correspond to the star-forming, quiescent, transitioning, and 
+    star-burst populations. The hydrodynamic simulations, despite the SFS discrepancies,
+    (Figures~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}), have similar 
+    galaxy populations dominated by the SFS and low SF components. Meanwhile in the 
+    SC-SAM, the GMM components reveal broad low SFR components that extends out to 
+    $\mathrm{SFR} < 10^{-4}M_\odot yr^{-1}$, prominent intermediate components at 
+    $M_* \gtrsim 10^{10}M_\odot$, and components above the SFS at $M_* \lesssim 10^{10}M_\odot$.} \label{fig:sfmsfit_comps}
 \end{center}
 \end{figure*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure 
@@ -803,349 +868,660 @@ our simulations have similar widths, consistent with observations.
 \begin{center}
 \includegraphics[width=\textwidth]{figs/GMMcomp_composition.pdf} 
 \caption{Fractional contributions, $\pi_i$, of the best-fit GMM components from 
-    our SFMS fitting of the central galaxies in the Illustris, EAGLE, MUFASA, 
-    and Santa Cruz SAM simulations (left to right). We highlight the SFMS 
+    our SFS fitting of the central galaxies in the Illustris, EAGLE, {\sc Mufasa}, 
+    and SC-SAM simulations (left to right). We highlight the SFS 
     component in blue, the quenched component in orange, galaxies with 
     SFR$=0$ in red, the transitioning components in green, and the star-burst
     components in purple. For reference, we include $\pi_i$ of the observed 
     centrals from SDSS and NSA in the rightmost panel. In all the simulations, 
-    a significant fraction of central galaxies lie below the SFMS at 
+    a significant fraction of central galaxies lie below the SFS at 
     $M_* \lesssim 10^9 M_\odot$ in disagreement with observations. For the 
-    hydrodynamic simulations, the SFMS fraction has little stellar mass dependence
+    hydrodynamic simulations, the SFS fraction has little stellar mass dependence
     at $M_* < 10^{11}M_\odot$ unlike observations. Meanwhile, a number of similar 
-    components are found between Santa Cruz SAM and observations: star-burst 
+    components are found between SC-SAM and observations: star-burst 
     components at low $M_*$ and transitioning components at high $M_*$. 
     } \label{fig:kandinsky}
 \end{center}
 \end{figure*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Beyond the SFMS of simulated galaxies}
-So far, we have focused solely on the SFMSs of our simulated 
-galaxies---\emph{i.e.} $\bm{\theta}_\mathrm{SFMS} = \{\mu_\mathrm{SFMS}$ 
-and $\sigma_\mathrm{SFMS} \}$. Our GMM fitting method, however, also determines 
-$\bm{\theta}_i$ for components other than the SFMS. These GMM components 
-provide extra features to compare our simulated galaxy samples and also offer 
-interesting insights into the different populations in our simulated galaxy
-samples. When we examine the mean and variance $\bm{\theta}_i$ of all the 
-components from our fitting for our simulated galaxies we find correspondence 
-between the components and the quiescent, transitioning, and star-burst galaxy 
-populations (Figure~\ref{fig:sfmsfit_comps}). Similar to how we designated the 
-SFMS component of the GMM, we designate the component with the lowest SFR as the quiescent 
-component, the component with SFR in between the SFMS and the quiescent 
-components as transitioning, and the component with SFR higher than the 
-SFMS component as the star-burst component. In Figure~\ref{fig:sfmsfit_comps}, 
-we mark the SFMS components in blue, quiescent components in orange, and 
-the other components in green. 
-
-All of the simulations have significant populations below the SFMS at all 
-masses. The hydrodynamical simulations have relatively tight quiescent components 
-${\sim}1\,\mathrm{dex}$ below the SFMS. The quiescent components of the 
-Santa Cruz SAM, meanwhile, are much broader and extend below 
-$\log\,\mathrm{SFR} = -4$. Regardless of their position and width, at low stellar
-masses, the significant quiescent populations are in disagreement with 
-observations~\citep{geha2012}, which find no isolated/central quenched 
-galaxies below $M_*{\sim}10^9 M_\odot$. 
-\begin{itemize}
-    \item \todo{what's causing central galaxies to have low SFRs at $10^9M_\odot$?}
-\end{itemize}
-This discrepancy between simulations and observations, however, must be 
-taken with a grain of salt. Both the environment and quenched classifications 
-in \cite{geha2012} are defined differently than in the simulations. 
-\cite{geha2012} classifies as a galaxy as quenched if it
-does not have an $H\alpha$ emission and based on a $D_n 4000$ criteria. 
-Furthermore, the isolation criteria of \cite{geha2012} is more 
-stringent than the group finder at these mass scales.
-%incept the idea for paper2. 
-
-%Figure~\ref{fig:sfmsfit_comps} reveals components besides the SFMS and quiescent components. For instance, 
-In Illustris and the Santa Cruz SAM, we find a number of components between 
-the SFMS and quiescent components ---\emph{i.e.} transitioning galaxies. 
-For Illustris, transitioning components 
-are identified at $10^9 M_\odot < M_* < 10^{11}M_\odot$. For the Santa Cruz SAM, 
-transitioning components are identified at $M_* > 10^{10} M_\odot$. We also 
-identify components with SFRs above the SFMS. These \emph{star-burst} 
-components are particularly evident in the Santa Cruz SAM, where a significant
-star-burst population is observed at $10^9 M_\odot < M_* < 10^{10} M_\odot$. 
-Besides the Santa Cruz SAM, we also find star-burst components at the lowest
-stellar masses ($M_* < 10^9 M_\odot$) of the Illustris and EAGLE simulations 
-for $100\,\mathrm{Myr}$ SFRs. 
-
-The different components we identify using the GMM fitting allows us to make a 
-number of interesting comparisons of the simulated galaxies. Overall
-the galaxies from hydrodynamical simulations have similar components
-and features in the SFR--$M_*$ data space. Besides the difference in the 
-position and width of the SFMS, 
-the only significant discrepancy is the transitioning components found in  
-Illustris. 
-%The transitioning components in the Illustris galaxies, however, help explain the tighter width of the SFMS compared to the other hydrodynamical simulations in Figure~\ref{fig:sfms_width}. 
-Between the hydrodynamical simulations and the Santa Cruz SAM, however,
-more significant differences are revealed by the non-SFMS components. 
-\begin{itemize}
-    \item \todo{Why is the SAM so different overall?}
-    \item \todo{Why does Santa Cruz SAM have a broader SFR?} 
-    \item \todo{Why does Santa Cruz SAM have star-bursts in "intermediate" stellar masses}
-\end{itemize}
-
-Another set of parameters we infer from our GMM fitting is the weight of the 
-GMM components---$\pi_i$ in Eq.~\ref{eq:gmm}. Since we designated each component 
-to a corresponding galaxy population, these weights correspond to the fractional
-contribution of the different populations. For example, the weight of the 
-quenched component is an estimate of the quiescent 
-fraction~\citep[\emph{e.g.}][]{blanton2009, geha2012, hahn2015}. In 
-Figure~\ref{fig:kandinsky} we present the fractional contribution, as a function 
-of stellar mass, for all the components from our GMM fitting : SFMS (blue), 
-quenched (orange), $\mathrm{SFR}=0$ galaxies (red), transitioning (green), 
-and star-burst (purple). We present the uncertainties of $\pi_i$, estimated
-through bootstrap resampling, in Figure~\ref{fig:fcomp_uncertainty} of 
-Appendix~\ref{app:zerosfr}. 
-For every simulation, a significant fraction of galaxies have SFR$=0$. 
-In hydrodynamical simulations, a galaxy with $\mathrm{SFR}{=}0$ can have an 
-SFR below the resolution limit, or have a \emph{true} $\mathrm{SFR}{=}0$ on 
-the measured timescales (Appendix~\ref{app:zerosfr}). In the Santa 
-Cruz SAM, all the $\mathrm{SFR}{=}0$ galaxies have truly no star formation 
-on the timescales that we present here. Therefore, in both hydrodynamical 
-and SAM simulations, the SFR$=0$ galaxies can be considered quiescent. 
-
-The fractional contributions of the GMM components in Figure~\ref{fig:kandinsky}
-reveal disagreements between our simulated galaxies and trends established
-from observations---especially the hydrodynamical simulations. As we 
-mentioned earlier, observations have established a stellar mass lower bound 
-for isolated/central quenched galaxies~\citep{geha2012}. From Figure~\ref{fig:kandinsky}, 
-we find significant quiescent populations at $M_* < 10^9 M_\odot$, confirming 
-Figure~\ref{fig:sfmsfit_comps}. Treating SFR$=0$ galaxies as quiescent, the quiescent 
-fraction for the EAGLE simulation is roughly $0.4$ at $10^9M_\odot$. 
-Illustris with $100\,\mathrm{Myr}$ SFRs and MUFASA with instantaneous SFRs
-have similarly high quiescent fractions. Even in the Santa Cruz SAM, we 
-find a non-negligible ($\sim 10\%$) quiescent fraction at $10^9M_\odot$. 
-
-Furthermore, at $M_* > 10^9M_\odot$, we find little stellar mass dependence in the 
-fraction of high SFR components (SFMS and star-burst; blue and purple 
-in Figure~\ref{fig:kandinsky}) in our hydrodynamical simulations at 
-$M_* < 10^{11}M_\odot$. If we take the quiescent fraction to be 
-$f_\mathrm{Q} = 1 - \sum_{\mathrm{high\,SFR}} \pi_i$, then the 
-quiescent fraction of our central galaxies from hydrodynamical simulations 
-have little stellar mass dependence over $10^9 < M_* < 10^{11} M_\odot$ ---
-unlike $f_\mathrm{Q}$ measurements from~\cite{baldry2006,peng2010,hahn2015},
-which all find significant stellar mass dependence in the quiescent/red fraction of 
-isolated galaxies in SDSS. In this regards, the quiescent fraction of the 
-Santa Cruz SAM is in good agreement with the isolated galaxy 
-quiescent fraction from SDSS~\citep{baldry2006,peng2010,hahn2015}.
-
-As we've discussed in this section, our SFMS fitting provides additional 
-features, more than just the SFMSs, to compare different galaxy samples.
-Moreover, the components identified by our fitting method offers insight
-into the distinct galaxy populations of our simulations. Based on the 
-non-SFMS components/populations, we find consistency among the hydrodynamical
-simulations in SFR--$M_*$ space, but not with the Santa Cruz SAM. When we
-compare to trends in the literature, we find that all of the simulations 
-have a significant fraction of low SFR (quenched) central galaxies at 
-$M_* \lesssim 10^9M_\odot$---in disagreement with observations. In particular, 
-the hydrodynamical simulations, at intermediate stellar masses 
-$M_* \lesssim 10^{11}M_\odot$, do not reproduce the quiescent fractions from 
-observations. 
-
-\subsection{Comparing to Observations}
-Our data-driven GMM SFMS fitting provides a principled way to compare 
-galaxy populations through the major features in the data-space. These 
-comparisons have so far revealed a number of agreements and discrepancies
-among the central galaxies in our simulations. The ultimate goal of 
-these simulations, however, is to reproduce the observations, which means
-we ultimately want to compare them to observations. In this section, we 
-extend our GMM SFMS fitting to the observed galaxy sample from SDSS and NSA
-and compare our simulated galaxies to observation.
-
-We first focus on the best-fit SFMS of our SDSS and NSA central galaxies
-in the top right panels of Figure~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}. 
-Similar to the Illustris, EAGLE, and Santa Cruz SAM simulations, the SFR of 
-the SFMS monotonically increases with $M_*$. The SFMS has no turnover like
-MUFASA's. Overall, the SDSS and NSA SFMS is shallower and has a lower amplitude 
-than the SFMSs of our simulations. \todo{chang: any reasons why we see this 
-discrepancy from the simulation side?}
-
-Looking beyond the SFMS, the other components of the SDSS and NSA central 
-galaxy population further highlight the disagreements between the 
-simulations and observation from the previous section (Figure~\ref{fig:kandinsky}). 
-At $M_* \lesssim 10^9M_\odot$, we find no quenched population, in agreement 
-with~\cite{geha2012} and in disagreement with the simulations. Furthermore, 
-in agreement with measurements in the literature, we find significant $M_*$
-dependence in the quiescent fraction, which the hydrodynamic simulations do 
-not find. Aside from the low stellar mass quenched population, the components 
-of the Santa Cruz SAM simulation are in good agreement with the SDSS and NSA 
-components. They both identify star-burst populations at low masses and 
-significant transitioning populations from $M_* > 10^{10}M_\odot$.  
-
-%The SDSS samples show a SFR-$M_*$ relation that is best fitted by \emph{one} Gaussian at lower masses, unlike any of the simulations. This is noteworthy even though the low-mass sample is far from volume-complete and especially many low-SFR galaxies may be missed at lower masses.
-%\item[-] The observations show a very well defined, and for higher mass bins quite narrow, low-SFR population, with a small intermediate third population for only three mass bins. The low-SFR population is more narrow and generally with the mean at slightly lower SFR than for all three hydro simulations. It is located in between the intermediate and low-SFR populations of the SAM.
-
-The comparison we make between our simulations and observations so far in 
-this section only scratches the surface. However, we deliberately refrain 
-from a more detailed comparison due to the limitations of such a comparison. 
-The main bottleneck stems from the fact that the SFRs and $M_*$, the main
-galaxy properties considered in this paper, are defined and measured 
-differently in simulations versus observations. SFRs from the SDSS and 
-NSA catalogs are measured using a combination of $H\alpha$ and $D_n 4000$. 
-Although we choose the SFR timescales to best reflect this observed SFR, 
-as \cite{speagle2014} find even for the same SDSS galaxies, different SFR 
-indicators can produce large discrepancies in the slope and amplitude of 
-the SFMS. Therefore, for further scrutiny we require a more apples to apples 
-comparison. In the next paper we will bring this comparison on a more equal 
-footing by deriving star formation rates from mock observations of the 
-simulated galaxies (Starkenburg et al. in prep.).
-
-%\todo{TKS: Compare to Speagle2014 combined dataset fits and discuss with respect to the large discrepancy they note in MS-slopes for the SDSS sample of $~0.4$ dex. This is partly due to using different SFR indicators (nice segue to the 2nd and 3rd papers), but not completely}
-%comparison to observations are complicated by a number of factors.  First the SFRs and stellar masses of observations are defined by kcorrect  and emission lines and dn4000. While our SFR timescales were chosen to best  reflect the observed SFR, it's still not an apples to apples comparison.  Second, the stellar mass and SFRs of observed galaxies have uncertainties  associated to them. If unaccounted for, these uncertainties will impact the  components recovered from the GMM fitting and ultimately the SFMS fits. 
-%All of the points in this subsection are severely affected by the different ways that SFR (and $M_*$) are measured in the observations and the simulations. 
-
-\section{Summary and Conclusions} \label{sec:summary}
-conclusion!
-
-\section*{Acknowledgements}
-It's a pleasure to thank
-	Shirley~Ho, 
-	Emannuel~Schaan, 
-    \todo{insert others} 
-for valuable discussions. 
-This material is based upon work supported by the U.S. Department
-of Energy, Office of Science, Office of High Energy Physics, under
-contract No. DE-AC02-05CH11231.
-\appendix
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure j 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}
-\begin{center}
-\includegraphics[width = 0.475\textwidth]{figs/GMM_pedagog.pdf} 
-\caption{A pedagogical illustration of Gaussian mixture density estimation. 
-We use GMMs with $k = 1$ (top), $3$ (middle), $10$ (bottom) components to estimate 
-the distribution of data (blue) drawn from three Gaussian distributions. The GMM 
-outputs of the EM algorithm are plotted in red with dotted lines representing each 
-of their components. We also include the BIC of the GMMs, which we use to select 
-the number of components $k$. Of the three panels, $k=3$ has the lowest BIC and 
-therefore best represents the data according to our selection 
-scheme. \todo{move to appendix}} \label{fig:gmm_pedagog}
-\end{center}
-\end{figure}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure  
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure*}
-\begin{center}
-\includegraphics[width = 0.45\textwidth]{figs/SFRMstar_2Dgmm.pdf} 
-\caption{Two-dimensional GMM fit to the SFR-$M_*$ relation of central galaxies
-of the EAGLE simulation. The two-dimensional GMM fitting is an extension of the 
-SFMS fitting method we describe in Section~\ref{sec:sfmsfit}. The colorful shaded
-ellipses over-plotted on the SFR-$M_*$ relation (black) are the Gaussian components 
-of the best-fit GMM. Although, identifying the SFMS from these Gaussian components
-is difficult, the 2D GMM is effective in capturing the features of the SFR-$M_*$ 
-relation and provides a good way comparing SFR-$M_*$ relations from different data.
-} \label{fig:2dgmm}
-\end{center}
-\end{figure*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Gaussian Mixture Models: 1D and Beyond} \label{app:gmm}
-So far we have assumed that one, two, or three populations would describe galaxies in the SFR--$M_*$ plane well. We have checked whether the possibility of adding more than three Gaussians in the GMM shows that more populations are present. This is the case only for the Santa Cruz semi-analytic model, where in a number of bins the presence of 4, 5, or (in one case) 6 Gaussians is preferred. In almost all cases the added Gaussians have low weight and form effectively additional intermediate populations. For both Illustris and EAGLE there is only one mass bin where a fourth population would be preferred. For all other mass bins in all the hydrodynamical simulations, and all mass bins in the SDSS 3 or less Gaussians are preferred.
-
-
-In addition to identifying the SFMS, the GMM fitting method described above can 
-be extended to describe the entire SFR-$M_*$ relation using a two-dimensional 
-GMM. In Figure~\ref{fig:2dgmm}, we compare the instantaneous SFR to $M_*$ relation 
-of central galaxies in the EAGLE simulation with the best-fit two-dimensional GMM. 
-The over-plotted shaded ellipses represent the two-dimensional Gaussian components
-of the best-fit GMM. Overall the best-fit 2D GMM captures the features in the 
-EAGLE SFR-$M_*$ relation. It also provides a straightforward way of comparing 
-different SFR-$M_*$ relations. However, as Figure~\ref{fig:2dgmm} illustrates, 
-specifically identifying the SFMS using the two-dimensional model is more 
-challenging. Therefore in this paper, we do not discuss the 2D GMM further. 
-
-\section{SFR Resolution Effects} \label{app:zerosfr}
-In our analysis, we consistently derive SFRs for all of our simulated
-galaxies on two timescales: instantaneous and averaged over 
-$100\,\mathrm{Myr}$ (Section~\ref{sec:galsims}). For our hydrodynamic 
-simulations, SFR averaged over $100\,\mathrm{Myr}$ is derived using 
-the formation times of the star particles in the simulation. This means 
-that both the \todo{spatial(?)} and temporal resolutions of the 
-simulations cause resolution effects in the $100\,\mathrm{Myr}$ SFR. 
-More specifically, in Illustris, EAGLE, and MUFASA $100\,\mathrm{Myr}$ 
-SFR has a resolution of $\Delta_\mathrm{SFR} = 0.016$, $0.018$, and 
-$0.182\,M_*/\mathrm{yr}$, respectively. 
-\todo{a sentence about why MUFASA's resolution is an order of magnitude higher}.
-
-% describe the impact of resolution effect more concretely 
-Although for galaxies with high $100\,\mathrm{Myr}$ SFR, the resolution 
-of $\Delta_\mathrm{SFR}$ does not have a significant impact, for low SFR
-galaxies, the fact that their SFR is actually within the range 
-$[\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$ has a significant 
-impact. For example, at the most low SFR end, galaxies, which would 
-have SFR < $\Delta_\mathrm{SFR}$, are derived to have SFR$=0$. These 
-galaxies, consequently, cannot be included in the
-$\log\,\mathrm{SFR}$--$\log\,M_*$ plane or the SFMS fitting. In
-Figure~\ref{fig:zerosfr_res}, we present the impact of this resolution 
-effect on the $P(\log\,\mathrm{SSFR})$ distributions of our 
-hydrodynamical simulations in two stellar mass bins. In black, we 
-plot the $P(\log\,\mathrm{SSFR})$ distributions using the 
-$100\,\mathrm{Myr}$ SFRs \emph{with} resolution effects --- galaxies 
-with SFR$=0$ are not included in this distribution. In blue, we 
-plot the $P(\log\,\mathrm{SSFR})$ distributions of the same galaxies, 
-but with SFR sampled uniformly within the range 
-$[\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$. Uncertainties 
-for the blue $P(\log\,\mathrm{SSFR})$ is derived from repeating process of
-sampling the SFR $100$ times. 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure*}
 \begin{center}
-\includegraphics[width=0.9\textwidth]{figs/Pssfr_res_impact.pdf} 
-\caption{The impact of SFR resolution and galaxies with SFR$=0$, on 
-the SSFR distribution, $P(\mathrm{SSFR})$, of Illustris, EAGLE, and 
-MUFSAS simulations. We plot $P(\mathrm{SSFR})$ with $\mathrm{SFR} = 0$
-galaxies in blue and $P(\mathrm{SSFR})$ without $\mathrm{SFR} = 0$ 
-galaxies in black. The uncertainties of $P(\mathrm{SSFR})$ is obtained 
-from re-sampling the SFR of each galaxy based on the SFR resolution, 
-as described in  Appendix~\ref{app:zerosfr}. For each simulation, we 
-present two distinct stellar mass bins to illustrate the impact at low 
-and high $M_*$.
-} 
-\label{fig:zerosfr_res}
-\end{center}
-\end{figure*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure*}
-\begin{center}
-\includegraphics[width=0.8\textwidth]{figs/Mlim_res_impact.pdf} 
-\caption{Resolution effects of hydrodynamical simulations (Illustris, 
-EAGLE, and MUFASA) impact our SFMS fitting for SFR averaged over 
-$100\,\mathrm{Myr}$ at low stellar mass. We therefore determine stellar
-mass limits based on the discrepancy between the SFMS fits neglecting 
-the resolution limit (black) and fits trying to include the resolution 
-limit by re-sampling the SFRs (orange; Appendix~\ref{app:zerosfr}). For
-Illustris, EAGLE, and MUFASA we set $\log M_\mathrm{lim} = 8.4, 8.6$, and 
-$9.4$, respectively.} 
-\label{fig:mlim_res}
-\end{center}
-\end{figure*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure*}
-\begin{center}
-\includegraphics[width=0.9\textwidth]{figs/GMMcomp_comp_uncertainty.pdf} 
-\caption{
+\includegraphics[width=\textwidth]{figs/GMMcomp_comp_uncertainty.pdf} 
+\caption{Uncertainties in the fractional contributions, $\pi_i$, of the 
+best-fit GMM components from our SFS fitting from Figure~\ref{fig:kandinsky}.
+The uncertainties are estimated through bootstrap resampling. 
+We plot the SFS component in blue, the quiescent component in orange, 
+galaxies with SFR$=0$ in red, the transitioning components in green, and 
+the star-burst components in purple. For reference, we include $\pi_i$ of 
+the observed centrals from SDSS and NSA in the rightmost panel.
 } \label{fig:fcomp_uncertainty}
 \end{center}
 \end{figure*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Beyond the SFS of Simulated Galaxies} \label{sec:beyondsfms}
+So far we have focused solely on the SFSs of our simulated 
+galaxies---\emph{i.e.} 
+$\bm{\theta}_\mathrm{SFS} = \{\mu_\mathrm{SFS}, \sigma_\mathrm{SFS} \}$ 
+in Eq.~\ref{eq:gmm}. Our GMM fitting method, however, also determines 
+$\bm{\theta}_i$ of components other than the SFS. These GMM components 
+provide extra features to compare our simulated galaxy samples and also 
+offer interesting insights into the different populations in our simulated 
+galaxy samples. When we examine $\bm{\theta}_i$ of all components from 
+our fitting for our simulated galaxies we find loose correspondence between 
+the components and the quiescent, transitioning, and star-burst galaxy 
+populations (Figure~\ref{fig:sfmsfit_comps}). To avoid over-interpreting 
+this correspondence, we refer to the GMM component with the lowest SFR as 
+``low SF'' component, the component with SFR in between the SFS and the 
+low SF component as the ``intermediate SF'' component, and finally the 
+component with higher SFR than the SFS component as the ``high SF'' component. 
+In Figure~\ref{fig:sfmsfit_comps}, we mark the SFS, low SF, intermediate SF, 
+and high SF in blue, orange, green, and purple respectively.
+
+Examining the GMM components of the hydrodynamic simulations in 
+Figure~\ref{fig:sfmsfit_comps}, we find that a few $\log\,M_*$ bins have 
+intermediate SF components in Illustris at $10^9 M_\odot < M_* < 10^{11}M_\odot$.
+Also a few of the lowest $\log\,M_*$ bins in Illustris and EAGLE have high SF
+components for the $100\,\mathrm{Myr}$ SFRs. Besides these few stellar mass 
+bins, however, the central galaxies from the hydrodynamic simulations are
+consistently dominated by the SFS and low SF components. Furthermore, 
+throughout the stellar mass ranges of the simulations, the low SF 
+components in each these simulations have relatively constant widths and 
+lie ${\sim}1\,\mathrm{dex}$ below the SFS components.
+
+Unlike the hydrodynamic simulations, however, the low SF components in the 
+SC-SAM extend below $\log\,\mathrm{SFR}{=}{-}4$. Furthermore, the intermediate 
+and high SF components are much more prominent in the SC-SAM central galaxies. 
+At low stellar masses ($M_* \lesssim 10^{10}M_\odot$) every SC-SAM $\log\,M_*$ 
+bin has a high SF component. The $\log\,\mathrm{SSFR}$ distributions in these 
+bins have extended tails on the higher SFR side of the SFS. Our GMM SFS fitting 
+method, thus, fits high SF components in these $\log\,M_*$ bins (bottom left 
+and center panels of Figures~\ref{fig:pssfr_gmm_inst} and~\ref{fig:pssfr_gmm_100myr}). 
+%However, the differences in BIC values of the best-fit GMM with a high SF  component ($\mathrm{BIC}_{k=3}$; green) versus the GMM without a high SF  component ($\mathrm{BIC}_{k=2}$; orange) in these stellar mass bins are small. 
+{\color{red}
+These high SF components and the extended range of low SF components are likely 
+caused by the re-accretion prescription of the SAM (Section 2.7 of~\citealt{somerville2008a}).
+A fraction of gas ejected from halos (\emph{e.g.} from supernovae) is kept in 
+a reservoir, which re-collapses into the halos at a later time and becomes available 
+again for cooling. The rate of this re-accretion depends on the mass of ejected gas, 
+the dynamical time of the halo, and $\chi_\mathrm{re-infall}$---a free parameter 
+degenerate with supernovae feedback parameters. This prescription results in bursty 
+star formation in the SC-SAM galaxies and causes the extended low SF components and 
+the high SF components. %galaxies to have broad range of  SFRs.
+}
+%The rate of this re-accretion/infall depends on $\chi_\mathrm{re-infall}$, a free parameter, the mass of ejected gas, and the dynamical time of the halo.
+% This gas is assumed to accrete on to the halo on a time-scale that is proportional to the halo dynamical time
+% The fraction of gas that is ejected from the disc but retained in the halo, versus ejected from the disc and halo, is a function of the halo circular velocity (see S08 for details), such that low-mass haloes lose a larger fraction of their gas. The gas that is ejected from the halo is kept in a larger reservoir, along with the gas that has been prevented from falling in due to the photoionizing background. This gas is assumed to accrete on to the halo on a time-scale that is proportional to the halo dynamical time (see S08 for details)
+
+At high stellar masses ($M_* \gtrsim 10^{10}M_\odot$) every $\log\,M_*$ bin in the 
+SC-SAM has an intermediate component. {\color{red} While the $\log\,\mathrm{SSFR}$ 
+distributions in the bottom right panels of Figures~\ref{fig:pssfr_gmm_inst} 
+and~\ref{fig:pssfr_gmm_100myr} and the BIC values illustrate the benefit of the 
+GMM with an intermediate SF component, these are accentuated by the broader 
+distribution of the low SF population. Despite these differences between the 
+hydrodynamic simulations and the SC-SAM, all of the simulations have a low SF 
+component throughout their stellar mass 
+range, even at $M_* < 10^9M_\odot$. We discuss these low $M_*$ low SF galaxies 
+in further detail later in this section.}
+
+Another set of parameters we infer from our GMM fitting is the weight of the 
+GMM components: $\pi_i$ in Eq.~\ref{eq:gmm}. These weights correspond to 
+the fractional contribution of the different populations. For example, the 
+weight of the low SF component loosely corresponds to the quiescent 
+fraction~\citep[\emph{e.g.}][]{borch2006, bundy2006, iovino2010, geha2012, hahn2015}. 
+In Figure~\ref{fig:kandinsky} we present the fractional contribution, as a 
+function of stellar mass, for all the components from our GMM fitting : SFS 
+(blue), low SF (orange), $\mathrm{SFR}{=}0$ galaxies (red), intermediate SF 
+(green), and high SF (purple). We present the uncertainties of $\pi_i$s, 
+estimated through bootstrap resampling, in Figure~\ref{fig:fcomp_uncertainty}. 
+For every simulation, a significant fraction of galaxies have SFR$=0$. 
+In hydrodynamic simulations, a galaxy with $\mathrm{SFR}{=}0$ can have an 
+SFR below the resolution limit, or have a \emph{true} $\mathrm{SFR}{=}0$ on 
+the measured timescales (Appendix~\ref{app:zerosfr}). In the SC-SAM, all 
+the $\mathrm{SFR}{=}0$ galaxies have truly no star formation on the 
+timescales that we present here. Therefore, in both hydrodynamic 
+and SAM simulations, the SFR$=0$ galaxies can be considered quiescent. 
+Moreover, we confirm that SFR resolution does not significant impact the 
+fraction contributions of Figures~\ref{fig:kandinsky} 
+and~\ref{fig:fcomp_uncertainty} (see Appendix~\ref{app:zerosfr} and 
+Figure~\ref{fig:mlim_fcomp}).
+
+The fractional contributions of the GMM components in Figures~\ref{fig:kandinsky} 
+and~\ref{fig:fcomp_uncertainty} reveal significant disagreements between our 
+simulated galaxies and trends established from observations---especially the 
+hydrodynamic simulations. For instance, if we treat the low SF component and the 
+$\mathrm{SFR}{=}0$ galaxies as quiescent (orange and red in Figure~\ref{fig:kandinsky}),
+\emph{we find little stellar mass dependence in the quiescent fraction of our
+hydrodynamic simulations, unlike the quiescent fraction measurements 
+of isolated SDSS galaxies}~\citep{baldry2006,peng2010,hahn2015}. 
+Meanwhile, at $M_* > 10^9M_\odot$ the SC-SAM is consistent with the 
+SDSS isolated galaxy quiescent fractions and in agreement with previous 
+SC-SAM quiescent fraction comparisons~\citep{brennan2015,brennan2017,pandya2017}.
+
+Furthermore, for some of the hydrodynamic simulations in Figure~\ref{fig:kandinsky}
+(Illustris $100\,\mathrm{Myr}$ SFRs, EAGLE, and {\sc Mufasa} instantaneous SFRs)
+we find high quiescent fractions (${\sim}0.4$) in strong contrast with 
+observations~\citep{baldry2006,peng2010,hahn2015}. In fact, \emph{all the 
+simulations, even the SC-SAM, have non-negligible (${\gtrsim}10\%$) quiescent 
+fraction at $M_* < 10^9 M_\odot$ contrary to the stellar mass lower bound 
+of ${\sim}10^9M_\odot$ for isolated/central quiescent galaxies set by 
+observations}~\citep{geha2012}. 
+%In fact, the quiescent fraction of EAGLE, for instance, is ${\sim}0.4$ at $ 10^9M_\odot$. Illustris with $100\,\mathrm{Myr}$ SFRs and {\sc Mufasa} with  instantaneous SFRs also have similarly high quiescent fractions. Every  simulation panel of Figure~\ref{fig:kandinsky}, even the SC-SAM, has a  non-negligible (${\sim}10\%$) quiescent fraction at $10^9M_\odot$. 
+%, which all find significant stellar mass dependence in the quiescent/red fraction of  isolated galaxies in SDSS. In this regards, the quiescent fraction of the 
+
+One possible explanation for the significant fraction of low SFR galaxies
+at low $M_*$ in the hydrodynamic simulations is misclassification of 
+``splashback'' (or ``blacksplash'' or ``ejected'') galaxies as centrals. 
+Splashback galaxies are satellite galaxies that have orbited outside 
+the virial radii of its host halo after having passed through 
+it~\citep[\emph{e.g.}][]{mamon2004,gill2005,wang2009a,wetzel2014}.
+{\color{red} The SC-SAM is {\em not} subject to this misclassification 
+because subhalos are not tracked after mergers, so by construction the 
+model does not have splashback galaxies. To test whether splashbacks 
+impact our results for our hydrodynamic simulations, we adjust our central
+galaxy selection criteria in Section~\ref{sec:central} to exclude 
+any centrals with a more massive halo within three virial radii of it. 
+When we use this stricter central classification and measure the
+SFS and other GMM components, we find \emph{no} significant change to 
+the SFS fits or the fractional contributions of the GMM components. 
+We also find no significant changes to our results when we restricting 
+ourselves to galaxies with no ``luminous'' neighbors within 
+$1.5\,\mathrm{Mpc}/h$ --- similar to the~\cite{geha2012} criteria.
+Therefore, we conclude that the significant fraction of low SFR and 
+low $M_*$ galaxies is not caused by misclassification of centrals.
+
+%Our data-driven GMM SFS fitting provides a principled way to compare 
+%galaxy populations through the major features in the data-space. Through
+%such comparisons, we've so far revealed a number significant discrepancies
+%among the central galaxies of our simulations. However, these comparisons
+%are among ``theoretical'' predictions of galaxy properties from simulations. 
+%At the end of the day, both hydrodynamic simulations and SAMs aim to 
+%reproduce the observations, which requires comparing simulations to observations.
+
+Taking a step back, we emphasize that this discrepancy between the 
+simulations and observations must be taken with a grain of salt and
+our comparison is not an apples-to-apples comparison. For instance,
+in \cite{geha2012} low SF/quiescent galaxies are classified based on 
+a $H\alpha$ emission and $D_n 4000$ criteria --- different than in 
+our simulations. Even the central (isolation in~\citealt{geha2012}) 
+criteria, in detail, is different than the analogous criteria 
+above. More broadly, the comparisons we present in this paper are 
+among simulations and therefore are based on ``theoretical'' predictions 
+of galaxy properties from simulations. Many factors make it difficult 
+to robustly extend this comparison to observations. 
+
+For example, SFRs and $M_*$, the 
+main galaxy properties considered in this paper, in simulations can be
+directly measured either using star or gas particles in the simulations.  
+In observations, even the SFR alone is estimated from SFR indicators 
+such as $H\alpha$ flux, $D_n 4000$, or UV brightness measurements. 
+While they serve as estimates of the SFRs, as \cite{speagle2014} find even 
+for the same SDSS galaxies, different SFR indicators can produce large 
+discrepancies in the slope and amplitude of the SFS. Furthermore, a 
+consistent comparison to observations requires a thorough understanding of 
+the selection effects that come with the observed galaxy sample. These 
+effects are difficult to propagate into SFR and $M_*$ space of simulations. 
+
+%classifications in \cite{geha2012} are defined differently than in the simulations. 
+%\cite{geha2012} classifies as a galaxy as quenched if it
+%does not have an $H\alpha$ emission and based on a $D_n 4000$ criteria. 
+%Furthermore, the isolation criteria of \cite{geha2012} is more 
+%stringent than the group finder at these mass scales. 
+
+Therefore, while we can see from Figures~\ref{fig:sfmsfit_inst}, 
+\ref{fig:sfmsfit_100myr}, and \ref{fig:kandinsky} that there are significant
+discrepancies between the simulations and observations in the slope and 
+amplitude of the SFS and also the fractional contribution of the best-fit 
+GMM components, we reserve further scrutiny to the next paper in our 
+series: (Starkenburg et al. in prep.). In this next paper, instead of
+comparing the ``theoretical'' galaxy properties, we forward model galaxy 
+spectra and photometry using the star formation histories from the
+simulations, make observationally motivated measurements that reflect 
+SFR and $M_*$ on the synthetic spectra and photometry, and conduct a 
+quantitative, apples-to-apples, comparison of the simulations to observations.}
+
+In this section, we demonstrate that our SFS fitting provides additional 
+features besides the SFSs, to compare different galaxy samples. Extra 
+components identified by our fitting method offer insights into the 
+distinct galaxy subpopulations of our simulations. Based on the non-SFS 
+components/populations, we find consistency among the hydrodynamic
+simulations but significant discrepancies with the 
+SC-SAM. Moreover, we find that all of the simulations have a significant
+fraction of low SFR central galaxies at $M_*\,{\lesssim}\,10^9M_\odot$.
+Furthermore, the hydrodynamic simulations, at even $M_*\,{\lesssim}\,10^{11}M_\odot$, 
+do not reproduce the quiescent fractions 
+from the literature or their stellar mass dependence. 
+
+%The ultimate goal of 
+%these simulations, however, is to reproduce the observations, which means
+%we ultimately want to compare them to observations. In this section, we 
+%extend our GMM SFS fitting to the observed galaxy sample from SDSS and NSA
+%and compare our simulated galaxies to observation.
+
+%We first focus on the best-fit SFS of our SDSS and NSA central galaxies
+%in the top right panels of Figure~\ref{fig:sfmsfit_inst} and~\ref{fig:sfmsfit_100myr}. 
+%Similar to the Illustris, EAGLE, and SC-SAM simulations, the SFR of 
+%the SFS monotonically increases with $M_*$. The SFS has no turnover like
+%{\sc Mufasa}'s. Overall, the SDSS and NSA SFS is shallower and has a lower amplitude 
+%than the SFSs of our simulations. 
+%\begin{itemize}
+%  \item \todo{Why are there significant discrepancies in the SFS slopes 
+%  of the simulation versus observations? What are the main subgrid processes
+%  that dictate the slope of the SFS?} Save this discussion for paper 2.  
+%  \item \todo{Is there selection bias in the low mass end of the observations?} 
+%  More reason why we should reserve comparison!
+%\end{itemize}
+%
+%Looking beyond the SFS, the other components of the SDSS and NSA central 
+%galaxy population further highlight the disagreements between the 
+%simulations and observation from the previous section (Figure~\ref{fig:kandinsky}). 
+%At $M_* \lesssim 10^9M_\odot$, we find no quenched population, in agreement 
+%with~\cite{geha2012} and in disagreement with the simulations. Furthermore, 
+%in agreement with measurements in the literature, we find significant $M_*$
+%dependence in the quiescent fraction, which the hydrodynamic simulations do 
+%not find. Aside from the low stellar mass quenched population, the components 
+%of the SC-SAM simulation are in good agreement with the SDSS and NSA 
+%components. They both identify star-burst populations at low masses and 
+%significant transitioning populations from $M_* > 10^{10}M_\odot$.  
+
+%\subsection{Comparing to Observations}
+%The comparison we make between our simulations and observations so far in 
+%this section only scratches the surface. However, we deliberately refrain 
+%from a more detailed comparison due to the limitations of such a comparison. 
+%The main bottleneck stems from the fact that the SFRs and $M_*$, the main
+%galaxy properties considered in this paper, are defined and measured 
+%differently in simulations versus observations. 
+%Therefore, for further scrutiny we require a more apples to apples 
+%comparison. In the next paper we will bring this comparison on a more equal 
+%footing by deriving star formation rates from mock observations of the 
+%simulated galaxies (Starkenburg et al. in prep.).
+
+%The SDSS samples show a SFR-$M_*$ relation that is best fitted by \emph{one} Gaussian at lower masses, unlike any of the simulations. This is noteworthy even though the low-mass sample is far from volume-complete and especially many low-SFR galaxies may be missed at lower masses.
+%\item[-] The observations show a very well defined, and for higher mass bins quite narrow, low-SFR population, with a small intermediate third population for only three mass bins. The low-SFR population is more narrow and generally with the mean at slightly lower SFR than for all three hydro simulations. It is located in between the intermediate and low-SFR populations of the SAM.
+
+%\todo{TKS: Compare to Speagle2014 combined dataset fits and discuss with respect to the large discrepancy they note in MS-slopes for the SDSS sample of $~0.4$ dex. This is partly due to using different SFR indicators (nice segue to the 2nd and 3rd papers), but not completely}
+%comparison to observations are complicated by a number of factors.  First the SFRs and stellar masses of observations are defined by kcorrect  and emission lines and dn4000. While our SFR timescales were chosen to best  reflect the observed SFR, it's still not an apples to apples comparison.  Second, the stellar mass and SFRs of observed galaxies have uncertainties  associated to them. If unaccounted for, these uncertainties will impact the  components recovered from the GMM fitting and ultimately the SFS fits. 
+%All of the points in this subsection are severely affected by the different ways that SFR (and $M_*$) are measured in the observations and the simulations. 
+
+\section{Summary and Conclusions} \label{sec:summary}
+The Star Forming Sequence is a well-defined feature in the galaxy 
+property space that provides a key feature to consistently compare
+galaxy populations in simulations and observations.
+%of both simulations and observations. It provides  a key feature to consistently compare the galaxy populations of  simulations and observations. 
+%provides a key feature in galaxy property  space to consistently compare the galaxy populations in simulations and observations. 
+Such comparisons are crucial for validating our theories of
+galaxy formation and evolution. However, they face two main challenges: 
+the lack of a consistent data-driven method for identifying the SFS and 
+the discrepancies in methodology for deriving galaxy properties such as 
+SFR and $M_*$. In this paper, we address the former by presenting 
+a flexible data-driven method for fitting the SFS. 
+
+Our method takes advantage of Gaussian Mixture Models to fit the SFR
+distributions in stellar mass bins and Bayesian Information Criteria 
+for model selection. This data-driven approach allows us to robustly 
+fit the SFR-$M_*$ relation of galaxy populations and identify the SFS, 
+while relaxing many of the assumptions and hard cuts that go into 
+previous methods. Furthermore, it allows us to flexibly identify the 
+SFS over  a wide range of star formation and to stellar masses down to 
+$M_*{\sim}10^{8}M_\odot$. Finally, our method also allows us to identify 
+subpopulations of galaxies, beyond the SFS, that correspond to the 
+quiescent, transitioning, and star-burst galaxy populations. 
+
+Next, we apply our SFS fitting method to the central galaxies of the 
+Illustris, EAGLE, and {\sc Mufasa} hydrodynamic simulations and the Santa 
+Cruz Semi-Analytic Model. The central galaxies are identified in each 
+simulation using% an extended version of 
+the \cite{tinker2011} group 
+finder and have \emph{consistently} derived $M_*$ and SFRs on instantaneous 
+and $100\,\mathrm{Myr}$ timescales. For reference, we also apply our 
+method to observations from the SDSS Data Release 7 and the NASA Sloan 
+Atlas. Comparing the resulting SFSs and other components from our simulations 
+and observations, we find the following results:
+
+\begin{itemize}
+\item The SFRs among the best-fit SFSs of Illustris, EAGLE, {\sc Mufasa}, 
+and SC-SAM have order of magnitude discrepancies throughout the stellar mass 
+range $10^{8.5} M_\odot < M_* < 10^{11} M_\odot$ with little mass
+dependence in the discrepancies. Meanwhile the width of the best-fit SFSs 
+are consistent among the simulations and in agreement with observations.
+
+\item The best-fit GMMs reveal that the hydrodynamic simulations are 
+mainly dominated by the SFS and low SF (quiescent) components. Meanwhile,
+the SC-SAM is composed of a substantial fraction of galaxies between the 
+SFS and low SF components at high masses ($M_* > 10^{10}M_\odot$) and above 
+the SFS at low masses ($M_* < 10^{10}M_\odot$).
+
+\item The quiescent fractions of the hydrodynamic simulations, estimated 
+from the low SF components of the best-fit GMMs and $\mathrm{SFR}{=}0$ 
+galaxies, have little stellar mass dependence and are inconsistent with 
+the SC-SAM and observations. Moreover, in all of our simulations, we find 
+a significant fraction of low SF (quiescent) galaxies at $M_*{<}\,10^9M_\odot$, 
+in conflict with the $M_*$ lower bound of isolated quiescent galaxies in 
+\cite{geha2012}.
+\end{itemize}
+
+%Overall, the comparison we conduct using the SFS fitting method  we present in this paper, reveals significant discrepancies among the  central galaxies of Illustris, EAGLE, {\sc Mufasa}, and SC-SAM.
+%Using the SFS fitting method we present in this paper, we find significant discrepancies among the central galaxy populations of Illustris, EAGLE,  {\sc Mufasa}, and SC-SAM.  
+By using the SFS fitting method we present in, this paper along with a 
+consistent treatment of our simulated galaxies, we demonstrate that the 
+central galaxies of Illustris, EAGLE,  {\sc Mufasa}, and SC-SAM have significant
+discrepancies in their properties. Although we refrain from a detailed 
+comparison with observations, we also find significant discrepancies 
+between the simulations and established trends in observations. These
+discrepancies, which previous comparisons had failed to identify, underscore 
+the importance of a consistent data-driven approach for accurately comparing 
+galaxy populations.
+%consistent and principled comparisons among galaxy populations.
+%how a  consistent comparison of galaxy populations can reveal detailed discrepancies. 
+
+Furthermore the results of this paper illustrate how differences in the 
+sub-grid physics of our simulations propagate into large discrepancies 
+in the properties of their galaxy populations. In other words, a 
+consistent treatment of simulations and observations combined with a 
+flexible data-driven comparison, like the one we present in this work, can 
+be used test the sub-grid physics models of our simulations and ultimately 
+constrain the physics of galaxy formation and evolution.
+%This means that the SFS  fitting method, combined with a consistent treatment of simulations and  observations, can be used to test our  sub-grid physics models and 
+%ultimately constrain the physics of galaxy formation and evolution.
+This is the exact approach we will present in the subsequent paper of our 
+series---Starkenburg et al. in prep. %We construct mock observational spectra  of simulated galaxies and measure galaxy properties in the same way for both  simulations and observations. Then using the SFS fitting we present in this  paper, we compare simulations to observations in detail and test the physics  that go in our simulations. 
+%provides an effective method for  constraining the physics of galaxy formation and evolution.
+
+\section*{Acknowledgements}
+It's a pleasure to thank
+	Shirley~Ho, 
+    John~Moustakas,
+	Emmanuel~Schaan, 
+    \todo{more acknowledgements here} 
+for valuable discussions. 
+This material is based upon work supported by the U.S. Department
+of Energy, Office of Science, Office of High Energy Physics, under
+contract No. DE-AC02-05CH11231. The Isolated and Quiescent galaxies (IQ) 
+collaboratory thanks the Flatiron Institute for hosting the collaboratory 
+and its meetings. The Flatiron Institute is supported by the Simons Foundation.
+\appendix
+\counterwithin{figure}{section}
+
+\section{Earlier Comparisons of the Star Forming Sequence} \label{app:literature}
+Earlier SFS comparisons in the literature overall report agreement among 
+simulations and observations~\citep[\emph{e.g.}][]{genel2014, somerville2015, sparre2015, schaye2015, bluck2016, dave2016}. 
+This agreement is particularly evident in the seminal comparison in 
+\cite{somerville2015b} (Figure 5). As noted in \cite{somerville2015b}, 
+the SFSs compiled in the comparison are derived inconsistently with some 
+applying a star-forming galaxy selection cut (\emph{e.g.} SSFR cut) and 
+other not applying any cut. {\em Inconsistency in measuring the SFS can 
+produce misleading agreement among simulations.} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.65\textwidth]{figs/Catalog_SFS_lit.pdf} 
+\caption{The SFSs of Illustris, EAGLE, {\sc Mufasa}, and SC-SAM central 
+galaxies, where we measure the SFSs using multiple methods as in Figure 5 
+of \cite{somerville2015b} (left panel) and using the same method (right panel). 
+In the left panel, we measure the SFSs by taking the median SFR in 
+a $M_*$ bin with no selection cuts for Illustris and {\sc Mufasa}
+and by taking the median SFR after a SSFR > $10^{-11}\,yr^{-1}$ cut 
+for EAGLE and SC-SAM. In the right panel, we measure the SFSs by taking 
+the median SFR after a SSFR > $10^{-11}\,yr^{-1}$ cut for all four simulations.
+The difference between the two panels illustrate that \emph{the agreement 
+found in the left panel, and similarly in \cite{somerville2015b},
+is mainly driven by the difference in methods used to measure SFSs.}
+} 
+\label{fig:likeSD14}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In the left panel of Figure~\ref{fig:likeSD14} we reproduce the SFS comparison of 
+\cite{somerville2015b} Figure 5 for our simulations using different methods for measuring the SFS. 
+For Illustris and EAGLE, we apply the same methods as the SFSs in \cite{somerville2015b}: 
+the median SFR in a $M_*$ bin with no selection cut for Illustris (green) and 
+with a SSFR > $10^{-11}\,yr^{-1}$ cut for EAGLE~\citep[red][]{schaye2015}. 
+{\sc Mufasa} and the current version of SC-SAM did not exist and were not 
+included in \cite{somerville2015b}. Since we're illustrating how inconsistent 
+SFS measurements can result in misleading agreement, for {\sc Mufasa} and 
+SC-SAM we measure the median SFR with no selection cut and with a SSFR > 
+$10^{-11}\,yr^{-1}$ cut respectively. As in Figure 5 of \cite{somerville2015b}, 
+we find good agreement among the SFSs of our simulations. 
+
+Instead of measuring the SFSs differently, if we measure the SFS by taking the
+median SFR after a SSFR > $10^{-11}\,yr^{-1}$ cut consistently for all our 
+simulations, we find discrepancies in the SFSs on the order ${\sim}0.5\,\mathrm{dex}$
+(right panel of \ref{fig:likeSD14}). The agreement found in \cite{somerville2015b} 
+is mainly driven by the difference in methods used to measure SFSs. 
+Furthermore, Figure~\ref{fig:likeSD14} highlights the impact of hard selection cuts 
+and the importance of using a consistent methodology for measuring the SFS. 
+
+%In this paper we perform a Gaussian Mixture Model fitting of the SFR-$M_{\star}$ plane and find almost an order of magnitude discrepancy in normalization of the Star Formation Sequence when described by the peak of our most dominant Gaussian component. This is seemingly in contrast to results from the literature that report agreement between simulations and observations ~\citep[\emph{e.g.}][]{ 
+%somerville2015, genel2014, sparre2015, schaye2015, bluck2016, dave2016}. This apparent "disagreement" between our and previous results is mostly due to whether the authors applied a cut to select star-forming galaxies before fitting the SFS or not. Arguments can be found for both sides: fitting the SFS using only galaxies above a minimum sSFR or fitting the SFS using all galaxies. Additional disagreement exists in whether to use means, or medians, or when applying a cut-off what that should be. In Fig. \ref{fig:likeSD14} we show an identical figure to the comparison figure (Fig. 5) in \citet{somerville2015} where we apply almost exactly the same selection as the modelers did for that figure for Illustris and EAGLE (we chose a cut of sSFR > $-11$ yr$^{-1}$ instead of the sSFR > $-10.5$ yr$^{-1}$ used in \citet{schaye2015}). Both MUFASA and the current version of the SCSAM were not in existence at the time and for those we chose to either select star-forming galaxies (using a cut of sSFR > $-11$ yr$^{-1}$) or all galaxies, whichever fit best to the Illustris and EAGLE results. The caption of Fig. 5 in \citet{somerville2015} noted that "some of the modelers have applied a cut to select star forming galaxies, but some have not". As is shown in that figure and Fig. \ref{fig:likeSD14}, the simulations agree very well on the slope and normalization of the SFS. 
+%However, when we choose to either select the star forming galaxies or all galaxies for all simulations the results are quite different. This can be seen in Fig. \ref{fig:medianSFall}. In both cases selecting the same sample of galaxies results in a disagreement in the normalization of the SFS of > 0.5 dex. This is the main driver of the disagreement that we found in this paper. Additional differences can arise in our method because a GMM models both the peak and the width of the SFS and is more sensitive to the position of the green valley with respect to the SFS. Additionally applying GMM results in intermediate or transitioning and starburst components when those populations are statistically significant. While we also use only central galaxies and apply a group finder to select those centrals, these effects are very minor. 
+
+\section{SFS fitting using Gaussian Mixture Models} \label{app:gmm_pssfr}
+{\color{red}
+In order to derive the best-fit GMM used in identifying the SFS in 
+each $M_*$ bin, we compare GMM fits with $k\leq 3$ components using
+their BICs (Section~\ref{sec:sfmsfit}). In Figures~\ref{fig:pssfr_gmm_inst} 
+and~\ref{fig:pssfr_gmm_100myr}, we illustrate this comparison among the  
+GMMs with $k=1, 2,$ and $3$ (blue, orange, and green) components fit
+to the instantaneous SSFR distributions, $P(\log\,\mathrm{SSFR})$, of the 
+Illustris, EAGLE, {\sc Mufasa}, and SC-SAM (top to bottom panels) centrals 
+in three stellar mass bins: 
+$9.2 <\log\,M_*<9.4$, $9.8 <\log\,M_*<10$, and $10.6 <\log\,M_*<10.8$ (left to right). 
+The SSFR distributions in Figures~\ref{fig:pssfr_gmm_inst} 
+and~\ref{fig:pssfr_gmm_100myr} are derived using instantaneous and 
+$100\,\mathrm{Myr}$ SFRs respectively. Galaxies with $\mathrm{SFR}=0$
+are represented at the edge of the SSFR distributions with $\mathrm{SSFR}=-13.5$.
+In each panel, we also present the BICs and plot every component of the 
+GMM fits (dashed) in their respective colors. These figures illustrate
+the advantages of the data-driven GMM based fitting and BIC based
+model selection used in our SFS fitting.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/Pssfr_GMMcomps_inst.pdf} 
+\caption{GMMs with $k=1, 2,$ and $3$ (blue, orange, and green) components fit
+to the instantaneous SSFR distributions, $P(\log\,\mathrm{SSFR})$, of the 
+Illustris, EAGLE, {\sc Mufasa}, and SC-SAM (top to bottom panels) centrals 
+in three stellar mass bins: $[9.2, 9.4]$, $[9.8, 10.]$, and $[10.6, 10.8]$ 
+(left to right). For every GMM fit, we plot each component in dash lines 
+and list their BICs in the same color. In our SFS fitting, we select the 
+GMM with the lowest BIC as the best-fit. This provides a \emph{data-driven 
+way of accurately fitting the SSFR distribution while also avoiding 
+overfitting}.
+} 
+\label{fig:pssfr_gmm_inst}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/Pssfr_GMMcomps_100myr.pdf} 
+\caption{Same as Figure~\ref{fig:pssfr_gmm_inst} but for the $100\,\mathrm{Myr}$
+SSFR distributions.} 
+\label{fig:pssfr_gmm_100myr}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+For instance, in most of the highest $M_*$ bin (right panels in both figures) 
+the $k=1$ GMM fits do not reflect the clearly bimodal SSFR distributions.
+In these cases, the $\mathrm{BIC}_{k=1}$ is significantly larger than
+the BICs of $k = 2$ and $3$ component GMM fits so our BIC based model 
+selection favors GMMs with more than one component. In fact, GMMs with
+more components are more flexible and generally can better fit the underlying 
+distribution. However as the EAGLE and {\sc Mufasa} $9.8 <\log\,M_*<10$ 
+bins of the figures illustrate, our BIC based model selection does not 
+always favor the higher $k$ GMM fits. Although the $k=3$ GMMs have the 
+lowest $\chi^2$ in these panels, because of the penalty term for the 
+number of model parameters, our BIC criteria favors the $k=2$ GMMs.
+According to the BICs, the $k=3$ GMMs in these panels overfit the 
+SSFR distributions.
+
+In a number of stellar mass bins, the best-fit GMMs have more than one 
+$\log\,\mathrm{SSFR} > -11$ components. In these cases the 
+$\log\,\mathrm{SSFR} > -11$ component with the highest weight is identified
+as the SFS component (Section~\ref{sec:sfmsfit}). We consider other 
+components, depending on their mean, as intermediate or high SF components in 
+Section~\ref{sec:beyondsfms}. The SC-SAM in particular has high SF
+components at $M_* \lesssim 10^{10}M_\odot$ (bottom left and center panels
+of Figures~\ref{fig:pssfr_gmm_inst}  and~\ref{fig:pssfr_gmm_100myr}).
+In these cases, the SSFR distribution is not well described by a single 
+log-normal distribution. Instead the distribution is asymmetric with a 
+heavier tail on the more star forming end of the distribution. An
+extra component to account for the heavier tail improves the fit more 
+than the penalty term, giving us the high SF components.}
+
+%So far we have assumed that one, two, or three populations would describe galaxies in the SFR--$M_*$ plane well. We have checked whether the possibility of adding more than three Gaussians in the GMM shows that more populations are present. This is the case only for the Santa Cruz semi-analytic model, where in a number of bins the presence of 4, 5, or (in one case) 6 Gaussians is preferred. In almost all cases the added Gaussians have low weight and form effectively additional intermediate populations. For both Illustris and EAGLE there is only one mass bin where a fourth population would be preferred. For all other mass bins in all the hydrodynamic simulations, and all mass bins in the SDSS 3 or less Gaussians are preferred.
+
+%In addition to identifying the SFS, the GMM fitting method described above can  be extended to describe the entire SFR-$M_*$ relation using a two-dimensional  GMM. In Figure~\ref{fig:2dgmm}, we compare the instantaneous SFR to $M_*$ relation  of central galaxies in the EAGLE simulation with the best-fit two-dimensional GMM.  The over-plotted shaded ellipses represent the two-dimensional Gaussian components of the best-fit GMM. Overall the best-fit 2D GMM captures the features in the  EAGLE SFR-$M_*$ relation. It also provides a straightforward way of comparing  different SFR-$M_*$ relations. However, as Figure~\ref{fig:2dgmm} illustrates,  specifically identifying the SFS using the two-dimensional model is more  challenging. Therefore in this paper, we do not discuss the 2D GMM further. 
+
+\section{SFR Resolution Effects in Hydrodynamic Simulations} \label{app:zerosfr}
+In our analysis, we consistently derive SFRs for all of our simulated
+galaxies on two timescales: instantaneous and averaged over 
+$100\,\mathrm{Myr}$ (Section~\ref{sec:galsims}). For our hydrodynamic 
+simulations, SFR averaged over $100\,\mathrm{Myr}$ is derived using 
+the formation times of the star particles in the simulation, which 
+means that both the mass and temporal resolutions of the simulations 
+impact the $100\,\mathrm{Myr}$ SFR. In Illustris, EAGLE, and {\sc Mufasa},
+their $100\,\mathrm{Myr}$ SFRs have resolutions of 
+$\Delta_\mathrm{SFR} = 0.016$, $0.018$, and $0.182\,M_*/\mathrm{yr}$, 
+corresponding to baryon particle masses of $1.6 \times 10^6\ M_{\sun}$, 
+$1.8 \times 10^6\ M_{\sun}$, and $1.82 \times 10^7\ M_{\sun}$, respectively. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/Pssfr_res_impact.pdf} 
+\caption{The impact of SFR resolution on the SSFR distribution, 
+$P(\log\,\mathrm{SSFR})$, in two stellar mass bins of our hydrodynamic 
+simulations:
+Illustris (left), EAGLE (center), and MUFSAS (right). We plot the 
+$P(\mathrm{SSFR})$ distributions using the $100\,\mathrm{Myr}$
+SFRs \emph{with} resolution effects in black. In blue, we plot the 
+$P(\log\,\mathrm{SSFR})$ distributions where the SFRs of the galaxies
+are sampled uniformly within the SFR resolution range 
+($[\mathrm{SFR}_i, \mathrm{SFR}_i+\Delta_\mathrm{SFR}]$). The 
+uncertainties for the blue $P(\mathrm{SSFR})$s are estimated from 
+re-sampling the SFR of each galaxy based on the SFR resolution. 
+At low stellar masses (top) the SFR resolution significantly impacts 
+the star-forming end of $P(\mathrm{SSFR})$s. At higher stellar masses, 
+although the SFR resolution impacts the $P(\mathrm{SSFR})$s, the effect 
+is limited to $\log\,\mathrm{SSFR} < -11$.
+} 
+\label{fig:sfrres_pssfr}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% describe the impact of resolution effect more concretely 
+For galaxies with high $100\,\mathrm{Myr}$ SFR, the resolution 
+$\Delta_\mathrm{SFR}$ is relatively small compared to their SFRs and
+therefore it does not have a significant impact. However for low SFR 
+galaxies, the resolution effect is more significant. At the lowest SFR 
+end, galaxies that, without the resolution effect, would have SFR ranging 
+$0 < \mathrm{SFR} < \Delta_\mathrm{SFR}$, have $\mathrm{SFR}{=}0$ with 
+the resolution effect. These galaxies are thereby not included in the 
+$\log\,\mathrm{SFR}$--$\log\,M_*$ plane or the SFS fitting. In
+Figure~\ref{fig:sfrres_pssfr}, we present the impact of excluding these
+galaxies and the overall resolution effect on the $P(\log\,\mathrm{SSFR})$ 
+distributions of our hydrodynamic simulations in two stellar mass bins. In 
+black, we plot the $P(\log\,\mathrm{SSFR})$ distributions using the 
+$100\,\mathrm{Myr}$ SFRs \emph{with} resolution effects
+(\emph{excluding} galaxies with $\mathrm{SFR}{=}0$). In blue, we plot the 
+$P(\log\,\mathrm{SSFR})$ distributions of \emph{all} galaxies where
+$\mathrm{SFR}'_i$ of each galaxy sampled uniformly within the SFR resolution range, 
+$[\mathrm{SFR}_i, \mathrm{SFR}_i+\Delta_\mathrm{SFR}]$. Uncertainties 
+for the blue $P(\log\,\mathrm{SSFR})$s are derived from repeating this 
+SFR sampling $100$ times. For the low $M_*$ bins (top), the SFR resolution 
+affects the $P(\log\,\mathrm{SSFR})$s well above $\log\,\mathrm{SSFR}{=}-11.$ 
+on the star-forming end of the distribution. Meanwhile, the impact at higher
+$M_*$ (bottom), is limited to the low SSFR end. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.75\textwidth]{figs/Mlim_res_impact.pdf} 
+\caption{The resolution effect of $100\,\mathrm{Myr}$ SFRs in the 
+hydrodynamic simulations (Illustris, EAGLE, and {\sc Mufasa}) impact 
+SFS fitting at low stellar mass. In black we plot the best-fit SFS 
+with the resolution effects. In orange we plot the best-fit SFS where 
+the SFR for each galaxy is sampled uniformly within the resolution range: 
+$\mathrm{SFR}_i^{\prime} \in [\mathrm{SFR}_i, \mathrm{SFR}_i +
+\Delta_\mathrm{SFR}]$). SFR resolution impacts SFS fits at low 
+stellar mass. Based on the discrepancy between the fits, we determine 
+stellar mass limits above which the SFR resolution does {\em not} 
+significantly impact ($< 0.2\,\mathrm{dex}$) the SFS fit. For Illustris, 
+EAGLE, and {\sc Mufasa} this corresponds to $\log M_\mathrm{lim} = 8.4, 8.4$, 
+and $9.2$, respectively.} 
+\label{fig:mlim_res}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In order to better quantify the impact of the SFR resolution effect
+on our SFS fitting, in Figure~\ref{fig:mlim_res} we compare the SFS fits 
+using $100\,\mathrm{Myr}$ SFRs \emph{with} resolution effects (black) to 
+the SFS fits using $100\,\mathrm{Myr}$ SFRs sampled uniformly within the 
+SFR resolution range (orange; 
+$\mathrm{SFR}_i^{\prime} \in [\mathrm{SFR}_i, \mathrm{SFR}_i + \Delta_\mathrm{SFR}]$). 
+The uncertainties of our SFS fits in black are calculated using bootstrap 
+resampling (Section~\ref{sec:sfmsfit}). In agreement with 
+Figure~\ref{fig:sfrres_pssfr}, we find that the SFR resolution 
+significantly impacts SFS fitting at low $M_*$. Moreover, using the 
+comparison of Figure~\ref{fig:mlim_res}, we determine the stellar mass 
+limit above which the SFR resolution does {\em not} significantly impact 
+the SFS fitting --- \emph{i.e.} the shift in best-fit SFS is below 
+$0.2\,\mathrm{dex}$. For Illustris, EAGLE, and {\sc Mufasa} we determine 
+$\log\,M_\mathrm{lim} = 8.4, 8.4$, and  $9.2$, respectively. {\color{red} 
+For EAGLE, where we have a higher resolution box ($8\times$ higher baryon 
+mass resolution) available, we further confirm that the SFS is not significantly impacted above $\log\,M_\mathrm{lim}$.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figure 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.7\textwidth]{figs/GMMcomp_comp_res_impact.pdf}
+\caption{Fractional contributions, $\pi_i$s, of the best-fit GMM components 
+from our SFS fitting for our hydrodynamic simulations (Illustris, EAGLE, and 
+{\sc Mufasa}) where we uniformly sample the $100\,\mathrm{Myr}$ SFRs within
+the SFR resolution range --- $\mathrm{SFR}_i^{\prime} \in [\mathrm{SFR}_i, \mathrm{SFR}_i + 
+\Delta_\mathrm{SFR}]$. In the bottom panels, we plot the corresponding bootstrap 
+uncertainties. In comparison to Figures~\ref{fig:kandinsky} 
+and~\ref{fig:fcomp_uncertainty}, we find SFR resolution has no 
+significant impact on the qualitative results in Section~\ref{sec:beyondsfms}.} 
+\label{fig:mlim_fcomp}
+\end{center}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In addition to its effect on the SFS fits, we also examine the impact of 
+SFR resolution on our results regarding the non-SFS components of our GMM 
+fitting (Figures~\ref{fig:kandinsky} and~\ref{fig:fcomp_uncertainty}). In 
+Figure~\ref{fig:mlim_fcomp} we present the fraction contributions (top; $\pi_i$) 
+of the best-fit components and their bootstrap uncertainties (bottom) for 
+the Illustris, EAGLE, and {\sc Mufasa} simulations, where we uniformly 
+sample the SFRs within the SFR resolution range (same as above). Aside from 
+no longer having a $\mathrm{SFR}{=}0$ component, due to the SFR sampling, we 
+find no significant change from the $\pi_i$s of Figures~\ref{fig:kandinsky} 
+and~\ref{fig:fcomp_uncertainty}) and, thus, the results of Section~\ref{sec:beyondsfms}. 
+
 \bibliographystyle{aasjournal}
 \bibliography{paper1}
 \end{document}
