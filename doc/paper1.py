@@ -299,6 +299,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
     sub0.set_xticklabels([]) 
     sub0.set_yticklabels([]) 
 
+    fSFS_interp = [] 
     for i_c, cc in enumerate(sims_list): 
         cat = '_'.join([cc, tscale]) 
         sub = fig.add_subplot(2,3,3*(i_c/2)+(i_c % 2)+1) 
@@ -335,6 +336,17 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
                     ha='left', va='top', transform=sub.transAxes, fontsize=20)
         if i_c < 2:   sub.set_xticklabels([]) 
         if i_c not in [0, 2]: sub.set_yticklabels([]) 
+        
+        fSFS_interp.append(sp.interpolate.interp1d(fSFS._fit_logm, fSFS._fit_logsfr, 
+            bounds_error=False, fill_value='extrapolate')) # for calculating the max discrepancy
+    # estimate the maximum discrepancy
+    marr = np.linspace(9.2, 11., 100) 
+    fsfss = np.zeros((len(fSFS_interp), len(marr)))
+    for i in range(len(fSFS_interp)): 
+        fsfss[i,:] = fSFS_interp[i](marr)
+    fsfss_min = np.amin(fsfss, axis=0) 
+    fsfss_max = np.amax(fsfss, axis=0) 
+    print('maximum discrepancy = %f' % np.max(fsfss_max - fsfss_min)) 
     
     sub = fig.add_subplot(2,3,6) 
     for i_c, cc in enumerate(sims_list): 
@@ -2214,8 +2226,8 @@ if __name__=="__main__":
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
-    #for tt in ['inst', '100myr']:
-    #    Catalog_SFMS_fit(tt)
+    for tt in ['inst', '100myr']:
+        Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
@@ -2247,4 +2259,4 @@ if __name__=="__main__":
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFS_lit()
-    GMM_3pluscomp()
+    #GMM_3pluscomp()
