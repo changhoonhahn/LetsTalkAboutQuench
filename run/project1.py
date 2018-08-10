@@ -346,11 +346,12 @@ def _mlim_fit(name, logMstar, cut):
 if __name__=="__main__": 
     for t in ['inst', '100myr']: 
         for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
+            pass
             #gmmSFSfits(name+'_'+t)
             #dSFS(name+'_'+t) 
             #gmmSFSfits_lowthresh(name+'_'+t)
             #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
-            gmmSFSfits_morecomp(name+'_'+t)
+            #gmmSFSfits_morecomp(name+'_'+t)
     for name in ['nsa_dickey', 'tinkergroup']: 
         #gmmSFSfits(name)
         #gmmSFSfits_lowthresh(name)

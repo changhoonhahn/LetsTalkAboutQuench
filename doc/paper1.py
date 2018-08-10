@@ -299,7 +299,6 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
     sub0.set_xticklabels([]) 
     sub0.set_yticklabels([]) 
 
-    fSFS_interp = [] 
     for i_c, cc in enumerate(sims_list): 
         cat = '_'.join([cc, tscale]) 
         sub = fig.add_subplot(2,3,3*(i_c/2)+(i_c % 2)+1) 
@@ -337,17 +336,6 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
         if i_c < 2:   sub.set_xticklabels([]) 
         if i_c not in [0, 2]: sub.set_yticklabels([]) 
         
-        fSFS_interp.append(sp.interpolate.interp1d(fSFS._fit_logm, fSFS._fit_logsfr, 
-            bounds_error=False, fill_value='extrapolate')) # for calculating the max discrepancy
-    # estimate the maximum discrepancy
-    marr = np.linspace(9.2, 11., 100) 
-    fsfss = np.zeros((len(fSFS_interp), len(marr)))
-    for i in range(len(fSFS_interp)): 
-        fsfss[i,:] = fSFS_interp[i](marr)
-    fsfss_min = np.amin(fsfss, axis=0) 
-    fsfss_max = np.amax(fsfss, axis=0) 
-    print('maximum discrepancy = %f' % np.max(fsfss_max - fsfss_min)) 
-    
     sub = fig.add_subplot(2,3,6) 
     for i_c, cc in enumerate(sims_list): 
         cat = '_'.join([cc, tscale]) 
@@ -2149,6 +2137,67 @@ def _fGMM(name, morecomp=False, nosplashback=False, sb_cut='3vir'):
         return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
 
 
+def _SFS_maxdiscrepancy(tscale): 
+    ''' calculate the maximum discrepancy between the SFSs of the 
+    simulations. 
+    '''
+    if tscale not in ['inst', '10myr', '100myr', '1gyr']: raise ValueError
+    
+    Cat = Cats.Catalog()
+    # Read in various data sets
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+
+    # file with best-fit GMM 
+    f_gmm = lambda name: _fGMM(name)
+
+    bestfit_SFSs = {}
+    for i_c, cc in enumerate(sims_list): 
+        cat = '_'.join([cc, tscale]) 
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+        psat = Cat.GroupFinder(cat) # group finder 
+        sample_cut = ((psat < 0.01) & ~Cat.zero_sfr)
+            
+        # fit the SFMS  
+        if cc == 'scsam': 
+            sample_cut = sample_cut & (logMstar > scsam_mmin)
+        elif cat == 'illustris_100myr': 
+            sample_cut = sample_cut & (logMstar > illustris_mmin)
+        elif cat == 'eagle_100myr': 
+            sample_cut = sample_cut & (logMstar > eagle_mmin)
+        elif cat == 'mufasa_100myr': 
+            sample_cut = sample_cut & (logMstar > mufasa_mmin)
+        
+        # SFS fit
+        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+        bestfit_SFSs[cc] = [fSFS._fit_logm, fSFS._fit_logsfr]
+
+    # estimate the maximum discrepancy
+    if tscale == 'inst': 
+        # the biggest discrepancy is between MUFASA and SC-SAM 
+        # at SC-SAM lower mass limit
+        mmin = bestfit_SFSs['scsam'][0][0]
+        mmax = 10.5
+        #marr = np.linspace(mmin, mmax, 100) 
+        #dsfs_max = np.max(np.abs(np.interp(marr, bestfit_SFSs['scsam'][0], bestfit_SFSs['scsam'][1]) - \
+        #        np.interp(marr, bestfit_SFSs['mufasa'][0], bestfit_SFSs['mufasa'][1])))
+        #print("maximum SFS discrepancy = %f dex" % dsfs_max)
+    elif tscale == '100myr':
+        # the biggest discrepancy is between MUFASA and SC-SAM 
+        # at SC-SAM lower mass limit
+        mmin = bestfit_SFSs['mufasa'][0][0]
+        mmax = bestfit_SFSs['mufasa'][0][-1]
+    marr = np.linspace(mmin, mmax, 100) 
+    sfss = np.zeros((len(bestfit_SFSs.keys()), len(marr)))
+    for i, k in enumerate(bestfit_SFSs.keys()): 
+        sfss[i,:] = np.interp(marr, bestfit_SFSs[k][0], bestfit_SFSs[k][1])
+    sfss_min = np.amin(sfss, axis=0)
+    sfss_max = np.amax(sfss, axis=0)
+    dsfs_max = np.max(sfss_max - sfss_min)
+    print("maximum SFS discrepancy = %f dex" % dsfs_max)
+    return None 
+
+
+
 ##############################
 # Appendix: previous method 
 ##############################
@@ -2227,7 +2276,8 @@ if __name__=="__main__":
     #GroupFinder()
     #SFMSfit_example()
     for tt in ['inst', '100myr']:
-        Catalog_SFMS_fit(tt)
+        _SFS_maxdiscrepancy(tt)
+        #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
