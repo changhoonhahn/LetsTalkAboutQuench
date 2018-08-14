@@ -359,6 +359,8 @@ def GroupFinder():
         if 'scsam' in name: 
             print('%f' % np.mean(np.array(fp_pc)[notpure]))
             print('%f' % np.mean(np.array(fp_pc)[np.invert(notpure)]))
+            print('%f' % np.mean(np.array(fp_pc)[np.array(mmids) > 8.8]))
+            print('%f' % np.mean(np.array(fcomp_pc)[np.array(mmids) > 8.8]))
             print('%f' % (float(len(logM[logM < 8.5]))/float(len(logM))))
 
         sub = fig.add_subplot(1,len(names),i_n+1) 
@@ -465,6 +467,10 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
                 fSFS._fit_logsfr + fSFS._fit_err_logssfr, 
                 color='C'+str(i_c+2), linewidth=0.5, alpha=0.75) 
 
+    for i_c, cat in enumerate(obvs_list): 
+        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+        sub.errorbar(fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr, fmt='.k')
+
     sub.text(0.08, 0.92, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
             ha='left', va='top', transform=sub.transAxes, fontsize=20)
     sub.set_xlim([8., 11.6]) 
@@ -564,6 +570,7 @@ def Catalogs_SFMS_width():
     '''
     Cat = Cats.Catalog()
     tscales = ['inst', '100myr'] # tscales 
+    obvs_list = ['tinkergroup', 'nsa_dickey']
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
     
     f_gmm = lambda name: ''.join([UT.dat_dir(), 
@@ -579,9 +586,7 @@ def Catalogs_SFMS_width():
             cat = '_'.join([cc, tscale]) 
             lbl = Cat.CatalogLabel(cat)
             _label = None
-            if i_t == 0 and i_c in [0, 1]: 
-                _label = lbl.split('[')[0]
-            elif i_t == 1 and i_c in [2, 3]: 
+            if i_t == 1: 
                 _label = lbl.split('[')[0]
 
             fSFMS = pickle.load(open(f_gmm(cat), 'rb'))
@@ -589,7 +594,9 @@ def Catalogs_SFMS_width():
                     fSFMS._fit_sig_logssfr - fSFMS._fit_err_sig_logssfr, 
                     fSFMS._fit_sig_logssfr + fSFMS._fit_err_sig_logssfr, 
                     color='C'+str(i_c+2), alpha=0.75, linewidth=0, label=_label) 
-            sub.legend(loc='lower right', frameon=False, handletextpad=0.2, prop={'size': 15}) 
+            if i_t == 1: 
+                sub.legend(loc='lower right', frameon=False, ncol=2, columnspacing=0.5,
+                        handletextpad=0.2, prop={'size': 15}) 
             if i_c == 0: 
                 sub.text(0.05, 0.95, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='top', transform=sub.transAxes, fontsize=20)
@@ -603,6 +610,21 @@ def Catalogs_SFMS_width():
             chisq = lambda theta: np.sum((theta[0] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
             tt = sp.optimize.minimize(chisq, np.array([0.2])) 
             print('--%s--' % cat)
+            #print('slope %f; y-int %f' % (tt['x'][0], tt['x'][1])) 
+            print('amplitude %f' % (tt['x'][0])) 
+
+        for i_c, cc in enumerate(obvs_list): 
+            fSFMS = pickle.load(open(f_gmm(cc), 'rb'))
+            #sub.errorbar(fSFMS._fit_logm, fSFMS._fit_sig_logssfr, fSFMS._fit_err_sig_logssfr, fmt='.k') 
+            # fit the widths to a line 
+            xx = fSFMS._fit_logm - 10.5   # log Mstar - log M_fid
+            yy = fSFMS._fit_sig_logssfr
+            #yy = np.sqrt(fSFMS._fit_sig_logssfr)
+            #chisq = lambda theta: np.sum((theta[0] * xx + theta[1] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
+            #tt = sp.optimize.minimize(chisq, np.array([0.0, 0.2])) 
+            chisq = lambda theta: np.sum((theta[0] - yy)**2/fSFMS._fit_err_sig_logssfr**2)
+            tt = sp.optimize.minimize(chisq, np.array([0.2])) 
+            print('--%s--' % cc)
             #print('slope %f; y-int %f' % (tt['x'][0], tt['x'][1])) 
             print('amplitude %f' % (tt['x'][0])) 
 
@@ -2409,11 +2431,11 @@ if __name__=="__main__":
         #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
-    #Catalogs_SFMS_width()
+    Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=100)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
