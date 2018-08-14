@@ -69,8 +69,13 @@ def Catalogs_SFR_Mstar():
     sub0 = plt.subplot(gs_i[1:3,:])
     for i_c, cat in enumerate(obvs_list): 
         logMstar, logSFR, weight, censat = Cat.Read(cat)
-        iscen = (censat == 1)
-        DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c), 
+        #iscen = (censat == 1)
+        if cat == 'nsa_dickey': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar < dickey_mmax)) 
+        elif cat == 'tinkergroup': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
+
+        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, 
                 ax=sub0) 
@@ -98,11 +103,22 @@ def Catalogs_SFR_Mstar():
                         transform=sub.transAxes, fontsize=20)
 
             # only pure central galaxies identified from the group catalog
-            psat = Cat.GroupFinder(cat)
-            iscen = (psat < 0.01) 
-            #iscen = (censat == 1)
-
-            DFM.hist2d(logMstar[iscen], logSFR[iscen], color='C'+str(i_c+2), 
+            #psat = Cat.GroupFinder(cat)
+            #iscen = (psat < 0.01) #iscen = (censat == 1)
+            psat = Cat.GroupFinder(cat) # group finder 
+            sample_cut = ((psat < 0.01) & ~Cat.zero_sfr)
+            
+            # fit the SFMS  
+            if cc == 'scsam': 
+                sample_cut = sample_cut & (logMstar > scsam_mmin)
+            elif cat == 'illustris_100myr': 
+                sample_cut = sample_cut & (logMstar > illustris_mmin)
+            elif cat == 'eagle_100myr': 
+                sample_cut = sample_cut & (logMstar > eagle_mmin)
+            elif cat == 'mufasa_100myr': 
+                sample_cut = sample_cut & (logMstar > mufasa_mmin)
+            
+            DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
             sub.set_xlim([7.8, 11.8]) 
@@ -117,6 +133,113 @@ def Catalogs_SFR_Mstar():
             rotation='vertical', va='center', fontsize=30) 
     fig.subplots_adjust(wspace=0.15, hspace=0.05)
     fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFR_Mstar.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
+def Obvs_SFR_Mstar(): 
+    ''' Compare SFR vs M* relation of central galaxies from various simlations and 
+    observations 
+    '''
+    Cat = Cats.Catalog()
+    tscales = ['inst', '100myr']
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+    obvs_list = ['tinkergroup', 'nsa_dickey']
+    
+    plot_range = [[7.8, 12.], [-4., 2.]]
+
+    fig = plt.figure(figsize=(4,4))
+
+    # plot SFR-M* for the observations 
+    sub = fig.add_subplot(111)
+    for i_c, cat in enumerate(obvs_list): 
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+        #iscen = (censat == 1)
+        if cat == 'nsa_dickey': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar < dickey_mmax)) 
+        elif cat == 'tinkergroup': 
+            sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
+
+        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c), 
+                levels=[0.68, 0.95], range=plot_range, 
+                plot_datapoints=True, fill_contours=False, plot_density=True, 
+                ax=sub)
+        sub.set_xlim([7.8, 11.8]) 
+        sub.set_xticks([8., 9., 10., 11.]) 
+        sub.set_ylim([-3.5, 2.]) 
+        sub.set_yticks([-3, -2., -1., 0., 1, 2.]) 
+    sub.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=5, fontsize=20)
+    sub.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=20)
+    sub.text(0.95, 0.05, 'SDSS Centrals', ha='right', va='bottom', 
+                transform=sub.transAxes, fontsize=20)
+    #fig.text(0.5, 0.01, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
+    #fig.text(0.08, 0.5, r'log ( SFR $[M_\odot \, yr^{-1}]$ )', 
+    #        rotation='vertical', va='center', fontsize=30) 
+    fig_name = ''.join([UT.doc_dir(), 'figs/Obvs_SFR_Mstar.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None 
+
+
+def Sims_SFR_Mstar(): 
+    ''' Compare SFR vs M* relation of central galaxies from various simlations and 
+    observations 
+    '''
+    Cat = Cats.Catalog()
+    tscales = ['inst', '100myr']
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
+    
+    plot_range = [[7.8, 12.], [-4., 2.]]
+
+    fig = plt.figure(figsize=(16,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+
+    for i_c, cc in enumerate(sims_list): 
+        for i_t, tscale in enumerate(tscales): 
+            cat = '_'.join([cc, tscale]) 
+            sub = fig.add_subplot(2,4,4*i_t+i_c+1)
+            lbl = Cat.CatalogLabel(cat)
+            logMstar, logSFR, weight, censat = Cat.Read(cat)
+
+            if i_c == 0: 
+                sub.text(0.05, 0.95, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+            if i_t == 1: 
+                sub.text(0.95, 0.05, lbl.split('[')[0], ha='right', va='bottom', 
+                        transform=sub.transAxes, fontsize=20)
+
+            # only pure central galaxies identified from the group catalog
+            #psat = Cat.GroupFinder(cat)
+            #iscen = (psat < 0.01) #iscen = (censat == 1)
+            psat = Cat.GroupFinder(cat) # group finder 
+            sample_cut = ((psat < 0.01) & ~Cat.zero_sfr)
+            
+            # fit the SFMS  
+            if cc == 'scsam': 
+                sample_cut = sample_cut & (logMstar > scsam_mmin)
+            elif cat == 'illustris_100myr': 
+                sample_cut = sample_cut & (logMstar > illustris_mmin)
+            elif cat == 'eagle_100myr': 
+                sample_cut = sample_cut & (logMstar > eagle_mmin)
+            elif cat == 'mufasa_100myr': 
+                sample_cut = sample_cut & (logMstar > mufasa_mmin)
+            
+            DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c+2), 
+                    levels=[0.68, 0.95], range=plot_range, 
+                    plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
+            sub.set_xlim([7.8, 11.8]) 
+            sub.set_xticks([8., 9., 10., 11.]) 
+            if i_t == 0: sub.set_xticklabels([]) 
+            sub.set_ylim([-3.5, 2.]) 
+            sub.set_yticks([-3, -2., -1., 0., 1, 2.]) 
+            #if i_c != 0: sub.set_yticklabels([]) 
+    
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=5, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25)
+    fig.subplots_adjust(wspace=0.15, hspace=0.05)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Sims_SFR_Mstar.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None 
@@ -293,9 +416,9 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
     
     sub0.text(0.9, 0.1, 'SDSS Centrals', ha='right', va='center', 
                 transform=sub0.transAxes, fontsize=20)
-    sub0.set_xlim([8.0, 12.]) 
-    sub0.set_ylim([-4., 2.]) 
-    sub0.set_xticks([8., 9., 10., 11., 12.]) 
+    sub0.set_xlim([8., 11.6]) 
+    sub0.set_ylim([-3., 1.5]) 
+    sub0.set_xticks([8., 9., 10., 11.]) 
     sub0.set_xticklabels([]) 
     sub0.set_yticklabels([]) 
 
@@ -327,12 +450,9 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
         lbl = Cat.CatalogLabel(cat)
         sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', 
                 transform=sub.transAxes, fontsize=20)
-        sub.set_xlim([8., 12.]) 
-        sub.set_ylim([-4., 2.]) 
-        sub.set_xticks([8., 9., 10., 11., 12.]) 
-        if i_c == 0: 
-            sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
-                    ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        sub.set_xlim([8., 11.6]) 
+        sub.set_ylim([-3., 1.5]) 
+        sub.set_xticks([8., 9., 10., 11.]) 
         if i_c < 2:   sub.set_xticklabels([]) 
         if i_c not in [0, 2]: sub.set_yticklabels([]) 
         
@@ -344,11 +464,14 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
                 fSFS._fit_logsfr - fSFS._fit_err_logssfr, 
                 fSFS._fit_logsfr + fSFS._fit_err_logssfr, 
                 color='C'+str(i_c+2), linewidth=0.5, alpha=0.75) 
-    sub.set_xlim([8., 12.]) 
-    sub.set_ylim([-4., 2.]) 
-    sub.set_xticks([8., 9., 10., 11., 12.]) 
+
+    sub.text(0.08, 0.92, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+            ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    sub.set_xlim([8., 11.6]) 
+    sub.set_ylim([-3., 1.5]) 
+    sub.set_xticks([8., 9., 10., 11.]) 
     sub.set_yticklabels([]) 
-    sub.text(0.9, 0.1, 'Best-fit SFMS', ha='right', va='center', 
+    sub.text(0.9, 0.1, 'Best-fit SFS', ha='right', va='center', 
             transform=sub.transAxes, fontsize=20)
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
@@ -389,7 +512,7 @@ def Catalogs_SFMS_powerlawfit():
                 b = float(f.readline().split(':')[-1])
                 power_fits[key] = [m, b]
             line = f.readline() 
-
+    
     Cat = Cats.Catalog()
     m_arr = np.linspace(8., 12., 100) 
     fig = plt.figure(1, figsize=(8,4))
@@ -406,19 +529,24 @@ def Catalogs_SFMS_powerlawfit():
             if 'mufasa' not in cat: 
                 sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=lbl.split('[')[0]) 
             else: 
-                sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, ls=':')#, label=lbl.split('[')[0]) 
+                #sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, ls=':')#, label=lbl.split('[')[0]) 
                 m, b = power_fits[cat+'_mlim'] 
                 f_sfms = lambda mm: m * (mm - 10.5) + b
                 sub.plot(m_arr, f_sfms(m_arr), c='C'+str(i_c+2), lw=2, label=r'$\mathrm{'+lbl.split('[')[0]+'}^*$') 
             
             if i_c == 0: 
-                sub.text(0.1, 0.9, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
+                sub.text(0.075, 0.925, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         ha='left', va='top', transform=sub.transAxes, fontsize=20)
-        sub.set_xlim([8.2, 11.8]) 
+        sub.set_xlim([8.2, 11.5]) 
         sub.set_xticks([8.5, 9.5, 10.5, 11.5]) 
-        sub.set_ylim([-4., 2.]) 
-        sub.set_yticks([-4., -3., -2., -1., 0., 1., 2.]) 
+        sub.set_ylim([-2.8, 1.4]) 
+        sub.set_yticks([-2., -1., 0., 1.]) 
         if i_t != 0: sub.set_yticklabels([]) 
+
+        m, b = power_fits['SDSS'] 
+        f_sfms = lambda mm: m * (mm - 10.5) + b
+        sub.plot(m_arr, f_sfms(m_arr), c='k', lw=2, ls=':', label='SDSS') 
+
     sub.legend(loc='lower right', frameon=False, prop={'size': 15}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=10, fontsize=25) 
@@ -951,10 +1079,10 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
     sub.set_ylim([0.0, 1.]) 
     sub.set_yticklabels([]) 
     if i_c == 1: 
-        sub.text(0.375, 0.95, 'SDSS', ha='left', va='top', color='white', 
+        sub.text(0.95, 0.95, 'SDSS', ha='right', va='top', color='white', 
                 transform=sub.transAxes, fontsize=20)
-        sub.text(0.3, 0.05, 'NSA', ha='right', va='bottom', color='white', 
-                transform=sub.transAxes, fontsize=20)
+        #sub.text(0.3, 0.05, 'NSA', ha='right', va='bottom', color='white', 
+        #        transform=sub.transAxes, fontsize=20)
     #fig.text(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=30) 
     fig.text(0.075, 0.5, r'GMM component fractions', rotation='vertical', va='center', fontsize=25) 
     fig.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
@@ -2197,7 +2325,6 @@ def _SFS_maxdiscrepancy(tscale):
     return None 
 
 
-
 ##############################
 # Appendix: previous method 
 ##############################
@@ -2272,11 +2399,13 @@ def Catalogs_SFS_lit():
 
 if __name__=="__main__": 
     #Catalogs_SFR_Mstar()
+    #Obvs_SFR_Mstar()
+    #Sims_SFR_Mstar()
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
-    for tt in ['inst', '100myr']:
-        _SFS_maxdiscrepancy(tt)
+    #for tt in ['inst', '100myr']:
+        #_SFS_maxdiscrepancy(tt)
         #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
@@ -2284,7 +2413,7 @@ if __name__=="__main__":
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    #GMMcomp_weights(n_bootstrap=100)
+    GMMcomp_weights(n_bootstrap=100)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
