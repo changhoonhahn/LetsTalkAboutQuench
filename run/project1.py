@@ -315,6 +315,74 @@ def gmmSFSpowerlaw(logMfid=10.5):
     return None 
 
 
+def gmmSFSpowerlaw_leastsq(logMfid=10.5): 
+    ''' power-law fits to the GMM SFS fits to the specified catalog + SFR timescale
+    '''
+    tscales = ['inst', '100myr'] # tscales 
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit_leastsq.txt']), 'w') 
+    f_table.write("# best-fit (least squares) paremters for power-law fits to SFMS \n")
+    f_table.write("# log SFR_sfs = m x (log M* - "+str(logMfid)+") + b \n")
+    for i_t, tscale in enumerate(tscales): 
+        for i_c, cc in enumerate(sims_list): 
+            name = '_'.join([cc, tscale]) 
+            f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+            fSFMS = pickle.load(open(f_gmm, 'rb')) 
+
+            # now fit line to the fit_Mstar and fit_SSFR values
+            xx = fSFMS._fit_logm - logMfid  # log Mstar - log M_fid
+            yy = fSFMS._fit_logsfr
+            err = fSFMS._fit_err_logssfr
+
+            # chi-squared
+            chi = lambda theta: (theta[0] * xx + theta[1] - yy)/err
+            output = sp.optimize.leastsq(chi, np.array([1.0, 0.5]), full_output=True)
+            tt = output[0]
+            sig_tt = np.sqrt(np.diag(output[1]))
+
+            # power-law fit of the SFMS fit 
+            f_table.write('--- %s --- \n' % name) 
+            f_table.write('power-law m: %f +/- %f \n' % (tt[0], sig_tt[0])) 
+            f_table.write('power-law b: %f +/- %f \n' % (tt[1], sig_tt[1])) 
+            if 'mufasa' in name: 
+                mcut = ((fSFMS._fit_logm > 8.) & (fSFMS._fit_logm < 10.5))
+                xx = xx[mcut]
+                yy = yy[mcut]
+                err = err[mcut]
+
+                # chi-squared
+                chi = lambda theta: (theta[0] * xx + theta[1] - yy)/err
+                output = sp.optimize.leastsq(chi, np.array([1.0, 0.5]), full_output=True)
+                tt = output[0]
+                sig_tt = np.sqrt(np.diag(output[1]))
+                f_table.write('--- %s logM* < 10.5--- \n' % name) 
+                f_table.write('power-law m: %f +/- %f \n' % (tt[0], sig_tt[0])) 
+                f_table.write('power-law b: %f +/- %f \n' % (tt[1], sig_tt[1])) 
+    
+    # **for reference** fit the franken-SDSS sample 
+    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.p'])
+    fSFMS = pickle.load(open(f_gmm, 'rb')) 
+    # power-law fit of the SFMS fit 
+
+    xx = fSFMS._fit_logm - logMfid  # log Mstar - log M_fid
+    yy = fSFMS._fit_logsfr
+    err = fSFMS._fit_err_logssfr
+
+    # chi-squared
+    chi = lambda theta: (theta[0] * xx + theta[1] - yy)/err
+    output = sp.optimize.leastsq(chi, np.array([1.0, 0.5]), full_output=True)
+    tt = output[0]
+    sig_tt = np.sqrt(np.diag(output[1]))
+
+    _ = fSFMS.powerlaw(logMfid=10.5) 
+    f_table.write('--- SDSS --- \n') 
+    f_table.write('power-law m: %f +/- %f \n' % (tt[0], sig_tt[0])) 
+    f_table.write('power-law b: %f +/- %f \n' % (tt[1], sig_tt[1])) 
+    f_table.close() 
+    return None 
+
+
 def _mlim_fit(name, logMstar, cut): 
     ''' return fitting range and stellar mass limit
     '''
@@ -353,9 +421,11 @@ if __name__=="__main__":
             #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
             #gmmSFSfits_morecomp(name+'_'+t)
     for name in ['nsa_dickey', 'tinkergroup']: 
+        pass
         #gmmSFSfits(name)
         #gmmSFSfits_lowthresh(name)
-        gmmSFSfits_morecomp(name)
+        #gmmSFSfits_morecomp(name)
         #dSFS(name) 
     #_gmmSFSfit_frankenSDSS()
     #gmmSFSpowerlaw()
+    gmmSFSpowerlaw_leastsq(logMfid=10.5)
