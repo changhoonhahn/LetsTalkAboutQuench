@@ -14,22 +14,19 @@ import corner as DFM
 from scipy import linalg
 from scipy.stats import multivariate_normal as MNorm
 from sklearn.mixture import GaussianMixture as GMix
-
-from matplotlib import lines as mlines
-from matplotlib.patches import Rectangle
-#import matplotlib.patheffects as path_effects
-
-# -- Local --
+# -- letstalkaboutquench --
 from letstalkaboutquench import util as UT
 from letstalkaboutquench import catalogs as Cats
 from letstalkaboutquench import galprop as Gprop
 from letstalkaboutquench.fstarforms import fstarforms
 from letstalkaboutquench.fstarforms import sfr_mstar_gmm
-
-from ChangTools.plotting import prettycolors
+# -- plotting -- 
+from matplotlib import lines as mlines
+from matplotlib.patches import Rectangle
+#import matplotlib.patheffects as path_effects
+from matplotlib.font_manager import FontProperties
 import matplotlib as mpl
 import matplotlib.pyplot as plt 
-from matplotlib.font_manager import FontProperties
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
@@ -469,15 +466,17 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
 
     for i_c, cat in enumerate(obvs_list): 
         fSFS = pickle.load(open(f_gmm(cat), 'rb'))
-        sub.errorbar(fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr, fmt='.k')
-
+        sub.errorbar(fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr, fmt='.k', 
+                label='SDSS')
+        if i_c == 0: 
+            sub.legend(loc=(0.55, 0.2), frameon=False, handletextpad=-0.5, fontsize=18)  
     sub.text(0.08, 0.92, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
             ha='left', va='top', transform=sub.transAxes, fontsize=20)
     sub.set_xlim([8., 11.6]) 
     sub.set_ylim([-3., 1.5]) 
     sub.set_xticks([8., 9., 10., 11.]) 
     sub.set_yticklabels([]) 
-    sub.text(0.9, 0.1, 'Best-fit SFS', ha='right', va='center', 
+    sub.text(0.95, 0.1, 'Hahn+(2018) SFSs', ha='right', va='center', 
             transform=sub.transAxes, fontsize=20)
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
@@ -1056,10 +1055,10 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
             if i_c == 0: 
                 sub.text(0.1, 0.875, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', 
                         color='white', ha='left', va='center', 
-                        transform=sub.transAxes, fontsize=20)
+                        transform=sub.transAxes, fontsize=20, weight='bold')
             if i_t == 1: 
-                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='white', 
-                        transform=sub.transAxes, fontsize=20)#, path_effects=[path_effects.withSimplePatchShadow()])
+                sub.text(0.95, 0.1, lbl.split('[')[0], ha='right', va='center', color='white', 
+                        transform=sub.transAxes, fontsize=25)#, path_effects=[path_effects.withSimplePatchShadow()])
             if (i_t == 0) and (i_c == 1):#len(cats)-1):  
                 p1 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C3")
                 p2 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C1")
@@ -1095,14 +1094,14 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
             linewidth=0, color='C0') 
     sub.fill_between(mbins, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # star-burst 
             linewidth=0, color='C4') 
-    sub.vlines(mbins_nsa.max(), 0., 1., linewidth=2, linestyle='--', color='k') 
+    #sub.vlines(mbins_nsa.max(), 0., 1., linewidth=2, linestyle='--', color='k') 
     sub.set_xlim([8.8, 11.5])
     sub.set_xticks([9., 10., 11.]) 
     sub.set_ylim([0.0, 1.]) 
     sub.set_yticklabels([]) 
     if i_c == 1: 
         sub.text(0.95, 0.95, 'SDSS', ha='right', va='top', color='white', 
-                transform=sub.transAxes, fontsize=20)
+                transform=sub.transAxes, fontsize=25, weight='bold')
         #sub.text(0.3, 0.05, 'NSA', ha='right', va='bottom', color='white', 
         #        transform=sub.transAxes, fontsize=20)
     #fig.text(r'log$\; M_* \;\;[M_\odot]$', labelpad=10, fontsize=30) 
@@ -1763,7 +1762,8 @@ def GMMcomp_weights_res_impact(n_bootstrap=10):
     '''
     cats = ['illustris', 'eagle', 'mufasa']
 
-    fig = plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(12,4))
+    bkgd = fig.add_subplot(111, frameon=False) 
 
     for i_c, c in enumerate(cats): 
         name = c+'_100myr'
@@ -1771,7 +1771,7 @@ def GMMcomp_weights_res_impact(n_bootstrap=10):
 
         f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
 
-        sub = fig.add_subplot(2,3,i_c+1) 
+        sub = fig.add_subplot(1,3,i_c+1) 
         sub.fill_between(mbins, np.zeros(len(mbins)), f_zero, # SFR = 0 
                 linewidth=0, color='C3') 
         sub.fill_between(mbins, f_zero, f_zero+f_q,              # Quenched
@@ -1797,41 +1797,43 @@ def GMMcomp_weights_res_impact(n_bootstrap=10):
         #if i_c == 0: 
         #    sub.text(0.1, 0.875, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', color='white', 
         #            ha='left', va='center', transform=sub.transAxes, fontsize=20)
-        sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='white', 
-                transform=sub.transAxes, fontsize=20)#, path_effects=[path_effects.withSimplePatchShadow()])
+        sub.text(0.95, 0.1, lbl.split('[')[0], ha='right', va='center', color='white', 
+                transform=sub.transAxes, fontsize=20, weight='bold')#, path_effects=[path_effects.withSimplePatchShadow()])
         if i_c == 0:#len(cats)-1):  
             p2 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C1")
             p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
             p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
             p5 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C4")
-            sub.legend([p2, p3, p5, p4], ['``quenched"', 'intermediate SF', 'high SF', 'SFS'], 
+            sub.legend([p2, p3, p5, p4], ['low SF', 'intermediate SF', 'high SF', 'SFS'], 
                     loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
         # plot the uncertainties from bootstrap resampling 
         f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
 
-        sub = fig.add_subplot(2,3,i_c+4) 
-        sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
-                color='C3', alpha=0.5, linewidth=1)
-        sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
-                color='C1', alpha=0.5, linewidth=1) 
-        sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
-                color='C2', alpha=0.5, linewidth=1)   # other0
-        sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
-                color='C0', alpha=0.5, linewidth=1) # SFMS 
-        sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
-                color='C4', alpha=0.5, linewidth=1) # Star-burst 
-        if c == 'mufasa':  
-            sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
-            sub.set_xlim([8.8, 11.3])
-        else: 
-            sub.set_xlim([8.8, 11.5])
-        sub.set_xticks([9., 10., 11.]) 
-        sub.set_ylim([0.0, 1.]) 
-        if i_c != 0: sub.set_yticks([]) 
-
-    fig.text(0.05, 0.5, r'GMM component fractions', rotation='vertical', va='center', fontsize=25) 
-    fig.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
+        #sub = fig.add_subplot(2,3,i_c+4) 
+        #sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
+        #        color='C3', alpha=0.5, linewidth=1)
+        #sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
+        #        color='C1', alpha=0.5, linewidth=1) 
+        #sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
+        #        color='C2', alpha=0.5, linewidth=1)   # other0
+        #sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
+        #        color='C0', alpha=0.5, linewidth=1) # SFMS 
+        #sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
+        #        color='C4', alpha=0.5, linewidth=1) # Star-burst 
+        #if c == 'mufasa':  
+        #    sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
+        #    sub.set_xlim([8.8, 11.3])
+        #else: 
+        #    sub.set_xlim([8.8, 11.5])
+        #sub.set_xticks([9., 10., 11.]) 
+        #sub.set_ylim([0.0, 1.]) 
+        #if i_c != 0: sub.set_yticks([]) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_ylabel(r'GMM component fractions', labelpad=5, fontsize=25) 
+    bkgd.set_xlabel(r'log$\; M_* \;\;[M_\odot]$', labelpad=5, fontsize=28) 
+    #fig.text(0.05, 0.5, r'GMM component fractions', rotation='vertical', va='center', fontsize=25) 
+    #fig.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
     fig.subplots_adjust(wspace=0.05, hspace=0.1)
     fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_res_impact.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
@@ -2431,11 +2433,11 @@ if __name__=="__main__":
         #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
-    Catalogs_SFMS_width()
+    #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    #GMMcomp_weights(n_bootstrap=100)
+    #GMMcomp_weights(n_bootstrap=10)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
@@ -2445,7 +2447,7 @@ if __name__=="__main__":
     #fsat()
     #dSFS('powerlaw')
     #dSFS('interpexterp')
-    #GMMcomp_weights_res_impact(n_bootstrap=100)
+    GMMcomp_weights_res_impact(n_bootstrap=10)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
