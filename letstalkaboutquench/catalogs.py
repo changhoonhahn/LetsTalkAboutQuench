@@ -416,7 +416,7 @@ class Catalog:
         if name not in ['illustris_100myr', 'eagle_100myr', 'mufasa_100myr']: 
             raise ValueError("other catalogs do not have well defined SFR resolutions")  
         elif name == 'illustris_100myr': 
-            dsfr = 0.016
+            dsfr = 0.0126
         elif name == 'eagle_100myr': 
             dsfr = 0.018
         elif name == 'mufasa_100myr': 

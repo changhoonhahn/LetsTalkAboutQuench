@@ -1543,17 +1543,15 @@ def Pssfr_res_impact(n_mc=100, seed=1, poisson=False):
             if cat_name == 'illustris_100myr':
                 if i_m == 0: mbin = [8.2, 8.4]
                 else: mbin = [10.6, 10.8]
-                dsfr = 0.016
             elif cat_name == 'eagle_100myr':
                 if i_m == 0: mbin = [8.4, 8.6]
                 else: mbin = [10.6, 10.8]
-                dsfr = 0.018
             elif cat_name == 'mufasa_100myr':
                 if i_m == 0: mbin = [9.2, 9.4]
                 else: mbin = [10.6, 10.8]
-                dsfr = 0.182
-            # read in SFR and M* 
             Cat = Cats.Catalog()
+            dsfr = Cat._SFR_resolution(cat_name) # SFR resolution 
+            # read in SFR and M* 
             _logM, _logSFR, w, censat = Cat.Read(cat_name, keepzeros=True)
             psat = Cat.GroupFinder(cat_name)
             _SFR = 10**_logSFR
@@ -1595,9 +1593,9 @@ def Pssfr_res_impact(n_mc=100, seed=1, poisson=False):
             sub.plot(bar_x, bar_y, c='k', ls='-', lw=1.5)#, label='w/o SFR $=0$')
 
             bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_uniform,axis=0))
-            sub.plot(bar_x, bar_y, c='C0', lw=1, label=r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$")
+            sub.plot(bar_x, bar_y, c='C1', lw=1, label=r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$")
             sub.errorbar(0.5*(h1[1:] + h1[:-1])-0.02, np.mean(hs_uniform, axis=0), yerr=np.std(hs_uniform, axis=0),
-                         fmt='.C0', markersize=.5)
+                         fmt='.C1', markersize=.5)
             
             if poisson:
                 bar_x, bar_y = UT.bar_plot(h1, np.mean(hs_poisson,axis=0))
@@ -2447,9 +2445,9 @@ if __name__=="__main__":
     #fsat()
     #dSFS('powerlaw')
     #dSFS('interpexterp')
-    GMMcomp_weights_res_impact(n_bootstrap=10)
-    #Pssfr_res_impact(n_mc=100)
-    #Mlim_res_impact(n_mc=100)
+    #GMMcomp_weights_res_impact(n_bootstrap=10)
+    Pssfr_res_impact(n_mc=100)
+    Mlim_res_impact(n_mc=100)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
