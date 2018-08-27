@@ -277,6 +277,49 @@ def _gmmSFSfit_frankenSDSS():
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
 
+def _gmmSFSfits_EAGLEhires(tscale, recalib=False): 
+    ''' GMM SFS fits to the EAGLE high resolution runs in order to validate
+    our GMM component fraction calculations. If `recalib == True`, then calculate
+    GMM fits for EAGLE recalibrated high resolution
+    '''
+    # read in high resolution EAGLE  
+    if not recalib: 
+        feagle = ''.join([UT.dat_dir(), 'EAGLE_RefL0025_MstarSFR100Myr_allabove2.26e7Msun.txt']) 
+        str_recalib = ''
+    else: # recalibrated
+        feagle = ''.join([UT.dat_dir(), 'EAGLE_RecalL0025_MstarSFR100Myr_allabove2.26e7Msun.txt'])
+        str_recalib = '.recalib'
+
+    logMstar, SFRinst, SFR100, censat = np.loadtxt(feagle, skiprows=1, unpack=True, usecols=[2,3,5,6]) 
+    if tscale == 'inst': 
+        SFR = SFRinst
+    elif tscale == '100myr':
+        SFR = SFR100
+    logSFR = np.log10(SFR) 
+
+    # group finder definition of centrals 
+    iscen = (censat == 1) 
+    nonzero = ~(SFR == 0.) 
+    
+    # stellar mass range for SFMS fit and stellar mass limit  
+    fitrange, mlim = _mlim_fit('eagle_highres', logMstar, (iscen & nonzero)) 
+
+    # sample cut for SFS fitting
+    # group finder centrals & non zero SFRs & stellar mass limit 
+    fit_cut = (iscen & nonzero & mlim)      
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr, fit_sig_logsfr = fSFMS.fit(
+            logMstar[fit_cut], logSFR[fit_cut],
+            method='gaussmix', 
+            fit_range=fitrange, 
+            dlogm=0.2,              # stellar mass bins of 0.2 dex
+            SSFR_cut=-11., 
+            Nbin_thresh=10,         # at least 10 galaxies in bin (extra low because there are not many galaxies) 
+            fit_error='bootstrap',  # uncertainty estimate method 
+            n_bootstrap=100)        # number of bootstrap bins
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.eagle_highres.', tscale, str_recalib, '.gfcentral.mlim.p'])
+    pickle.dump(fSFMS, open(f_out, 'wb'))
+    return None 
 
 def gmmSFSpowerlaw(logMfid=10.5): 
     ''' power-law fits to the GMM SFS fits to the specified catalog + SFR timescale
@@ -405,6 +448,9 @@ def _mlim_fit(name, logMstar, cut):
     elif name == 'tinkergroup': 
         fitrange = [tinker_mmin, np.ceil(logMstar[cut].max()/0.2)*0.2]
         mlim = (logMstar > tinker_mmin)
+    elif name == 'eagle_highres': 
+        fitrange = [7.5, np.ceil(logMstar[cut].max()/0.2)*0.2]
+        mlim = (logMstar > 7.5) 
     else: 
         fitrange = None
         mlim = np.ones(len(logMstar)).astype(bool) 
@@ -426,6 +472,11 @@ if __name__=="__main__":
         #gmmSFSfits_lowthresh(name)
         #gmmSFSfits_morecomp(name)
         #dSFS(name) 
+
+    _gmmSFSfits_EAGLEhires('inst', recalib=False)
+    _gmmSFSfits_EAGLEhires('100myr', recalib=False)
+    _gmmSFSfits_EAGLEhires('inst', recalib=True)
+    _gmmSFSfits_EAGLEhires('100myr', recalib=True)
     #_gmmSFSfit_frankenSDSS()
     #gmmSFSpowerlaw()
-    gmmSFSpowerlaw_leastsq(logMfid=10.5)
+    #gmmSFSpowerlaw_leastsq(logMfid=10.5)

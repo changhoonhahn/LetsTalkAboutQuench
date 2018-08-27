@@ -2346,6 +2346,91 @@ def _SFS_maxdiscrepancy(tscale):
     print("maximum SFS discrepancy = %f dex" % dsfs_max)
     return None 
 
+def _GMMcomp_EAGLEhighres(recalib=False): 
+    ''' Plot the fractional composition of the different GMM components 
+    along with galaxies with zero SFRs for the different catalogs
+    '''
+    # read in high resolution EAGLE  
+    if not recalib: 
+        feagle = ''.join([UT.dat_dir(), 'EAGLE_RefL0025_MstarSFR100Myr_allabove2.26e7Msun.txt']) 
+        str_recalib = ''
+    else: # recalibrated
+        feagle = ''.join([UT.dat_dir(), 'EAGLE_RecalL0025_MstarSFR100Myr_allabove2.26e7Msun.txt'])
+        str_recalib = '.recalib'
+    logM, SFRinst, SFR100, censat = np.loadtxt(feagle, skiprows=1, unpack=True, usecols=[2,3,5,6]) 
+    iscen = (censat == 1)
+
+    fig = plt.figure(figsize=(4,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_t, tscale in enumerate(['inst', '100myr']): 
+        sub = fig.add_subplot(2,1,1+i_t) 
+
+        if tscale == 'inst': 
+            SFR = SFRinst
+        elif tscale == '100myr':
+            SFR = SFR100
+        logSFR = np.log10(SFR) 
+        zerosfr = (SFR == 0.) 
+
+        # read in the best-fit SFS from the GMM fitting
+        f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.eagle_highres.', tscale, str_recalib, '.gfcentral.mlim.p'])
+        fSFMS = pickle.load(open(f_gmm, 'rb'))
+    
+        mbin0 = fSFMS._mbins[fSFMS._mbins_nbinthresh,0]
+        mbin1 = fSFMS._mbins[fSFMS._mbins_nbinthresh,1]
+        gbests = fSFMS._gbests
+        assert len(mbin0) == len(gbests)
+       
+        nmbin = len(mbin0) 
+        f_comps = np.zeros((5, nmbin)) # zero, sfms, q, other0, other1
+        for i_m, gbest in zip(range(len(mbin0)), gbests): 
+            # calculate the fraction of galaxies have that zero SFR
+            mbin_iscen = iscen & (logM > mbin0[i_m]) & (logM < mbin1[i_m])
+            mbin_iscen_z = mbin_iscen & zerosfr 
+            f_comps[0, i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
+
+            weights_i = gbest.weights_
+
+            i_sfms, i_q, i_int, i_sb = fSFMS._GMM_idcomp(gbest, silent=True)
+
+            f_nz = 1. - f_comps[0, i_m]  # multiply by non-zero fraction
+            if i_sfms is not None: 
+                f_comps[1, i_m] = f_nz * np.sum(weights_i[i_sfms])
+            if i_q is not None: 
+                f_comps[2, i_m] = f_nz * np.sum(weights_i[i_q])
+            if i_int is not None: 
+                f_comps[3, i_m] = f_nz * np.sum(weights_i[i_int])
+            if i_sb is not None: 
+                f_comps[4, i_m] = f_nz * np.sum(weights_i[i_sb])
+
+        mbins = 0.5*(mbin0 + mbin1)
+        f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
+        
+        sub.fill_between(mbins, np.zeros(len(mbins)), f_zero, # SFR = 0 
+                linewidth=0, color='C3') 
+        sub.fill_between(mbins, f_zero, f_zero+f_q,              # Quenched
+                linewidth=0, color='C1') 
+        sub.fill_between(mbins, f_zero+f_q, f_zero+f_q+f_other0,   # other0
+                linewidth=0, color='C2') 
+        sub.fill_between(mbins, f_zero+f_q+f_other0, f_zero+f_q+f_other0+f_sfms, # SFMS 
+                linewidth=0, color='C0') 
+        sub.fill_between(mbins, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # star-burst 
+                linewidth=0, color='C4') 
+        sub.set_xlim([7.5, 11.])
+        if i_t == 0: sub.set_xticklabels([]) 
+        sub.set_ylim([0.0, 1.]) 
+        if i_t == 0: sub.set_title('EAGLE High Resolution', fontsize=20) 
+        sub.text(0.1, 0.875, 'SFR ['+tscale+']', color='white', ha='left', va='center', 
+                transform=sub.transAxes, fontsize=20, weight='bold')
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25)
+    bkgd.set_ylabel(r'GMM component fractions', labelpad=5, fontsize=25)
+    fig.subplots_adjust(wspace=0.05, hspace=0.1)
+    fig_name = ''.join([UT.doc_dir(), 'figs/_GMMcomp_EAGLEhighres', str_recalib, '.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close() 
+    return None 
+
 
 ##############################
 # Appendix: previous method 
@@ -2446,8 +2531,10 @@ if __name__=="__main__":
     #dSFS('powerlaw')
     #dSFS('interpexterp')
     #GMMcomp_weights_res_impact(n_bootstrap=10)
-    Pssfr_res_impact(n_mc=100)
-    Mlim_res_impact(n_mc=100)
+    #Pssfr_res_impact(n_mc=100)
+    #Mlim_res_impact(n_mc=100)
+    _GMMcomp_EAGLEhighres(recalib=False)
+    _GMMcomp_EAGLEhighres(recalib=True)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
