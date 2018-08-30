@@ -46,6 +46,15 @@ scsam_mmin = 8.8
 tinker_mmin = 9.7
 dickey_mmax = 9.7
 
+color_dict = {
+        'nsa_dickey': 'C7', 
+        'tinkergroup': 'C0', 
+        'illustris': 'C2', 
+        'eagle': 'C3', 
+        'mufasa': 'C4', 
+        'scsam': 'C5'
+        } 
+
 
 def Catalogs_SFR_Mstar(): 
     ''' Compare SFR vs M* relation of central galaxies from various simlations and 
@@ -141,7 +150,6 @@ def Obvs_SFR_Mstar():
     '''
     Cat = Cats.Catalog()
     tscales = ['inst', '100myr']
-    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     obvs_list = ['tinkergroup', 'nsa_dickey']
     
     plot_range = [[7.8, 12.], [-4., 2.]]
@@ -157,8 +165,8 @@ def Obvs_SFR_Mstar():
             sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar < dickey_mmax)) 
         elif cat == 'tinkergroup': 
             sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
-
-        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c), 
+    
+        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cat], #'C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, 
                 ax=sub)
@@ -222,7 +230,7 @@ def Sims_SFR_Mstar():
             elif cat == 'mufasa_100myr': 
                 sample_cut = sample_cut & (logMstar > mufasa_mmin)
             
-            DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c+2), 
+            DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cc], #color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
             sub.set_xlim([7.8, 11.8]) 
@@ -405,8 +413,8 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
         elif cat == 'tinkergroup': 
             sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
 
-        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], 
-                color='C'+str(i_c), levels=[0.68, 0.95], range=plot_range, 
+        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cat], #color='C'+str(i_c), 
+                levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, alpha=0.5, 
                 ax=sub0) 
         
@@ -439,7 +447,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
         elif cat == 'mufasa_100myr': 
             sample_cut = sample_cut & (logMstar > mufasa_mmin)
         
-        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c+2), 
+        DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cc],# color='C'+str(i_c+2), 
                 levels=[0.68, 0.95], range=plot_range, 
                 plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
         # SFS fit
@@ -2531,10 +2539,11 @@ def Catalogs_SFS_lit():
     Cat = Cats.Catalog()
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
-    fig = plt.figure(figsize=(10,5))
+    fig = plt.figure(figsize=(15,5))
     bkgd = fig.add_subplot(111, frameon=False)
-    sub = fig.add_subplot(121)
-    sub1 = fig.add_subplot(122)
+    sub = fig.add_subplot(131)
+    sub1 = fig.add_subplot(132)
+    sub2 = fig.add_subplot(133)
     for i_c, sim in enumerate(sims_list):
         cat = '_'.join([sim, 'inst'])
         logMstar, logSFR, weight, censat = Cat.Read(cat)
@@ -2576,6 +2585,9 @@ def Catalogs_SFS_lit():
         sub.set_xlim([8, 11.5])
         sub.set_ylim([-3, 3])
         sub1.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
+        if i_c == 0: labl = '$\log\,\mathrm{SSFR} > -11$'
+        else: labl = None
+        sub2.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2), label=labl) 
         print logSFRfit1[np.abs(logMstarfit - 10.).argmin()]
         sub1.set_xlim([8, 11.5])
         sub1.set_ylim([-3, 3])
@@ -2585,6 +2597,19 @@ def Catalogs_SFS_lit():
     sub1.text(0.05, 0.9, r'$\log\,\mathrm{SSFR} > -11$ for all sim.',
              ha='left', va='top', transform=sub1.transAxes, fontsize=20)
     sub.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15)
+
+    # file with best-fit GMM 
+    f_gmm = lambda name: _fGMM(name)
+    for i_c, cc in enumerate(sims_list): 
+        cat = '_'.join([cc, 'inst']) 
+        fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+        if i_c == 0: lbl = 'Hahn+(2018) GMM SFS'
+        else: lbl = None
+        sub2.plot(fSFS._fit_logm, fSFS._fit_logsfr, color='C'+str(i_c+2), linestyle='--', label=lbl) 
+    sub2.set_xlim([8, 11.5])
+    sub2.set_ylim([-3, 3])
+    sub2.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15) 
+
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25)
     bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25)
@@ -2594,6 +2619,7 @@ def Catalogs_SFS_lit():
     plt.close()
     return None
 
+
 if __name__=="__main__": 
     #Catalogs_SFR_Mstar()
     #Obvs_SFR_Mstar()
@@ -2601,7 +2627,8 @@ if __name__=="__main__":
     #Catalogs_Pssfr()
     #GroupFinder()
     #SFMSfit_example()
-    #for tt in ['inst', '100myr']:
+    for tt in ['inst', '100myr']:
+        pass
         #_SFS_maxdiscrepancy(tt)
         #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
@@ -2610,7 +2637,7 @@ if __name__=="__main__":
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
-    Pssfr_GMMcomps_SDSS()
+    #Pssfr_GMMcomps_SDSS()
     #GMMcomp_weights(n_bootstrap=10)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
@@ -2637,5 +2664,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('nsa_dickey', fit_range=(8.4, 9.7), method='gaussmix')
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
-    #Catalogs_SFS_lit()
+    Catalogs_SFS_lit()
     #GMM_3pluscomp()
