@@ -160,8 +160,8 @@ class fstarforms(object):
             for i_sfs, gbest, logm_med in zip(i_sfss, gbests, logm_median): 
                 if i_sfs is not None: 
                     fit_logm.append(logm_med)
-                    mu_sfss.append(gbest.means_.flatten()[i_sfs]) 
-                    sig_sfss.append(gbest.covariances_.flatten()[i_sfs]) 
+                    mu_sfss.append(UT.flatten(gbest.means_.flatten()[i_sfs]))
+                    sig_sfss.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfs])))
             fit_logssfr = mu_sfss
             fit_sig_logssfr = sig_sfss
 
@@ -181,8 +181,8 @@ class fstarforms(object):
                     mu_sfss_boot, sig_sfss_boot = [], [] 
                     for i_sfs, gbest in zip(i_sfss_boot, gboots): 
                         if i_sfs is not None: 
-                            mu_sfss_boot.append(gbest.means_.flatten()[i_sfs]) 
-                            sig_sfss_boot.append(gbest.covariances_.flatten()[i_sfs]) 
+                            mu_sfss_boot.append(UT.flatten(gbest.means_.flatten()[i_sfs]))
+                            sig_sfss_boot.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfs])))
                         else: 
                             mu_sfss_boot.append(None)
                             sig_sfss_boot.append(None)

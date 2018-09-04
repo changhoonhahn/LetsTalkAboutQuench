@@ -150,12 +150,11 @@ def gmmSFSfits_lowthresh(name):
             method='gaussmix', 
             fit_range=fitrange, 
             dlogm=0.2,              # stellar mass bins of 0.2 dex
-            SSFR_cut=-11., 
             Nbin_thresh=10,         # only require 10 galaxies in bin 
             fit_error='bootstrap',  # uncertainty estimate method 
             n_bootstrap=100)        # number of bootstrap bins
     
-    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.p'])
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.v2.p'])
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
 
@@ -328,7 +327,7 @@ def gmmSFSpowerlaw(logMfid=10.5):
     tscales = ['inst', '100myr'] # tscales 
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
-    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit.txt']), 'w') 
+    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit.v2.txt']), 'w') 
     f_table.write("# best-fit (maximum likelihood) paremters for power-law fits to SFMS \n")
     f_table.write("# log SFR_sfs = m x (log M* - "+str(logMfid)+") + b \n")
     for i_t, tscale in enumerate(tscales): 
@@ -348,7 +347,7 @@ def gmmSFSpowerlaw(logMfid=10.5):
                 f_table.write('power-law b: %f \n' % fSFMS._powerlaw_c) 
     
     # **for reference** fit the franken-SDSS sample 
-    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.p'])
+    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.v2.p'])
     fSFMS = pickle.load(open(f_gmm, 'rb')) 
     # power-law fit of the SFMS fit 
     _ = fSFMS.powerlaw(logMfid=10.5) 
@@ -365,13 +364,13 @@ def gmmSFSpowerlaw_leastsq(logMfid=10.5):
     tscales = ['inst', '100myr'] # tscales 
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
-    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit_leastsq.txt']), 'w') 
+    f_table = open(''.join([UT.dat_dir(), 'paper1/', 'SFMS_powerlawfit_leastsq.v2.txt']), 'w') 
     f_table.write("# best-fit (least squares) paremters for power-law fits to SFMS \n")
     f_table.write("# log SFR_sfs = m x (log M* - "+str(logMfid)+") + b \n")
     for i_t, tscale in enumerate(tscales): 
         for i_c, cc in enumerate(sims_list): 
             name = '_'.join([cc, tscale]) 
-            f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+            f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
             fSFMS = pickle.load(open(f_gmm, 'rb')) 
 
             # now fit line to the fit_Mstar and fit_SSFR values
@@ -405,7 +404,7 @@ def gmmSFSpowerlaw_leastsq(logMfid=10.5):
                 f_table.write('power-law b: %f +/- %f \n' % (tt[1], sig_tt[1])) 
     
     # **for reference** fit the franken-SDSS sample 
-    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.p'])
+    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.v2.p'])
     fSFMS = pickle.load(open(f_gmm, 'rb')) 
     # power-law fit of the SFMS fit 
 
@@ -461,23 +460,23 @@ def _mlim_fit(name, logMstar, cut):
 if __name__=="__main__": 
     for t in ['inst', '100myr']: 
         for name in ['illustris', 'eagle', 'mufasa', 'scsam']:
-            pass
+            #pass
             #gmmSFSfits(name+'_'+t)
             #dSFS(name+'_'+t) 
-            #gmmSFSfits_lowthresh(name+'_'+t)
+            gmmSFSfits_lowthresh(name+'_'+t)
             #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
             #gmmSFSfits_morecomp(name+'_'+t)
     for name in ['nsa_dickey', 'tinkergroup']: 
-        pass 
+        #pass 
         #gmmSFSfits(name)
-        #gmmSFSfits_lowthresh(name)
+        gmmSFSfits_lowthresh(name)
         #gmmSFSfits_morecomp(name)
         #dSFS(name) 
 
+    #_gmmSFSfit_frankenSDSS()
+    #gmmSFSpowerlaw()
+    #gmmSFSpowerlaw_leastsq(logMfid=10.5)
     #_gmmSFSfits_EAGLEhires('inst', recalib=False)
     #_gmmSFSfits_EAGLEhires('100myr', recalib=False)
     #_gmmSFSfits_EAGLEhires('inst', recalib=True)
     #_gmmSFSfits_EAGLEhires('100myr', recalib=True)
-    _gmmSFSfit_frankenSDSS()
-    #gmmSFSpowerlaw()
-    #gmmSFSpowerlaw_leastsq(logMfid=10.5)

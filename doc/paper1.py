@@ -503,7 +503,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
     if not nosplashback: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '_v2.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
     else: 
         fig_name = ''.join([UT.doc_dir(), 'figs/', 
             'Catalogs_SFMSfit_SFR', tscale, '.nosplbacks.', sb_cut, '.pdf'])
@@ -519,7 +519,7 @@ def Catalogs_SFMS_powerlawfit():
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
 
     # read in power-law fits from file 
-    f_powerlaw = ''.join([UT.dat_dir(), 'paper1/SFMS_powerlawfit.txt']) 
+    f_powerlaw = ''.join([UT.dat_dir(), 'paper1/SFMS_powerlawfit.v2.txt']) 
     power_fits = {} 
     with open(f_powerlaw) as f: 
         line = f.readline()
@@ -590,7 +590,7 @@ def Catalogs_SFMS_width():
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
     
     f_gmm = lambda name: ''.join([UT.dat_dir(), 
-        'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+        'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
 
     fig = plt.figure(1, figsize=(8,4))
     bkgd = fig.add_subplot(111, frameon=False)
@@ -821,7 +821,7 @@ def Catalog_GMMcomps():
     obvs_list = ['tinkergroup', 'nsa_dickey'] 
     
     f_gmm = lambda name: ''.join([UT.dat_dir(), 
-        'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+        'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
 
     fig = plt.figure(1, figsize=(16,8))#(20,7.5))
     bkgd = fig.add_subplot(111, frameon=False)
@@ -845,6 +845,7 @@ def Catalog_GMMcomps():
                 sample_cut = sample_cut & (logMstar > eagle_mmin)
             elif cat == 'mufasa_100myr': 
                 sample_cut = sample_cut & (logMstar > mufasa_mmin)
+            sample_cut = sample_cut & (logSFR > -4.) 
             
             DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='k', 
                     levels=[0.68, 0.95], range=plot_range, 
@@ -855,29 +856,19 @@ def Catalog_GMMcomps():
             fSFMS = pickle.load(open(f_gmm(cat), 'rb'))
             fit_logm = fSFMS._fit_logm
             fit_logsfr = fSFMS._fit_logsfr
+            sig_sfms = fSFMS._fit_sig_logssfr
+            # identify the different components
+            i_sfss, i_qs, i_ints, i_sbs = fSFMS._GMM_compID(fSFMS._gbests, dev_thresh=0.5)
 
-            sig_sfms, w_sfms = np.zeros(len(fit_logm)), np.zeros(len(fit_logm))
             for i_m, fitlogm in enumerate(fit_logm): 
-                # sfms component 
                 _means = fSFMS._gbests[i_m].means_.flatten()
                 _covs = fSFMS._gbests[i_m].covariances_.flatten()
-                #print _means, _covs
-
-                sfms = (_means == fit_logsfr[i_m]-fit_logm[i_m])
-                sig_sfms[i_m] = np.sqrt(_covs[sfms])
-                # "quenched" component 
-                quenched = ((range(len(_means)) == _means.argmin()) & (_means != fit_logsfr[i_m]-fit_logm[i_m])) 
-                if np.sum(quenched) > 0: 
-                    sub.errorbar([fitlogm+0.01], _means[quenched]+fitlogm, yerr=np.sqrt(_covs[quenched]), fmt='.C1')
-                # other component 
-                starburst = (_means > fit_logsfr[i_m]-fit_logm[i_m])
-                if np.sum(starburst) > 0: 
-                    sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(starburst))], _means[starburst]+fitlogm, 
-                                 yerr=np.sqrt(_covs[starburst]), fmt='.C4')
-                transition = (~sfms & ~quenched & ~starburst) 
-                if np.sum(transition) > 0: 
-                    sub.errorbar([fitlogm + 0.01*(i+2) for i in range(np.sum(transition))], _means[transition]+fitlogm, 
-                                 yerr=np.sqrt(_covs[transition]), fmt='.C2')
+                if i_qs[i_m] is not None:  
+                    sub.errorbar([fitlogm+0.01], _means[i_qs[i_m]]+fitlogm, yerr=np.sqrt(_covs[i_qs[i_m]]), fmt='.C1')
+                if i_sbs[i_m] is not None:  
+                    sub.errorbar([fitlogm+0.01], _means[i_sbs[i_m]]+fitlogm, yerr=np.sqrt(_covs[i_sbs[i_m]]), fmt='.C4')
+                if i_ints[i_m] is not None:  
+                    sub.errorbar([fitlogm+0.01], _means[i_ints[i_m]]+fitlogm, yerr=np.sqrt(_covs[i_ints[i_m]]), fmt='.C2')
             sub.errorbar(fit_logm, fit_logsfr, yerr=sig_sfms, fmt='.C0')
             sub.set_xlim([8., 12.]) 
 
@@ -911,7 +902,7 @@ def Pssfr_GMMcomps(timescale='inst'):
     # Read in various data sets
     sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] 
     
-    f_gmm = lambda name: ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+    f_gmm = lambda name: ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
 
     fig = plt.figure(1, figsize=(16,14))#(20,7.5))
     bkgd = fig.add_subplot(1, 1, 1, frameon=False)
@@ -934,6 +925,8 @@ def Pssfr_GMMcomps(timescale='inst'):
             else: 
                 mlim = np.ones(len(logMstar)).astype(bool) 
 
+            sfr_lim = ~Cat.zero_sfr & (logSFR > -4.) 
+
             # SFMS fit 
             fSFS = pickle.load(open(f_gmm(cat), 'rb'))
 
@@ -952,8 +945,8 @@ def Pssfr_GMMcomps(timescale='inst'):
             if mass_bin[0] >= logMstar[mlim].min(): # make sure there are galaxies in the massbin
 
                 inmbin = ((logMstar > mass_bin[0]) & (logMstar < mass_bin[1])) 
-                inmbin_nz = (inmbin & iscen & mlim & ~Cat.zero_sfr)
-                inmbin_z = (inmbin & iscen & mlim & Cat.zero_sfr)
+                inmbin_nz = (inmbin & iscen & mlim & sfr_lim)
+                inmbin_z = (inmbin & iscen & mlim & ~sfr_lim)
 
                 ssfrs = np.concatenate([logSFR[inmbin_nz] - logMstar[inmbin_nz], 
                     np.repeat(-13.5, np.sum(inmbin_z))])
@@ -1221,101 +1214,102 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
         fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_composition.nosplbacks.', sb_cut, '.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close() 
-    
-    # plot the uncertainties from bootstrap resampling 
-    fig1 = plt.figure(figsize=(20,8))
-    gs = mpl.gridspec.GridSpec(1,5, figure=fig1) 
+    '''
+        # plot the uncertainties from bootstrap resampling 
+        fig1 = plt.figure(figsize=(20,8))
+        gs = mpl.gridspec.GridSpec(1,5, figure=fig1) 
 
-    for i_c, c in enumerate(cats): 
-        gs_i = mpl.gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[i_c])
-        for i_t, tscale in enumerate(tscales):
-            mbins = mbinss[i_t+2*i_c] 
-            f_comps = f_compss[i_t+2*i_c]
-            f_comps_unc = f_comps_uncs[i_t+2*i_c]
-            
-            f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
-            f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
+        for i_c, c in enumerate(cats): 
+            gs_i = mpl.gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[i_c])
+            for i_t, tscale in enumerate(tscales):
+                mbins = mbinss[i_t+2*i_c] 
+                f_comps = f_compss[i_t+2*i_c]
+                f_comps_unc = f_comps_uncs[i_t+2*i_c]
+                
+                f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
+                f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
 
-            sub = plt.subplot(gs_i[i_t,0]) 
-            sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
-                    color='C3', alpha=0.5, linewidth=1)
-            sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
-                    color='C1', alpha=0.5, linewidth=1) 
-            sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
-                    color='C2', alpha=0.5, linewidth=1)   # other0
-            sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
-                    color='C0', alpha=0.5, linewidth=1) # SFMS 
-            sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
-                    color='C4', alpha=0.5, linewidth=1) # Star-burst 
-            if (c == 'mufasa') and (tscale == '100myr'):  
-                sub.fill_between([0., mufasa_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
-            elif (c == 'scsam'):
-                sub.fill_between([0., scsam_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
-            
-            if c == 'mufasa': sub.set_xlim([8.8, 11.3])
-            else: sub.set_xlim([8.8, 11.5])
-            sub.set_xticks([9., 10., 11.]) 
-            if i_t == 0: sub.set_xticklabels([]) 
-            sub.set_ylim([0.0, 1.]) 
-            if i_c != 0: sub.set_yticks([]) 
+                sub = plt.subplot(gs_i[i_t,0]) 
+                sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
+                        color='C3', alpha=0.5, linewidth=1)
+                sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
+                        color='C1', alpha=0.5, linewidth=1) 
+                sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
+                        color='C2', alpha=0.5, linewidth=1)   # other0
+                sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
+                        color='C0', alpha=0.5, linewidth=1) # SFMS 
+                sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
+                        color='C4', alpha=0.5, linewidth=1) # Star-burst 
+                if (c == 'mufasa') and (tscale == '100myr'):  
+                    sub.fill_between([0., mufasa_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
+                elif (c == 'scsam'):
+                    sub.fill_between([0., scsam_mmin+0.1], [0.0, 0.0], [1., 1.], linewidth=0, color='k', alpha=0.8) 
+                
+                if c == 'mufasa': sub.set_xlim([8.8, 11.3])
+                else: sub.set_xlim([8.8, 11.5])
+                sub.set_xticks([9., 10., 11.]) 
+                if i_t == 0: sub.set_xticklabels([]) 
+                sub.set_ylim([0.0, 1.]) 
+                if i_c != 0: sub.set_yticks([]) 
 
-            lbl = Cat.CatalogLabel(c+'_'+tscale)
-            if i_c == 0: 
-                sub.text(0.1, 0.875, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', color='k', #'white', 
-                        ha='left', va='center', transform=sub.transAxes, fontsize=20)
-            if i_t == 1: 
-                sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='k', #'white', 
-                        transform=sub.transAxes, fontsize=20) 
-            if (i_t == 0) and (i_c == len(cats)-2):  
-                p3 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C2")
-                p4 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C0")
-                p5 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C4")
-                sub.legend([p4, p5, p3][::-1], ['SFS', 'high SF', 'intermediate SF'][::-1], 
-                        ncol=1, loc='upper left', frameon=False, prop={'size': 12})
-            elif (i_t == 0) and (i_c == len(cats)-1): 
-                p1 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C3")
-                p2 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C1")
-                sub.legend([p2, p1], ['low SF', 'SFR=0'],
-                        ncol=1, loc='upper left', frameon=False, prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
+                lbl = Cat.CatalogLabel(c+'_'+tscale)
+                if i_c == 0: 
+                    sub.text(0.1, 0.875, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']', color='k', #'white', 
+                            ha='left', va='center', transform=sub.transAxes, fontsize=20)
+                if i_t == 1: 
+                    sub.text(0.9, 0.1, lbl.split('[')[0], ha='right', va='center', color='k', #'white', 
+                            transform=sub.transAxes, fontsize=20) 
+                if (i_t == 0) and (i_c == len(cats)-2):  
+                    p3 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C2")
+                    p4 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C0")
+                    p5 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C4")
+                    sub.legend([p4, p5, p3][::-1], ['SFS', 'high SF', 'intermediate SF'][::-1], 
+                            ncol=1, loc='upper left', frameon=False, prop={'size': 12})
+                elif (i_t == 0) and (i_c == len(cats)-1): 
+                    p1 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C3")
+                    p2 = Rectangle((0, 0), 1, 1, linewidth=0, alpha=0.5, fc="C1")
+                    sub.legend([p2, p1], ['low SF', 'SFR=0'],
+                            ncol=1, loc='upper left', frameon=False, prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
-    mbins = np.concatenate([mbins_nsa, mbins_sdss]) 
-    f_comps = np.concatenate((f_comps_nsa, f_comps_sdss), axis=1) 
-    f_comps_unc = np.concatenate((f_comps_unc_nsa, f_comps_unc_sdss), axis=1) 
+        mbins = np.concatenate([mbins_nsa, mbins_sdss]) 
+        f_comps = np.concatenate((f_comps_nsa, f_comps_sdss), axis=1) 
+        f_comps_unc = np.concatenate((f_comps_unc_nsa, f_comps_unc_sdss), axis=1) 
 
-    f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
-    f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
+        f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
+        f_zero_unc, f_sfms_unc, f_q_unc, f_other0_unc, f_other1_unc = list(f_comps_unc)
 
-    gs_i = mpl.gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[4])
-    sub = plt.subplot(gs_i[1:3,:])
-    sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
-            color='C3', alpha=0.5, linewidth=1)
-    sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
-            color='C1', alpha=0.5, linewidth=1) 
-    sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
-            color='C2', alpha=0.5, linewidth=1)   # other0
-    sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
-            color='C0', alpha=0.5, linewidth=1) # SFMS 
-    sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
-            color='C4', alpha=0.5, linewidth=1) # Star-burst 
-    sub.vlines(mbins_nsa.max(), 0., 1., linewidth=2, linestyle='--', color='k') 
-    sub.set_xlim([8.8, 11.5])
-    sub.set_xticks([9., 10., 11.]) 
-    sub.set_ylim([0.0, 1.]) 
-    sub.set_yticklabels([]) 
-    if i_c == 1: 
-        sub.text(0.375, 0.95, 'SDSS', ha='left', va='top', color='white', 
-                transform=sub.transAxes, fontsize=20)
-        sub.text(0.3, 0.05, 'NSA', ha='right', va='bottom', color='white', 
-                transform=sub.transAxes, fontsize=20)
-    fig1.text(0.075, 0.5, r'GMM component fractions', rotation='vertical', va='center', fontsize=25) 
-    fig1.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
-    fig1.subplots_adjust(wspace=0.05, hspace=0.1)
-    if not nosplashback: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.pdf'])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.nosplbacks.', sb_cut, '.pdf'])
-    fig1.savefig(fig_name, bbox_inches='tight')
-    plt.close()
+        gs_i = mpl.gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[4])
+        sub = plt.subplot(gs_i[1:3,:])
+        sub.fill_between(mbins, f_zero-f_zero_unc, f_zero+f_zero_unc, 
+                color='C3', alpha=0.5, linewidth=1)
+        sub.fill_between(mbins, f_q-f_q_unc, f_q+f_q_unc, 
+                color='C1', alpha=0.5, linewidth=1) 
+        sub.fill_between(mbins, f_other0-f_other0_unc, f_other0+f_other0_unc, 
+                color='C2', alpha=0.5, linewidth=1)   # other0
+        sub.fill_between(mbins, f_sfms-f_sfms_unc, f_sfms+f_sfms_unc, 
+                color='C0', alpha=0.5, linewidth=1) # SFMS 
+        sub.fill_between(mbins, f_other1-f_other1_unc, f_other1+f_other1_unc, 
+                color='C4', alpha=0.5, linewidth=1) # Star-burst 
+        sub.vlines(mbins_nsa.max(), 0., 1., linewidth=2, linestyle='--', color='k') 
+        sub.set_xlim([8.8, 11.5])
+        sub.set_xticks([9., 10., 11.]) 
+        sub.set_ylim([0.0, 1.]) 
+        sub.set_yticklabels([]) 
+        if i_c == 1: 
+            sub.text(0.375, 0.95, 'SDSS', ha='left', va='top', color='white', 
+                    transform=sub.transAxes, fontsize=20)
+            sub.text(0.3, 0.05, 'NSA', ha='right', va='bottom', color='white', 
+                    transform=sub.transAxes, fontsize=20)
+        fig1.text(0.075, 0.5, r'GMM component fractions', rotation='vertical', va='center', fontsize=25) 
+        fig1.text(0.5, 0.025, r'log$\; M_* \;\;[M_\odot]$', ha='center', fontsize=30) 
+        fig1.subplots_adjust(wspace=0.05, hspace=0.1)
+        if not nosplashback: 
+            fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.pdf'])
+        else: 
+            fig_name = ''.join([UT.doc_dir(), 'figs/GMMcomp_comp_uncertainty.nosplbacks.', sb_cut, '.pdf'])
+        fig1.savefig(fig_name, bbox_inches='tight')
+        plt.close()
+    '''
     return None 
 
 
@@ -1346,40 +1340,47 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, sb_cu
         mlim = (logM > tinker_mmin)
     else: 
         mlim = np.ones(len(logM)).astype(bool) 
+    # sfr limit
+    sfr_lim = (~Cat.zero_sfr) & (logSFR > -4.) 
 
     # read in the best-fit SFS from the GMM fitting
-    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.p'])
+    f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.lowNbinthresh.mlim.v2.p'])
+    #f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
     fSFMS = pickle.load(open(f_gmm, 'rb'))
     
     mbin0 = fSFMS._mbins[fSFMS._mbins_nbinthresh,0]
     mbin1 = fSFMS._mbins[fSFMS._mbins_nbinthresh,1]
     gbests = fSFMS._gbests
     assert len(mbin0) == len(gbests)
-       
+
+    i_sfss, i_qs, i_ints, i_sbs = fSFMS._GMM_compID(gbests, dev_thresh=0.5)
+
     nmbin = len(mbin0) 
     f_comps = np.zeros((5, nmbin)) # zero, sfms, q, other0, other1
-    f_comps_unc = np.zeros((5, nmbin))
-    
-    for i_m, gbest in zip(range(len(mbin0)), gbests): 
+    for i_m, gbest in zip(range(nmbin), gbests): 
         # calculate the fraction of galaxies have that zero SFR
-        mbin_iscen = iscen & (logM > mbin0[i_m]) & (logM < mbin1[i_m])
-        mbin_iscen_z = mbin_iscen & Cat.zero_sfr
+        mbin_iscen = iscen & (logM > mbin0[i_m]) & (logM < mbin1[i_m]) #& sfr_lim
+        mbin_iscen_z = mbin_iscen & ~sfr_lim 
         f_comps[0, i_m] = float(np.sum(mbin_iscen_z))/float(np.sum(mbin_iscen))
 
         weights_i = gbest.weights_
 
-        i_sfms, i_q, i_int, i_sb = fSFMS._GMM_idcomp(gbest, silent=True)
+        i_sfs = i_sfss[i_m]
+        i_q = i_qs[i_m]
+        i_int = i_ints[i_m]
+        i_sb = i_sbs[i_m]
 
         f_nz = 1. - f_comps[0, i_m]  # multiply by non-zero fraction
-        if i_sfms is not None: 
-            f_comps[1, i_m] = f_nz * np.sum(weights_i[i_sfms])
+        if i_sfs is not None: 
+            f_comps[1, i_m] = f_nz * np.sum(weights_i[i_sfs])
         if i_q is not None: 
             f_comps[2, i_m] = f_nz * np.sum(weights_i[i_q])
         if i_int is not None: 
             f_comps[3, i_m] = f_nz * np.sum(weights_i[i_int])
         if i_sb is not None: 
             f_comps[4, i_m] = f_nz * np.sum(weights_i[i_sb])
-
+    '''
+        #f_comps_unc = np.zeros((5, nmbin))
         # bootstrap uncertainty 
         X = logSFR[mbin_iscen] - logM[mbin_iscen] # logSSFRs
         n_best = len(gbest.means_.flatten())
@@ -1412,7 +1413,8 @@ def _GMM_fcomp(name, groupfinder=True, n_bootstrap=10, nosplashback=False, sb_cu
                 f_boots[4,i_boot] = f_nonzero * np.sum(weights_i[i_sb])
         for i_b in range(f_boots.shape[0]): 
             f_comps_unc[i_b,i_m] = np.std(f_boots[i_b,:]) 
-    return 0.5*(mbin0 + mbin1),  f_comps, f_comps_unc 
+    '''
+    return 0.5*(mbin0 + mbin1),  f_comps, None 
 
 
 def rhoSF(cumulative=True):
@@ -2637,9 +2639,9 @@ if __name__=="__main__":
     #GroupFinder()
     #SFMSfit_example()
     for tt in ['inst', '100myr']:
-        #pass
+        pass
         #_SFS_maxdiscrepancy(tt)
-        Catalog_SFMS_fit(tt)
+        #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
     #Catalogs_SFMS_width()
@@ -2647,7 +2649,7 @@ if __name__=="__main__":
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
     #Pssfr_GMMcomps_SDSS()
-    #GMMcomp_weights(n_bootstrap=10)
+    GMMcomp_weights(n_bootstrap=10)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
