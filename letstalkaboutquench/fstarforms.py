@@ -146,6 +146,8 @@ class fstarforms(object):
             # SSFR distributions.
             logm_median, gbests, nbests, _gmms, _bics = self._GMM_pssfr(logmstar, logsfr, 
                     self._mbins[self._mbins_nbinthresh,:], max_comp=max_comp)
+            if logm_median[0] > 10.: 
+                warnings.warn("The lowest M* bin is greater than 10^10, this may compromise the SFS identification scheme") 
             # save the bestfit GMMs
             self._gbests = gbests 
             self._gmms = _gmms
