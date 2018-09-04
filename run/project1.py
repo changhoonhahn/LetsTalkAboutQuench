@@ -98,9 +98,10 @@ def gmmSFSfits(name):
     else: 
         iscen = (censat == 1) 
     nonzero = (~Cat.zero_sfr) 
+    sfrlimt = (logSFR > -4.)
     
     # stellar mass range for SFMS fit and stellar mass limit  
-    fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero)) 
+    fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero & sfrlimt)) 
 
     # sample cut for SFS fitting
     # group finder centrals & non zero SFRs & stellar mass limit 
@@ -111,12 +112,11 @@ def gmmSFSfits(name):
             method='gaussmix', 
             fit_range=fitrange, 
             dlogm=0.2,              # stellar mass bins of 0.2 dex
-            SSFR_cut=-11., 
             Nbin_thresh=100,        # at least 100 galaxies in bin 
             fit_error='bootstrap',  # uncertainty estimate method 
             n_bootstrap=100)        # number of bootstrap bins
-    
-    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
 
@@ -268,14 +268,14 @@ def _gmmSFSfit_frankenSDSS():
             method='gaussmix', 
             fit_range=None, 
             dlogm=0.2,              # stellar mass bins of 0.2 dex
-            SSFR_cut=-11., 
             Nbin_thresh=100,        # at least 100 galaxies in bin 
             fit_error='bootstrap',  # uncertainty estimate method 
             n_bootstrap=100)        # number of bootstrap bins
     
-    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.p'])
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.franken_sdss.gfcentral.mlim.v2.p'])
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
+
 
 def _gmmSFSfits_EAGLEhires(tscale, recalib=False): 
     ''' GMM SFS fits to the EAGLE high resolution runs in order to validate
@@ -321,6 +321,7 @@ def _gmmSFSfits_EAGLEhires(tscale, recalib=False):
     pickle.dump(fSFMS, open(f_out, 'wb'))
     return None 
 
+
 def gmmSFSpowerlaw(logMfid=10.5): 
     ''' power-law fits to the GMM SFS fits to the specified catalog + SFR timescale
     '''
@@ -333,7 +334,7 @@ def gmmSFSpowerlaw(logMfid=10.5):
     for i_t, tscale in enumerate(tscales): 
         for i_c, cc in enumerate(sims_list): 
             name = '_'.join([cc, tscale]) 
-            f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+            f_gmm = ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
             fSFMS = pickle.load(open(f_gmm, 'rb')) 
             # power-law fit of the SFMS fit 
             _ = fSFMS.powerlaw(logMfid=logMfid)
@@ -467,16 +468,16 @@ if __name__=="__main__":
             #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
             #gmmSFSfits_morecomp(name+'_'+t)
     for name in ['nsa_dickey', 'tinkergroup']: 
-        pass
+        pass 
         #gmmSFSfits(name)
         #gmmSFSfits_lowthresh(name)
         #gmmSFSfits_morecomp(name)
         #dSFS(name) 
 
-    _gmmSFSfits_EAGLEhires('inst', recalib=False)
-    _gmmSFSfits_EAGLEhires('100myr', recalib=False)
-    _gmmSFSfits_EAGLEhires('inst', recalib=True)
-    _gmmSFSfits_EAGLEhires('100myr', recalib=True)
-    #_gmmSFSfit_frankenSDSS()
+    #_gmmSFSfits_EAGLEhires('inst', recalib=False)
+    #_gmmSFSfits_EAGLEhires('100myr', recalib=False)
+    #_gmmSFSfits_EAGLEhires('inst', recalib=True)
+    #_gmmSFSfits_EAGLEhires('100myr', recalib=True)
+    _gmmSFSfit_frankenSDSS()
     #gmmSFSpowerlaw()
     #gmmSFSpowerlaw_leastsq(logMfid=10.5)

@@ -124,6 +124,11 @@ def Catalogs_SFR_Mstar():
             elif cat == 'mufasa_100myr': 
                 sample_cut = sample_cut & (logMstar > mufasa_mmin)
             
+            sample_cut = sample_cut & (logSFR < -4.)
+            print('%s, %s' % (cc, tscale)) 
+            print('%i galaxies have log SFR < -4' % np.sum(sample_cut & (logSFR < -4)))
+            print('%f of total galaxies' % (float(np.sum(sample_cut & (logSFR < -4)))/float(np.sum(sample_cut))))
+            
             DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
                     plot_datapoints=True, fill_contours=False, plot_density=True, ax=sub) 
@@ -220,7 +225,7 @@ def Sims_SFR_Mstar():
             psat = Cat.GroupFinder(cat) # group finder 
             sample_cut = ((psat < 0.01) & ~Cat.zero_sfr)
             
-            # fit the SFMS  
+            # fit range  
             if cc == 'scsam': 
                 sample_cut = sample_cut & (logMstar > scsam_mmin)
             elif cat == 'illustris_100myr': 
@@ -229,6 +234,8 @@ def Sims_SFR_Mstar():
                 sample_cut = sample_cut & (logMstar > eagle_mmin)
             elif cat == 'mufasa_100myr': 
                 sample_cut = sample_cut & (logMstar > mufasa_mmin)
+
+            sample_cut = sample_cut & (logSFR > -4.) 
             
             DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cc], #color='C'+str(i_c+2), 
                     levels=[0.68, 0.95], range=plot_range, 
@@ -412,6 +419,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
             sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar < dickey_mmax)) 
         elif cat == 'tinkergroup': 
             sample_cut = ((censat == 1) & ~Cat.zero_sfr & (logMstar > tinker_mmin)) 
+        sample_cut = sample_cut & (logSFR > -4.) 
 
         DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cat], #color='C'+str(i_c), 
                 levels=[0.68, 0.95], range=plot_range, 
@@ -446,6 +454,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
             sample_cut = sample_cut & (logMstar > eagle_mmin)
         elif cat == 'mufasa_100myr': 
             sample_cut = sample_cut & (logMstar > mufasa_mmin)
+        sample_cut = sample_cut & (logSFR > -4.) 
         
         DFM.hist2d(logMstar[sample_cut], logSFR[sample_cut], color=color_dict[cc],# color='C'+str(i_c+2), 
                 levels=[0.68, 0.95], range=plot_range, 
@@ -494,7 +503,7 @@ def Catalog_SFMS_fit(tscale, nosplashback=False, sb_cut='3vir'):
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
     if not nosplashback: 
-        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'figs/Catalogs_SFMSfit_SFR', tscale, '_v2.pdf'])
     else: 
         fig_name = ''.join([UT.doc_dir(), 'figs/', 
             'Catalogs_SFMSfit_SFR', tscale, '.nosplbacks.', sb_cut, '.pdf'])
@@ -2382,7 +2391,7 @@ def _fGMM(name, morecomp=False, nosplashback=False, sb_cut='3vir'):
             'gmmSFSfit.', name, '.gfcentral.morecomp.mlim.p'])
         return fgmm 
     else: 
-        return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.p'])
+        return ''.join([UT.dat_dir(), 'paper1/', 'gmmSFSfit.', name, '.gfcentral.mlim.v2.p'])
 
 
 def _SFS_maxdiscrepancy(tscale): 
@@ -2628,12 +2637,12 @@ if __name__=="__main__":
     #GroupFinder()
     #SFMSfit_example()
     for tt in ['inst', '100myr']:
-        pass
+        #pass
         #_SFS_maxdiscrepancy(tt)
-        #Catalog_SFMS_fit(tt)
+        Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
-    Catalogs_SFMS_width()
+    #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
