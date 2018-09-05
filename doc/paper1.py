@@ -1141,10 +1141,12 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
                 mmin = scsam_mmin
                 sub.fill_between([0., mmin+0.1], [0.0, 0.0], [1., 1.], 
                         linewidth=0, color='k', alpha=0.8) 
-            if c == 'mufasa': 
-                sub.set_xlim([8.8, 11.3])
-            else: 
-                sub.set_xlim([8.8, 11.5])
+
+            sub.set_xlim([8.8, 11.3])
+            #if c == 'mufasa': 
+            #    sub.set_xlim([8.8, 11.3])
+            #else: 
+            #    sub.set_xlim([8.8, 11.5])
             sub.set_xticks([9., 10., 11.]) 
             if i_t == 0: sub.set_xticklabels([]) 
             sub.set_ylim([0.0, 1.]) 
