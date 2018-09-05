@@ -1165,7 +1165,7 @@ def GMMcomp_weights(n_bootstrap=10, nosplashback=False, sb_cut='3vir'):
                 p3 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C2")
                 p4 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C0")
                 p5 = Rectangle((0, 0), 1, 1, linewidth=0, fc="C4")
-                sub.legend([p1, p2, p3, p5, p4][::-1], ['SFR=0', 'low SF', 'intermediate SF', 'high SF', 'SFS'][::-1], 
+                sub.legend([p1, p2, p3, p5, p4][::-1], ['unmeas. low SFR', 'low SF', 'intermediate SF', 'high SF', 'SFS'][::-1], 
                         loc='upper left', prop={'size': 12}) #bbox_to_anchor=(1.1, 1.05))
 
     obvs = ['nsa_dickey', 'tinkergroup']
@@ -2644,12 +2644,12 @@ if __name__=="__main__":
         #Catalog_SFMS_fit(tt)
     #    Catalog_SFMS_fit(tt, nosplashback=True, sb_cut='geha')
     #Catalogs_SFMS_powerlawfit()
-    Catalogs_SFMS_width()
+    #Catalogs_SFMS_width()
     #Catalog_GMMcomps()
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
     #Pssfr_GMMcomps_SDSS()
-    #GMMcomp_weights(n_bootstrap=10)
+    GMMcomp_weights(n_bootstrap=10)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
