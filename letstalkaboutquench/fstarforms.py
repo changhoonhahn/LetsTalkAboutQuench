@@ -197,8 +197,12 @@ class fstarforms(object):
                 fit_err_sig_logssfr = np.zeros(np.sum(self._mbins_sfs)) 
                 for ii in range(np.sum(self._mbins_sfs)): 
                     notnone = (boot_mu_logssfr[:,ii] != None) 
-                    fit_err_logssfr[ii] = np.std(boot_mu_logssfr[:,ii][notnone]) 
-                    fit_err_sig_logssfr[ii] = np.std(boot_sig_logssfr[:,ii][notnone]) 
+                    if np.sum(notnone) > 1: 
+                        fit_err_logssfr[ii] = np.std(boot_mu_logssfr[:,ii][notnone]) 
+                        fit_err_sig_logssfr[ii] = np.std(boot_sig_logssfr[:,ii][notnone]) 
+                    else: 
+                        fit_err_logssfr[ii] = np.inf
+                        fit_err_sig_logssfr[ii] = np.inf
             else: 
                 raise NotImplementedError("not yet implemented") 
             
