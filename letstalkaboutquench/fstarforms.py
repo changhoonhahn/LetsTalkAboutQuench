@@ -7,7 +7,6 @@ import numpy as np
 import scipy as sp 
 import warnings 
 from scipy.optimize import curve_fit
-from extreme_deconvolution import extreme_deconvolution
 from sklearn.mixture import GMM 
 from sklearn.mixture import GaussianMixture as GMix
 
@@ -757,6 +756,7 @@ class xdGMM(object):
     def fit(self, X, Xerr): 
         ''' fit GMM to X and Xerr
         '''
+        from extreme_deconvolution import extreme_deconvolution
         X, Xerr = self._X_check(X, Xerr)
         self._X = X 
         self._Xerr = Xerr

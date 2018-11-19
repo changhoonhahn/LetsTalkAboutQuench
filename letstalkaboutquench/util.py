@@ -48,19 +48,13 @@ def dat_dir():
 def fig_dir(): 
     ''' directory to dump all the figure files 
     '''
-    if os.environ.get('IQUENCH_FIGDIR') is None: 
-        if os.path.isdir(dat_dir()+'/figs/'):
-            return dat_dir()+'/figs/'
-        else: 
-            raise ValueError("create figs/ folder in $IQUENCH_DIR directory for figures; or specify $IQUENCH_FIGDIR")
-    else: 
-        return os.environ.get('IQUENCH_FIGDIR')
+    return dat_dir()+'figs/'
 
 
 def doc_dir(): 
     ''' directory for paper related stuff 
     '''
-    return fig_dir().split('fig')[0]+'doc/'
+    return os.environ.get('IQUENCH_CODEDIR')+'doc/'
 
 
 def HAsfr(zdist, ha_flux): 

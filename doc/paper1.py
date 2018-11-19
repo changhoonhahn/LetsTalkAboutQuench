@@ -2457,6 +2457,7 @@ def _SFS_maxdiscrepancy(tscale):
     print("maximum SFS discrepancy = %f dex" % dsfs_max)
     return None 
 
+
 def _GMMcomp_EAGLEhighres(recalib=False): 
     ''' Plot the fractional composition of the different GMM components 
     along with galaxies with zero SFRs for the different catalogs
@@ -2598,7 +2599,96 @@ def Catalogs_SFS_lit():
         sub.set_xlim([8, 11.5])
         sub.set_ylim([-3, 3])
         sub1.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
-        if i_c == 0: labl = '$\log\,\mathrm{SSFR} > -11$'
+        labl = None
+        #if i_c == 0: labl = 'no cut' '$\log\,\mathrm{SSFR} > -11$'
+        #else: labl = None
+        sub2.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), label=labl) 
+        print logSFRfit1[np.abs(logMstarfit - 10.).argmin()]
+        sub1.set_xlim([8, 11.5])
+        sub1.set_ylim([-3, 3])
+
+    sub1.text(0.05, 0.9, r'$\log\,\mathrm{SSFR} > -11$ for all sim.',
+             ha='left', va='top', transform=sub1.transAxes, fontsize=20)
+    sub.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15)
+    sub2.text(0.95, 0.05, 'SFR ['+(lbl.split('[')[-1]).split(']')[0]+']',
+             ha='right', va='bottom', transform=sub2.transAxes, fontsize=25)
+    sub2.text(0.05, 0.9, r'No $\log\,\mathrm{SSFR}$ cut for all sim.',
+             ha='left', va='top', transform=sub2.transAxes, fontsize=20)
+
+    # file with best-fit GMM 
+    #f_gmm = lambda name: _fGMM(name)
+    #for i_c, cc in enumerate(sims_list): 
+    #    cat = '_'.join([cc, 'inst']) 
+    #    fSFS = pickle.load(open(f_gmm(cat), 'rb'))
+    #    if i_c == 0: lbl = 'Hahn+(2018) GMM SFS'
+    #    else: lbl = None
+    #    sub2.plot(fSFS._fit_logm, fSFS._fit_logsfr, color='C'+str(i_c+2), linestyle='--', label=lbl) 
+    sub2.set_xlim([8, 11.5])
+    sub2.set_ylim([-3, 3])
+    sub2.legend(loc='upper left', handletextpad=0.5, frameon=False, fontsize=15) 
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25)
+    bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25)
+    fig.subplots_adjust(wspace=0.15)
+    fig_name = ''.join([UT.doc_dir(), 'figs/Catalog_SFS_lit.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    plt.close()
+    return None
+
+def _Catalogs_SFS_lit():
+    ''' Compare SFR vs M* relation plotted like in Somerville & Dave 2014 (fits from the different modelers)
+    '''
+    Cat = Cats.Catalog()
+    sims_list = ['illustris', 'eagle', 'mufasa', 'scsam'] # simulations 
+
+    fig = plt.figure(figsize=(15,5))
+    bkgd = fig.add_subplot(111, frameon=False)
+    sub = fig.add_subplot(131)
+    sub1 = fig.add_subplot(132)
+    sub2 = fig.add_subplot(133)
+    for i_c, sim in enumerate(sims_list):
+        cat = '_'.join([sim, 'inst'])
+        logMstar, logSFR, weight, censat = Cat.Read(cat)
+
+        lbl = Cat.CatalogLabel(cat)
+        if sim == 'illustris': 
+            nbins, binsize, fitmin = 12, 0.3, 8.05
+            all_or_sf = 'all'
+        elif sim == 'eagle': 
+            nbins, binsize, fitmin = 12, 0.3, 8.1
+            all_or_sf = 'sf'
+        elif sim == 'mufasa': 
+            nbins, binsize, fitmin = 11, 0.25, 8.525
+            all_or_sf = 'all'
+        elif sim == 'scsam': 
+            nbins, binsize, fitmin = 10, 0.3, 8.7
+            all_or_sf = 'sf'
+
+        logSFRfit1 = np.zeros(nbins)
+        logSFRfit2 = np.zeros(nbins)
+        logMstarfit = np.zeros(nbins)
+        for i_b in range(nbins):
+            # in stellar mass bin 
+            inbin = ((logMstar > fitmin + binsize * i_b) & (logMstar < fitmin + binsize * (i_b+1)))
+            logMstarfit[i_b] = fitmin + binsize*(i_b+0.5)
+            logSFRfit2[i_b] = np.log10(np.median(10.0**(logSFR[inbin])))
+        
+            # in stellar mass bin above ssfr > -11
+            inbinsf = (inbin & (logSFR-logMstar > -11.)) 
+            logSFRfit1[i_b] = np.log10(np.median(10.0**(logSFR[inbinsf])))
+
+        if all_or_sf == 'all': 
+            sub.plot(logMstarfit, logSFRfit2, color='C'+str(i_c+2), 
+                    label=lbl.split('[')[0]+' (no cut)')
+            #sub.scatter(logMstarfit, logSFRfit2, color='C'+str(i_c+2))
+        elif all_or_sf == 'sf': 
+            sub.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2), 
+                    label=lbl.split('[')[0]+' ($\log\,\mathrm{SSFR} > -11$)')
+        sub.set_xlim([8, 11.5])
+        sub.set_ylim([-3, 3])
+        sub1.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2)) 
+        if i_c == 0: labl = 'no cut' '$\log\,\mathrm{SSFR} > -11$'
         else: labl = None
         sub2.plot(logMstarfit, logSFRfit1, color='C'+str(i_c+2), label=labl) 
         print logSFRfit1[np.abs(logMstarfit - 10.).argmin()]
@@ -2627,10 +2717,11 @@ def Catalogs_SFS_lit():
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=5, fontsize=25)
     bkgd.set_ylabel(r'median log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=5, fontsize=25)
     fig.subplots_adjust(wspace=0.15)
-    fig_name = ''.join([UT.doc_dir(), 'figs/Catalog_SFS_lit.pdf'])
+    fig_name = ''.join([UT.doc_dir(), 'figs/_Catalog_SFS_lit.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     plt.close()
     return None
+
 
 
 if __name__=="__main__": 
@@ -2651,7 +2742,7 @@ if __name__=="__main__":
     #Pssfr_GMMcomps(timescale='inst')
     #Pssfr_GMMcomps(timescale='100myr')
     #Pssfr_GMMcomps_SDSS()
-    GMMcomp_weights(n_bootstrap=10)
+    #GMMcomp_weights(n_bootstrap=10)
     #GMMcomp_weights(n_bootstrap=10, nosplashback=True, sb_cut='geha')
     #_GMM_comp_test('tinkergroup')
     #_GMM_comp_test('nsa_dickey')
@@ -2678,4 +2769,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFS_lit()
+    _Catalogs_SFS_lit()
     #GMM_3pluscomp()
