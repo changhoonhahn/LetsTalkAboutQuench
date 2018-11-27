@@ -237,6 +237,45 @@ def gmmSFSfits_morecomp(name):
     return None 
 
 
+def gmmSFSfits_devthresh(name, dev_thresh=0.3): 
+    ''' same as above but with different dev_thresh
+    '''
+    # read in catalog
+    Cat = Cats.Catalog()
+    logMstar, logSFR, weight, censat = Cat.Read(name)
+    
+    # group finder definition of centrals 
+    if name not in ['nsa_dickey', 'tinkergroup']: 
+        psat = Cat.GroupFinder(name) 
+        iscen = (psat < 0.01) 
+    else: 
+        iscen = (censat == 1) 
+    nonzero = (~Cat.zero_sfr) 
+    sfrlimt = (logSFR > -4.)
+    
+    # stellar mass range for SFMS fit and stellar mass limit  
+    fitrange, mlim = _mlim_fit(name, logMstar, (iscen & nonzero & sfrlimt)) 
+
+    # sample cut for SFS fitting
+    # group finder centrals & non zero SFRs & stellar mass limit 
+    fit_cut = (iscen & nonzero & mlim)      
+    fSFMS = fstarforms()
+    fit_logm, fit_logsfr, fit_sig_logsfr = fSFMS.fit(
+            logMstar[fit_cut], logSFR[fit_cut],
+            method='gaussmix', 
+            fit_range=fitrange, 
+            dlogm=0.2,              # stellar mass bins of 0.2 dex
+            Nbin_thresh=100,        # at least 100 galaxies in bin 
+            dev_thresh=dev_thresh, 
+            fit_error='bootstrap',  # uncertainty estimate method 
+            n_bootstrap=100)        # number of bootstrap bins
+
+    f_out = ''.join([UT.dat_dir(), 'paper1/', 
+        'gmmSFSfit.', name, '.gfcentral.mlim.dev_thresh', str(dev_thresh), '.p'])
+    pickle.dump(fSFMS, open(f_out, 'wb'))
+    return None 
+
+
 def _gmmSFSfit_frankenSDSS(): 
     ''' GMM SFS fit to the unholy combination of Claire's NSA catalog
     with Jeremy's SDSS catalog. This is for reference only! 
@@ -463,13 +502,19 @@ if __name__=="__main__":
             #pass
             #gmmSFSfits(name+'_'+t)
             #dSFS(name+'_'+t) 
-            gmmSFSfits_lowthresh(name+'_'+t)
+            #0.1gmmSFSfits_lowthresh(name+'_'+t)
             #gmmSFSfits_nosplashbacks(name+'_'+t, cut='geha')
             #gmmSFSfits_morecomp(name+'_'+t)
+            gmmSFSfits_devthresh(name+'_'+t, dev_thresh=0.2)
+            #gmmSFSfits_devthresh(name+'_'+t, dev_thresh=0.3)
+            #gmmSFSfits_devthresh(name+'_'+t, dev_thresh=0.5)
+            #gmmSFSfits_devthresh(name+'_'+t, dev_thresh=0.7)
+            #gmmSFSfits_devthresh(name+'_'+t, dev_thresh=0.9)
+
     for name in ['nsa_dickey', 'tinkergroup']: 
-        #pass 
+        pass 
         #gmmSFSfits(name)
-        gmmSFSfits_lowthresh(name)
+        #gmmSFSfits_lowthresh(name)
         #gmmSFSfits_morecomp(name)
         #dSFS(name) 
 
