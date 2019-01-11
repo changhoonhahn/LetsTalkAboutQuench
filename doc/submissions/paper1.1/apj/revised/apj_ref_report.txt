@@ -1,0 +1,214 @@
+## Response to Referee
+
+#### Reviewer's Comments:
+The paper 'IQ-Collaboratory 1.1: the Star-Forming Sequence of Simulated Central
+Galaxies' by Hahn et al. compares the star-forming sequence (SFS) between
+various simulations and SDSS. The key aspect of the comparison is the usage of
+Gaussian Mixture Models to identify the SFS. The paper is written well, and the
+results are definitely interesting and important for the community. I therefore
+recommend this paper after some moderate revision (see below). 
+
+#### Major comments:
+---
+
+> The authors discuss in Appendix C resolution questions regarding the SFR
+> estimates. However, also the stellar masses themselves will not be fully
+> converged for different resolution levels of the different simulations. How can
+> the authors compare stellar mass estimates from simulations with different mass
+> resolution? For example, a given simulation (e.g., EAGLE) will lead to different
+> stellar masses depending on the mass resolution. The same is true for the other
+> hydro simulations. So, how can the stellar mass of a galaxy be compared
+> between two simulations with different mass resolutions?
+
+In order to test the impact of mass resolution, we use a higher mass 
+resolution EAGLE simulation and compare the identified SFSs. We find 
+that the SFS is underestimated near the mass resolution limit
+for lower resolution boxes. However, this is not a significant effect
+and impacts the SFS by less than 0.2 dex. Although higher resolution 
+Illustris simulations are not available, we use lower resolution 
+Illustris simulations to conduct the same comparison and find consistent
+results. Therefore, the impact of mass resolution on the stellar masses 
+of hydro simulations does not significantly impact the identified SFSs,
+especially above the stellar mass limits of our analysis. We discuss 
+this comparison in Appendix C.  
+
+> How sensitive is the identification of the SFS to the 0.5 dex value for the
+> difference between the mean values? Can the authors please demonstrate that
+> this value does not affect the SFS identification in any significant way?
+
+We choose 0.5 dex in order to relax any assumptions on the slope
+of the SFS and also avoid misclassifying the quiescent population 
+as SFS at the high mass end. The SFS identification, however, is 
+not significantly impacted by the difference between the mean values
+within the range 0.2 - 0.8 dex. We include this discussion in Section 3. 
+
+> I understand the advantages of the Gaussian Mixture Models. However, can the
+> authors please clarify a few things: 
+> -Why shall we assume that the distribution of the different populations in the
+> Mstar - SFR plane are indeed Gaussian? How good is this approximation? Can the
+> authors please quantify non-Gaussian contributions?
+> -If k=3 is a good fit (based on the BIC), what does it physically mean to have
+> three components? The authors give some lose definition like low-SF, med-SF,
+> high-SF. But how certain can we be sure that these are real different
+> subpopulations?
+
+Our method of identifying the SFS and other components using GMMs, 
+does not assume that the population as a whole is Gaussian. With GMMs, 
+we determine the combination of Gaussians that best reproduce the
+distribution of the population without any assumptions on the shape
+of the distribution. As a result, any significant non-Gaussianities 
+in the distribution would result in a GMM with extra components that
+better match the non-Gaussianities in the distribution. This is the
+case, for instance, in the SC-SAM logM_*=9.2-9.4 bins of Figures B.1. 
+and B.2. (bottom left) where the best-fit GMM consists of two 
+star-forming components rather than one. Although the components of 
+the GMM are assumed to be Gaussians, from the data alone, it is 
+impossible to determine whether the "true" distribution consists of 
+two separate Gaussian sub-populations or a single non-Gaussian one. 
+In principle we can use mixture models with non-Gaussian components,
+but it will require assuming some other shape.
+
+Similarly, the "true" sub-populations are not well defined from 
+the data. We therefore avoid classifying the GMM components as 
+star-forming, quiescent, transitioning, or star-burst populations 
+from the literature and use more empirical definitions (e.g. low, 
+med, and high-SF) populations. We clarify these points in Section 4.2. 
+and Appendix B.  
+
+> The authors compare SDSS centrals with simulation centrals. However, they
+> measure the stellar mass of simulated galaxies using all star particles
+> belonging to halos. It has been demonstrated multiple times in the past, that
+> this will overestimate stellar masses significantly, especially towards the
+> massive/bright end. I am therefore wondering how the SFS, which is a function
+> of stellar mass, can be compared meaningfully between simulation and SDSS, if
+> the the stellar masses are not handled equally.
+
+In Section 2. we describe how we derive stellar masses for the 
+simulation in further detail and underline the caveats of comparing 
+the stellar masses of simulation to observations. We also include 
+that using total stellar masses within the halo or stellar masses 
+within 70, 50, 30 kpc, does not impact the idenfified SFSs for the 
+EAGLE simulation. We also mention that this effect will be explicitly 
+addressed in the next paper of the series: Starkenburg et al. (in prep). 
+
+> I understand that the authors mainly focused on the z=0 analysis in 
+> their work. However, it would be very useful to see how these simulations 
+> compare at higher z. Can the authors please repeat their analysis for one 
+> or two more redshifts and add these results? Do the different simulations 
+> predict different redshift behavior for the best-fit SFS? I feel that a 
+> paper that is dedicated to an SFS comparison should at least briefly also 
+> discuss some higher z aspects. 
+
+A higher redshift (0.5 < z < 3) SFS comparison is currently in preparation as 
+part of the IQ-Collaboratory series (Choi et al. in prep.) We mention this 
+more clearly in Section 1. 
+
+
+> The authors find that the different simulations indeed show rather large
+> difference once analyzed within a common framework (GMM). They also state that
+> they can not go into the detailed causes for these differences in the paper,
+> what I understand given the complexity of such an endeavor. However, one
+> question could potentially be tackled: the SFS is a relation between stellar
+> masses and SFR. Can the authors try to disentangle whether the discrepancy
+> between the different simulations is caused by issues with the stellar masses
+> or more related to the actual star formation rates? For that it would be
+> interesting to plot, for example, the star formation rate and stellar masses
+> vs. halo mass. Can the authors try to gain some insights into this?
+
+In Section 4.1., in addition to the SFS, we compare the cosmic
+star formation densities and stellar mass functions and find significant 
+discrepancies in both. As a result we discussion in Section 4.1. that the 
+difference in SFS among the simulation is likely caused by differences in both 
+properties as predicted by the different sub-grid prescriptions. 
+
+#### Minor comments:
+----
+> Regarding the comparison in Appendix A: Can the authors add another panel to
+> Fig. A1 where they show all simulations with no cut. How large are the
+> differences then? Also, it seems that mainly the amplitude changes in the
+> current right panel, but the slopes still seem to be consistent. Can the
+> authors please mention this and comment on it? Why is the slope such a stable prediction
+> in that case?
+
+We have added a panel to Fig. A1 with the SFS from the simulations with 
+SSFR no cut. We discuss in Appendix A. the consistency of the SFS slopes 
+in the middle panel and emphasize that imposing a hard $\log\,\mathrm{SSFR}$ 
+cut forces consistency in the slopes and underline how this is another 
+drawback of hard cuts. 
+
+> Have the author tested measuring galactic properties (SFR and stellar masses)
+> within radial cuts? How does this impact the SFS comparison?
+
+We test the impact of M* and SFR with radial cuts of (70, 50, 30 kpc) using
+the EAGLE simulation and find no significantly impact on the SFS identified.
+We include this in Section 2 and in our discussion in Section 4.1.
+
+> Can the authors please add some more background information about the Bayesian
+> Information Criteria? This seems to be some crucial step to pick out the right
+> k. So I wonder how certain this step is. What if it does not pick out the
+> right k, would it miss the SFS? 
+
+We have include extra background information on the BIC and
+discuss its advantages for model selection. We also discuss in
+Appendix B how Figures B.1. and B.2. illustrate how among GMMs
+with similar BICs the k values does not significantly impact
+the position and variance of the SFS component.
+
+> Genel et al. recently had a paper on the the scatter of scaling relations
+> being potentially be driven by chaotic effects. Can the authors comment on how
+> sensitive the sigma comparison is to this?
+
+We have added the following sentences in Section 4.2.:
+Additionally, Genel et al. (2018) recently showed that chaotic effects can 
+contribute to the overall scatter in the SFS. However, since we derive 
+$\sigma_\mathrm{SFS}$ from a large galaxy population this butterfly effect 
+does not impact the measurement reliability of statistical properties of the 
+ensemble of galaxies because the sensitivity of individual galaxy SFRs averages 
+out. However, the different degree of the butterfly effect on different 
+simulations may contribute the difference in $\sigma_\mathrm{SFS}$  among 
+the simulations.
+
+> As the authors state the scatter in the SFS is lower than the observational
+> ~0.3 value. The authors give some possible explanation for this, like
+> observational errors and missing burstiness of the simulation results. Can the
+> authors try to quantify those roughly and give some rough numbers? For example,
+> Sparre performed some re-simulations of Illustris galaxies and found more bursty
+> behavior with higher resolution. 
+
+We have included observational errors estimated for the SFRs
+of the NYU-VAGC (~0.031 dex) and also specific quote the
+contribution to the scatter from burstiness listed in
+Sparre et al. (2017): 0.10 - 0.17 dex.
+
+> For the calculation of the instant. SFR: Which gas is considered for this? 
+> All gas gravitationally bound to the halo?
+
+We have added in Section 2 that all gas gravitationally bound 
+to the subhalo are included in the instantaneous SFR.
+
+> It would be nice to add a simulation table to the paper summarizing the key
+> numerical parameters (e.g., mass resolution, softening, etc.). 
+
+We included a table summarizing the key parameters of the simulations
+(mass resolution, volume, softening lengths) and properties that we cite
+in the paper: (completeness of group finder, cosmic SFR density, etc.)
+
+> The draft currently lacks any more detailed discussion of the discrepancies 
+> found for the SFS fits. It would be nice to add least add a short discussion 
+> trying to shed a bit light on the question why different simulations predict 
+> different SFS fits and why those differ from SDSS.
+
+See response to earlier comment above.  
+
+> Regarding the third bullet point of the conclusions: Based on Fig. 9 I would
+> think that Illustirs shows at least some stellar mass dependence of the
+> quiescent fraction and also has (similar to the SC-SAM and SDSS) some small
+> contribution of low mass star forming galaxies. That should be
+> mentioned here.
+
+We estimate the quiescent fraction using all components below 
+the SFS and galaxies with unmeasurably low SFRs (green, orange, 
+and red). With the intermediate component (green) included in the
+quiescent fraction, we find little stellar mass dependence. We
+clarify our quiescent fraction definition in the third bullet 
+point. 
