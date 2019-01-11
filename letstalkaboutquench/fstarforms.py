@@ -167,7 +167,10 @@ class fstarforms(object):
             fit_sig_logssfr = sig_sfss
 
             # calculate the uncertainty of logSSFR fit 
-            if fit_error == 'bootstrap': 
+            if fit_error is None: 
+                self._fit_err_logssfr = None 
+                self._fit_err_sig_logssfr = None 
+            elif fit_error == 'bootstrap': 
                 # using bootstrap resampling 
                 boot_mu_logssfr, boot_sig_logssfr = [], []
                 for i_boot in range(n_bootstrap): 
@@ -203,6 +206,9 @@ class fstarforms(object):
                     else: 
                         fit_err_logssfr[ii] = np.inf
                         fit_err_sig_logssfr[ii] = np.inf
+
+                self._fit_err_logssfr = fit_err_logssfr
+                self._fit_err_sig_logssfr = fit_err_sig_logssfr
             else: 
                 raise NotImplementedError("not yet implemented") 
             
@@ -214,9 +220,6 @@ class fstarforms(object):
         self._fit_logssfr = np.array(fit_logssfr)  
         self._fit_logsfr = self._fit_logm + self._fit_logssfr
         self._fit_sig_logssfr = np.array(fit_sig_logssfr)
-
-        self._fit_err_logssfr = fit_err_logssfr
-        self._fit_err_sig_logssfr = fit_err_sig_logssfr
         return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
 
     def _GMM_pssfr(self, logmstar, logsfr, mbins, max_comp=3): 
