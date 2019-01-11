@@ -2755,8 +2755,8 @@ if __name__=="__main__":
     #GMMcomp_weights_res_impact(n_bootstrap=10)
     #Pssfr_res_impact(n_mc=100)
     #Mlim_res_impact(n_mc=100)
-    #_GMMcomp_EAGLEhighres(recalib=False)
-    #_GMMcomp_EAGLEhighres(recalib=True)
+    _GMMcomp_EAGLEhighres(recalib=False)
+    _GMMcomp_EAGLEhighres(recalib=True)
     #for c in ['illustris', 'eagle', 'mufasa', 'scsam']: 
     #    for tscale in ['inst', '100myr']:#'10myr', '100myr', '1gyr']: 
     #        _GMM_comp_test(c+'_'+tscale)
@@ -2769,5 +2769,5 @@ if __name__=="__main__":
     #_SFMSfit_assess('tinkergroup', fit_range=(9.8, 12.), method='gaussmix')
     #SFRMstar_2Dgmm(n_comp_max=50)
     #Catalogs_SFS_lit()
-    _Catalogs_SFS_lit()
+    #_Catalogs_SFS_lit()
     #GMM_3pluscomp()
