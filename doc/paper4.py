@@ -279,7 +279,7 @@ def pssfr(name, i_z):
             sub.plot(x_ssfr, gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]), c='k', lw=0.75, ls=':') 
         sub.plot(x_ssfr, gmm_ws[isfs] * MNorm.pdf(x_ssfr, gmm_mus[isfs], gmm_vars[isfs]), c='b', lw=1, ls='-') 
         sub.legend(loc='upper left', prop={'size':15}) 
-        sub.set_xlim([-13.6, -8.5]) 
+        sub.set_xlim([-13.6, -8.]) 
         
         if imbin == 0:
             _name = ' '.join(name.upper().split('_'))+'\n $'+str(zlo[i_z-1])+'< z <'+str(zhi[i_z-1])+'$'
@@ -387,6 +387,6 @@ if __name__=="__main__":
     #        dSFS(name, method=method) 
     for name in ['sam-light-full', 'sam-light-slice']: 
         for iz in range(1,7): 
-            _ = highzSFSfit(name, iz, overwrite=True)
+            #_ = highzSFSfit(name, iz, overwrite=True)
             pssfr(name, iz)  
         highz_sfms(name)
