@@ -209,7 +209,7 @@ def sfms_comparison():
         for i in range(1,len(zlo)+1): 
             logm, logsfr = readHighz(name, i, keepzeros=False)
             # fit the SFMSes
-            fSFS = highzSFSfit(name, i_z)
+            fSFS = highzSFSfit(name, i)
             sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
             sfms_fits.append(sfms_fit) 
         sfms_dict[name] = sfms_fits
@@ -380,13 +380,13 @@ def fHighz(name, i_z):
 
 
 if __name__=="__main__": 
-    #sfms_comparison()
     #for name in ['illustris_100myr']: #'eagle', 'illustris_10myr', 'illustris_1gyr']:
     #    for method in ['interpexterp', 'powerlaw']:  
     #        #highz_sfms(name)
     #        dSFS(name, method=method) 
-    for name in ['sam-light-full', 'sam-light-slice']: 
-        for iz in range(1,7): 
-            #_ = highzSFSfit(name, iz, overwrite=True)
-            pssfr(name, iz)  
-        highz_sfms(name)
+    #for name in ['sam-light-full', 'sam-light-slice']: 
+    #    for iz in range(1,7): 
+    #        #_ = highzSFSfit(name, iz, overwrite=True)
+    #        pssfr(name, iz)  
+    #    highz_sfms(name)
+    sfms_comparison()
