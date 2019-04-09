@@ -134,7 +134,7 @@ def candels():
     fig.savefig(fig_name, bbox_inches='tight')
    
 
-def highz_sfms(name):
+def highz_sfms(name, noise=False, seed=1):
     ''' SFMS fits to the SFR -- M* relation of CANDLES galaxies in 
     the 6 redshift bins
     '''
@@ -144,11 +144,11 @@ def highz_sfms(name):
     logms, logsfrs = [], [] 
     sfms_fits = [] 
     for i in range(1,len(zlo)+1): 
-        logm, logsfr = readHighz(name, i, keepzeros=False)
+        logm, logsfr = readHighz(name, i, keepzeros=False, noise=noise, seed=seed)
         logms.append(logm)
         logsfrs.append(logsfr)
         # fit the SFMSes
-        fSFS = highzSFSfit(name, i)
+        fSFS = highzSFSfit(name, i, noise=noise, seed=seed)
         sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
         sfms_fits.append(sfms_fit) 
     
@@ -175,7 +175,8 @@ def highz_sfms(name):
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
-    fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_sfms.pdf'])
+    if not noise: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_sfms.pdf'))
+    else: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_wnoise_sfms.pdf'))
     fig.savefig(fig_name, bbox_inches='tight')
     
     # SFMS fit redshift evolution 
@@ -190,7 +191,8 @@ def highz_sfms(name):
     sub.legend(loc='upper left', prop={'size':15}) 
     sub.set_xlim([8.5, 12.]) 
     sub.set_ylim([-0.5, 4.]) 
-    fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_sfmsz.pdf'])
+    if not noise: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_sfmsz.pdf'))
+    else: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_wnoise_sfmsz.pdf'))
     fig.savefig(fig_name, bbox_inches='tight')
     return None 
 
@@ -207,9 +209,12 @@ def sfms_comparison():
     for name in names:  
         sfms_fits = [] 
         for i in range(1,len(zlo)+1): 
-            logm, logsfr = readHighz(name, i, keepzeros=False)
-            # fit the SFMSes
-            fSFS = highzSFSfit(name, i)
+            if 'sam-light' in name: 
+                logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
+                fSFS = highzSFSfit(name, i, noise=True, seed=1) # fit the SFMSes
+            else:
+                logm, logsfr = readHighz(name, i, keepzeros=False)
+                fSFS = highzSFSfit(name, i) # fit the SFMSes
             sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
             sfms_fits.append(sfms_fit) 
         sfms_dict[name] = sfms_fits
@@ -244,15 +249,15 @@ def sfms_comparison():
     return None
 
 
-def pssfr(name, i_z): 
+def pssfr(name, i_z, noise=False, seed=1): 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
 
-    logm, logsfr = readHighz(name, i_z, keepzeros=False)
+    logm, logsfr = readHighz(name, i_z, keepzeros=False, noise=noise, seed=seed)
     logssfr = logsfr - logm 
 
     # fit the SFMS
-    fSFS = highzSFSfit(name, i_z)
+    fSFS = highzSFSfit(name, i_z, noise=noise, seed=seed)
     mbins = fSFS._mbins[fSFS._mbins_sfs]
     nmbin = np.sum(fSFS._mbins_sfs)
     nrow, ncol = 2, int(np.ceil(0.5*nmbin))
@@ -293,19 +298,20 @@ def pssfr(name, i_z):
     bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', 
             labelpad=5, fontsize=25)
     #fig.subplots_adjust(wspace=0.1, hspace=0.075)
-    fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_z', str(i_z), '_pssfr.pdf'])
+    if not noise: fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_z', str(i_z), '_pssfr.pdf'])
+    else: fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_z', str(i_z), '_wnoise_pssfr.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     return None 
 
 
-def highzSFSfit(name, i_z, overwrite=False): 
-    f_highz = fHighz(name, i_z)
+def highzSFSfit(name, i_z, noise=False, seed=1, overwrite=False): 
+    f_highz = fHighz(name, i_z, noise=noise, seed=seed)
     f_sfs =  ''.join([f_highz.rsplit('/', 1)[0], '/sfs_fit', f_highz.rsplit('/', 1)[1].rsplit('.txt',1)[0], '.p']) 
     
     if os.path.isfile(f_sfs) and not overwrite: 
         fSFS = pickle.load(open(f_sfs, 'rb'))
     else: 
-        logm, logsfr = readHighz(name, i_z, keepzeros=False)
+        logm, logsfr = readHighz(name, i_z, keepzeros=False, noise=noise, seed=seed)
         logssfr = logsfr - logm 
 
         # fit the SFMS
@@ -322,45 +328,50 @@ def highzSFSfit(name, i_z, overwrite=False):
     return fSFS
 
 
-def readHighz(name, i_z, keepzeros=False): 
+def readHighz(name, i_z, keepzeros=False, noise=False, seed=1): 
     ''' read in CANDELS, Illustris, or EAGLE M* and SFR data in the 
     iz redshift bin 
     '''
     f_data = fHighz(name, i_z)
     name = name.lower() 
-    if name == 'candels': 
-        _, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
-        logms = np.log10(ms) 
-        logsfr = np.log10(sfr) 
-        notzero = (sfr != 0.)
-    elif 'illustris' in name: 
-        if name == 'illustris_10myr': 
-            ms, sfr, _, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
-        elif name == 'illustris_100myr': 
-            ms, _, _, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
-        elif name == 'illustris_1gyr': 
-            ms, _, sfr, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
-        logms = np.log10(ms) 
-        logsfr = np.log10(sfr) 
-        notzero = (sfr != 0.)
-    elif name == 'eagle': 
-        ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
-        logms = ms
-        logsfr = sfr 
-        notzero = np.isfinite(sfr)
-    elif 'sam-light' in name: 
-        z, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) 
-        logms = np.log10(ms)
-        logsfr = np.log10(sfr)
-        notzero = (sfr != 0.)  
+    if not noise: 
+        if name == 'candels': 
+            _, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
+            logms = np.log10(ms) 
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
+        elif 'illustris' in name: 
+            if name == 'illustris_10myr': 
+                ms, sfr, _, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            elif name == 'illustris_100myr': 
+                ms, _, _, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            elif name == 'illustris_1gyr': 
+                ms, _, sfr, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            logms = np.log10(ms) 
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
+        elif name == 'eagle': 
+            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
+            logms = ms
+            logsfr = sfr 
+            notzero = np.isfinite(sfr)
+        elif 'sam-light' in name: 
+            z, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) 
+            logms = np.log10(ms)
+            logsfr = np.log10(sfr)
+            notzero = (sfr != 0.)  
 
-    if not keepzeros: 
-        return logms[notzero], logsfr[notzero]
+        if not keepzeros: 
+            return logms[notzero], logsfr[notzero]
+        else: 
+            return logms, logsfr, notzero
     else: 
-        return logms, logsfr, notzero
+        f_data = fHighz(name, i_z, noise=True, seed=seed) 
+        logms, logsfr = np.loadtxt(f_data, unpack=True, usecols=[0,1], skiprows=2) 
+        return logms, logsfr
 
 
-def fHighz(name, i_z): 
+def fHighz(name, i_z, noise=False, seed=1): 
     ''' High z project file names
     '''
     dat_dir = ''.join([UT.dat_dir(), 'highz/'])
@@ -376,17 +387,54 @@ def fHighz(name, i_z):
         f_data = ''.join([dat_dir, 'SAM_lightcone/SAMslice_z', str(i_z), '.txt'])
     else: 
         raise NotImplementedError
+
+    if noise: 
+        f_data = f_data.replace('.txt', '.wnoise.seed%i.txt' % seed)
     return f_data
 
+
+def add_uncertainty(name, i_z, seed=1): 
+    ''' add in measurement uncertainties for SFR and M*. sigma_logSFR = 0.33 dex and 
+    sigma_logM* = 0.07 dex. This is done in the simplest way possible --- i.e. add 
+    gaussian noise 
+    '''
+    sig_logsfr = 0.33
+    sig_logms = 0.07
+
+    np.random.seed(seed)
+    # read in log M* and log SFR 
+    logms, logsfr, notzero = readHighz(name, i_z, keepzeros=True)
+
+    if np.sum(~notzero) == 0:
+        dlogsfr = sig_logsfr * np.random.randn(len(logsfr))
+        logsfr_new = logsfr + dlogsfr
+        
+        dlogms = sig_logms * np.random.randn(len(logms))
+        logms_new = logms + dlogms
+    else: 
+        raise NotImplementedError
+
+    # save to file 
+    fnew = fHighz(name, i_z, noise=True, seed=seed) 
+    hdr = 'Gaussian noise with sigma_logSFR = 0.33 dex and sigma_M* = 0.07 dex added to data\n logM*, logSFR' 
+    np.savetxt(fnew, np.array([logms_new, logsfr_new]).T, delimiter='\t', fmt='%.5f %.5f', header=hdr) 
+    return None 
+    
 
 if __name__=="__main__": 
     #for name in ['illustris_100myr']: #'eagle', 'illustris_10myr', 'illustris_1gyr']:
     #    for method in ['interpexterp', 'powerlaw']:  
     #        #highz_sfms(name)
     #        dSFS(name, method=method) 
-    #for name in ['sam-light-full', 'sam-light-slice']: 
-    #    for iz in range(1,7): 
-    #        #_ = highzSFSfit(name, iz, overwrite=True)
-    #        pssfr(name, iz)  
-    #    highz_sfms(name)
+    for name in ['sam-light-full', 'sam-light-slice']:# 'eagle', 'illustris_10myr', 'illustris_100myr', 'illustris_1gyr']: #'sam-light-full', 'sam-light-slice']: 
+        for iz in range(1,7): 
+            continue
+            #_ = highzSFSfit(name, iz, overwrite=True)
+            #pssfr(name, iz)  
+            
+            #add_uncertainty(name, iz)
+            highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
+            pssfr(name, iz, noise=True, seed=1)  
+        #highz_sfms(name)
+        #highz_sfms(name, noise=True, seed=1)
     sfms_comparison()
