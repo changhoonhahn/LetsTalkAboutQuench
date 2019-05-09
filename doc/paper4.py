@@ -341,25 +341,28 @@ def readHighz(name, i_z, keepzeros=False, noise=False, seed=1):
             logsfr = np.log10(sfr) 
             notzero = (sfr != 0.)
         elif 'illustris' in name: 
-            if name == 'illustris_10myr': 
-                ms, sfr, _, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
-            elif name == 'illustris_100myr': 
-                ms, _, _, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
-            elif name == 'illustris_1gyr': 
-                ms, _, sfr, _ = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR 10Myr, SFR 1Gyr 
+            if name == 'illustris_10myr': isfr = 1
+            elif name == 'illustris_100myr': isfr = 3 
+            elif name == 'illustris_1gyr': isfr = 2 
+            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True, usecols=[0, isfr]) # M*, SFR 10Myr, SFR 1Gyr 
             logms = np.log10(ms) 
             logsfr = np.log10(sfr) 
             notzero = (sfr != 0.)
         elif name == 'eagle': 
             ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
             logms = ms
-            logsfr = sfr 
-            notzero = np.isfinite(sfr)
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
         elif 'sam-light' in name: 
-            z, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) 
+            _, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) 
             logms = np.log10(ms)
             logsfr = np.log10(sfr)
             notzero = (sfr != 0.)  
+        elif name == 'simba': 
+            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
+            logms = np.log10(ms)
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
 
         if not keepzeros: 
             return logms[notzero], logsfr[notzero]
@@ -376,7 +379,7 @@ def fHighz(name, i_z, noise=False, seed=1):
     '''
     dat_dir = ''.join([UT.dat_dir(), 'highz/'])
     if name == 'candels': 
-        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_z', str(i_z), '.txt']) 
+        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
     elif 'illustris' in name: 
         f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
     elif name == 'eagle': 
@@ -385,6 +388,8 @@ def fHighz(name, i_z, noise=False, seed=1):
         f_data = ''.join([dat_dir, 'SAM_lightcone/SAMfull_z', str(i_z), '.txt'])
     elif name == 'sam-light-slice': # SAM light cone dz=0.01 slice around the median redshift 
         f_data = ''.join([dat_dir, 'SAM_lightcone/SAMslice_z', str(i_z), '.txt'])
+    elif name == 'simba': 
+        f_data = ''.join([dat_dir, 'SIMBA/SIMBA_z', str(i_z), '.txt'])
     else: 
         raise NotImplementedError
 
@@ -433,8 +438,8 @@ if __name__=="__main__":
             #pssfr(name, iz)  
             
             #add_uncertainty(name, iz)
-            highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
-            pssfr(name, iz, noise=True, seed=1)  
+            #highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
+            #pssfr(name, iz, noise=True, seed=1)  
         #highz_sfms(name)
         #highz_sfms(name, noise=True, seed=1)
     sfms_comparison()
