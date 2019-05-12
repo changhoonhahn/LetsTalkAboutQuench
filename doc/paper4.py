@@ -197,11 +197,10 @@ def highz_sfms(name, noise=False, seed=1):
     return None 
 
 
-def sfms_comparison(): 
+def sfms_comparison(noise=False, seed=1): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
-    names = ['candels', 'illustris_10myr', 'illustris_1gyr', 'eagle', 'sam-light-full', 'sam-light-slice'] 
-
+    names = ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice', 'candels']
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
@@ -209,7 +208,7 @@ def sfms_comparison():
     for name in names:  
         sfms_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if 'sam-light' in name: 
+            if noise and 'sam-light' in name: 
                 logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
                 fSFS = highzSFSfit(name, i, noise=True, seed=1) # fit the SFMSes
             else:
@@ -244,7 +243,10 @@ def sfms_comparison():
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
-    fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_comparison.pdf'])
+    if noise: 
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_comparison.wnoise.seed%i.pdf' % seed])
+    else: 
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_comparison.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     return None
 
@@ -336,10 +338,8 @@ def readHighz(name, i_z, keepzeros=False, noise=False, seed=1):
     name = name.lower() 
     if not noise: 
         if name == 'candels': 
-            _, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
-            logms = np.log10(ms) 
-            logsfr = np.log10(sfr) 
-            notzero = (sfr != 0.)
+            _, logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
+            notzero = np.isfinite(logsfr)
         elif 'illustris' in name: 
             if name == 'illustris_10myr': isfr = 1
             elif name == 'illustris_100myr': isfr = 3 
@@ -348,6 +348,9 @@ def readHighz(name, i_z, keepzeros=False, noise=False, seed=1):
             logms = np.log10(ms) 
             logsfr = np.log10(sfr) 
             notzero = (sfr != 0.)
+        elif name == 'tng':
+            logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # log M*, log SFR 
+            notzero = np.isfinite(logsfr)
         elif name == 'eagle': 
             ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
             logms = ms
@@ -382,6 +385,8 @@ def fHighz(name, i_z, noise=False, seed=1):
         f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
     elif 'illustris' in name: 
         f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
+    elif name == 'tng': 
+        f_data = ''.join([dat_dir, 'Illustris/IllustrisTNG_z', str(i_z), '.txt']) 
     elif name == 'eagle': 
         f_data = ''.join([dat_dir, 'EAGLE/EAGLE_z', str(i_z), '.txt']) 
     elif name == 'sam-light-full': # SAM light cone full 
@@ -431,15 +436,21 @@ if __name__=="__main__":
     #    for method in ['interpexterp', 'powerlaw']:  
     #        #highz_sfms(name)
     #        dSFS(name, method=method) 
-    for name in ['sam-light-full', 'sam-light-slice']:# 'eagle', 'illustris_10myr', 'illustris_100myr', 'illustris_1gyr']: #'sam-light-full', 'sam-light-slice']: 
+    for name in ['simba']: #['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice', 'candels']:
+        #continue 
+        print('--- %s ---' % name) 
         for iz in range(1,7): 
-            continue
-            #_ = highzSFSfit(name, iz, overwrite=True)
-            #pssfr(name, iz)  
-            
+            print('--- %i of 7 ---' % iz) 
+            _ = highzSFSfit(name, iz, overwrite=True)
+            pssfr(name, iz)  
+        highz_sfms(name)
+    ''' 
+    for name in ['sam-light-full', 'sam-light-slice']: 
+        for iz in range(1,7): 
             #add_uncertainty(name, iz)
-            #highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
-            #pssfr(name, iz, noise=True, seed=1)  
-        #highz_sfms(name)
-        #highz_sfms(name, noise=True, seed=1)
+            highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
+            pssfr(name, iz, noise=True, seed=1)  
+        highz_sfms(name, noise=True, seed=1)
+    '''
     sfms_comparison()
+    sfms_comparison(noise=True, seed=1)
