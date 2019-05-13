@@ -251,6 +251,60 @@ def sfms_comparison(noise=False, seed=1):
     return None
 
 
+def sfms_SAM_comparison(noise=False, seed=1): 
+    ''' Compare the SFMS fits among the data and simulation  
+    '''
+    names = ['sam-light-slice', 'sam-light-full']
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    
+    sfms_dict = {} 
+    for name in names:  
+        sfms_fits = [] 
+        for i in range(1,len(zlo)+1): 
+            if noise and 'sam-light' in name: 
+                logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
+                fSFS = highzSFSfit(name, i, noise=True, seed=1) # fit the SFMSes
+            else:
+                logm, logsfr = readHighz(name, i, keepzeros=False)
+                fSFS = highzSFSfit(name, i) # fit the SFMSes
+            sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+            sfms_fits.append(sfms_fit) 
+        sfms_dict[name] = sfms_fits
+    
+    # SFMS overplotted ontop of SFR--M* relation 
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+        # plot SFMS fits
+        for i_n, name in enumerate(names):  
+            if name == 'candels': colour = 'k'
+            else: colour = 'C'+str(i_n) 
+            sub.fill_between(sfms_dict[name][i_z][0], 
+                    sfms_dict[name][i_z][1] - sfms_dict[name][i_z][2], 
+                    sfms_dict[name][i_z][1] + sfms_dict[name][i_z][2], 
+                    color=colour, alpha=0.75, linewidth=0., label=' '.join(name.upper().split('_')))
+        sub.set_xlim([8.5, 12.]) 
+        sub.set_ylim([-1., 4.]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 15}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+    if noise: 
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_SAM_comparison.wnoise.seed%i.pdf' % seed])
+    else: 
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_SAM_comparison.pdf'])
+    fig.savefig(fig_name, bbox_inches='tight')
+    return None
+
+
 def pssfr(name, i_z, noise=False, seed=1): 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
@@ -436,8 +490,8 @@ if __name__=="__main__":
     #    for method in ['interpexterp', 'powerlaw']:  
     #        #highz_sfms(name)
     #        dSFS(name, method=method) 
-    for name in ['simba']: #['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice', 'candels']:
-        #continue 
+    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice', 'candels']:
+        continue 
         print('--- %s ---' % name) 
         for iz in range(1,7): 
             print('--- %i of 7 ---' % iz) 
@@ -452,5 +506,9 @@ if __name__=="__main__":
             pssfr(name, iz, noise=True, seed=1)  
         highz_sfms(name, noise=True, seed=1)
     '''
-    sfms_comparison()
-    sfms_comparison(noise=True, seed=1)
+    #sfms_comparison()
+    #sfms_comparison(noise=True, seed=1)
+    
+    sfms_SAM_comparison()
+    sfms_SAM_comparison(noise=True, seed=1)
+
