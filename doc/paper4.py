@@ -208,12 +208,12 @@ def sfms_comparison(noise=False, seed=1):
     for name in names:  
         sfms_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if noise and 'sam-light' in name: 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
-                fSFS = highzSFSfit(name, i, noise=True, seed=1) # fit the SFMSes
-            else:
-                logm, logsfr = readHighz(name, i, keepzeros=False)
-                fSFS = highzSFSfit(name, i) # fit the SFMSes
+            if name != 'candels': 
+                logm, logsfr = readHighz(name, i, keepzeros=False, noise=noise, seed=seed)
+                fSFS = highzSFSfit(name, i, noise=noise, seed=seed) # fit the SFMSes
+            else: 
+                logm, logsfr = readHighz(name, i, keepzeros=False, noise=False)
+                fSFS = highzSFSfit(name, i, noise=False) # fit the SFMSes
             sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
             sfms_fits.append(sfms_fit) 
         sfms_dict[name] = sfms_fits
@@ -236,7 +236,7 @@ def sfms_comparison(noise=False, seed=1):
         sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
                 ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
         if i_z == 0: 
-            sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 15}) 
+            sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 10}) 
             #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
             #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
@@ -420,15 +420,15 @@ def readHighz(name, i_z, keepzeros=False, noise=False, seed=1):
             logms = np.log10(ms)
             logsfr = np.log10(sfr) 
             notzero = (sfr != 0.)
-
-        if not keepzeros: 
-            return logms[notzero], logsfr[notzero]
-        else: 
-            return logms, logsfr, notzero
     else: 
         f_data = fHighz(name, i_z, noise=True, seed=seed) 
         logms, logsfr = np.loadtxt(f_data, unpack=True, usecols=[0,1], skiprows=2) 
-        return logms, logsfr
+        notzero = np.isfinite(logsfr)
+
+    if not keepzeros: 
+        return logms[notzero], logsfr[notzero]
+    else: 
+        return logms, logsfr, notzero 
 
 
 def fHighz(name, i_z, noise=False, seed=1): 
@@ -476,7 +476,13 @@ def add_uncertainty(name, i_z, seed=1):
         dlogms = sig_logms * np.random.randn(len(logms))
         logms_new = logms + dlogms
     else: 
-        raise NotImplementedError
+        # for now, add noise to non-zero SFRs but leaver zero SFRs alone. 
+        dlogsfr = sig_logsfr * np.random.randn(len(logsfr))
+        logsfr_new = np.zeros(len(logsfr))
+        logsfr_new[notzero] = logsfr[notzero] + dlogsfr[notzero]
+        
+        dlogms = sig_logms * np.random.randn(len(logms))
+        logms_new = logms + dlogms
 
     # save to file 
     fnew = fHighz(name, i_z, noise=True, seed=seed) 
@@ -498,17 +504,16 @@ if __name__=="__main__":
             _ = highzSFSfit(name, iz, overwrite=True)
             pssfr(name, iz)  
         highz_sfms(name)
-    ''' 
-    for name in ['sam-light-full', 'sam-light-slice']: 
+
+    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
+        continue 
         for iz in range(1,7): 
-            #add_uncertainty(name, iz)
+            add_uncertainty(name, iz)
             highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
             pssfr(name, iz, noise=True, seed=1)  
         highz_sfms(name, noise=True, seed=1)
-    '''
     #sfms_comparison()
-    #sfms_comparison(noise=True, seed=1)
+    sfms_comparison(noise=True, seed=1)
     
-    sfms_SAM_comparison()
-    sfms_SAM_comparison(noise=True, seed=1)
-
+    #sfms_SAM_comparison()
+    #sfms_SAM_comparison(noise=True, seed=1)
