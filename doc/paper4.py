@@ -29,6 +29,201 @@ mpl.rcParams['ytick.major.size'] = 5
 mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
+# some build in values 
+zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+dir_fig = os.path.join(UT.doc_dir(), 'highz', 'figs') 
+
+def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, overwrite=False): 
+    """ fit SFS to the SFR-M* relation of `name` catalog `i_z` redshift bin 
+    
+    :param name: 
+        string specifying catalog name 
+
+    :param i_z: 
+        int specifying redshift bin 
+
+    :param censat:
+        If 'all', include both centrals and satellites. 
+        If 'centrals', include centrals only 
+        If 'satellites', include satellites only 
+    
+    :param noise: 
+        If False, return original M* and SFRs
+        If True, return M* and SFR with CANDELS level noise added by 
+        add_uncertainty function 
+        
+    :param seed: 
+        int specifying the random seed of noise 
+    """
+    f_dat = fHighz(name, i_z, censat=censat, noise=noise, seed=seed)
+    f_sfs =  os.path.join(os.path.dirname(f_dat), 
+                          'SFSfit_%s.p' % os.path.basename(f_dat).strip('.txt'))
+    
+    if os.path.isfile(f_sfs) and not overwrite: 
+        fSFS = pickle.load(open(f_sfs, 'rb'))
+    else: 
+        logm, logsfr, cs, notzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
+        cut = (cs & notzero) 
+
+        # fit the SFMS
+        fSFS = fstarforms()
+        sfs_fit = fSFS.fit(logm[cut], logsfr[cut], 
+                method='gaussmix',      # Gaussian Mixture Model fitting 
+                fit_range=[8.5, 12.0],  # stellar mass range
+                dlogm = 0.4,            # stellar mass bins of 0.4 dex
+                Nbin_thresh=100,        # at least 100 galaxies in bin 
+                fit_error='bootstrap',  # uncertainty estimate method 
+                n_bootstrap=100)        # number of bootstrap bins
+        pickle.dump(fSFS, open(f_sfs, 'wb'))
+    return fSFS
+
+
+def readHighz(name, i_z, censat='all', noise=False, seed=1): 
+    """ write M* and SFR data from the iz redshift bin of `name` catalog for 
+    convenient access 
+    
+    :param name: 
+        string specifying catalog name 
+
+    :param i_z: 
+        int specifying redshift bin 
+
+    :param censat:
+        If 'all', include both centrals and satellites. 
+        If 'centrals', include centrals only 
+        If 'satellites', include satellites only 
+    
+    :param noise: 
+        If False, return original M* and SFRs
+        If True, return M* and SFR with CANDELS level noise added by 
+        add_uncertainty function 
+        
+    :param seed: 
+        int specifying the random seed of noise 
+
+    :returns logms, logsfr, cs_cut, notzero: 
+        - logms: log M* 
+        - logsfr: log SFR 
+        - cs_cut: boolean array specifying central or satellites 
+        - notzero: boolean array specifying SFR != 0 
+    """
+    name = name.lower() 
+    if not noise: 
+        f_data = fHighz(name, i_z, censat=None, noise=False) # data file name 
+
+        if name == 'candels': 
+            if censat != 'all': 
+                raise ValueError('no central/satellite classification for CANDELS data') 
+            _, logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
+            notzero = np.isfinite(logsfr)
+
+        elif 'illustris' in name: 
+            ill_ind = {'illustris_10myr': 1, 'illustris_100myr': 3, 'illustris_1gyr': 2} 
+            ms, sfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True, 
+                                     usecols=[0, ill_ind[name], 4]) # M*, SFR 10Myr, SFR 1Gyr, SFR 100Myr, cen/sat
+            logms = np.log10(ms) 
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
+
+        elif name == 'tng':
+            logms, logsfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True) # log M*, log SFR, cen/sat
+            notzero = np.isfinite(logsfr)
+
+        elif name == 'eagle': 
+            ms, sfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
+            logms = ms
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
+
+        elif 'sam-light' in name: 
+            _, ms, sfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True) 
+            logms = np.log10(ms)
+            logsfr = np.log10(sfr)
+            notzero = (sfr != 0.)  
+
+        elif name == 'simba': 
+            ms, sfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
+            logms = np.log10(ms)
+            logsfr = np.log10(sfr) 
+            notzero = (sfr != 0.)
+        else: 
+            raise NotImplementedError('%s not implemented' % name) 
+    else: 
+        f_data = fHighz(name, i_z, censat=None, noise=True, seed=seed) 
+        if not os.path.isfile(f_data): add_uncertainty(name, i_z, seed=seed) # write files 
+
+        logms, logsfr, cs = np.loadtxt(f_data, unpack=True, usecols=[0,1,2], skiprows=2) 
+        notzero = np.isfinite(logsfr)
+    
+    # central/satellite cut 
+    if censat == 'centrals': cs_cut = (cs == 1) 
+    elif censat == 'satellites': cs_cut = (cs == 0) 
+    elif censat == 'all': cs_cut = np.ones(len(logms)).astype(bool) 
+    else: raise ValueError("censat = ", censat)  
+    return logms, logsfr, cs_cut, notzero
+
+
+def add_uncertainty(name, i_z, seed=1): 
+    ''' add in measurement uncertainties for SFR and M*. sigma_logSFR = 0.33 dex and 
+    sigma_logM* = 0.07 dex. This is done in the simplest way possible --- i.e. add 
+    gaussian noise 
+    '''
+    assert name.lower() != 'candels', "don't add uncertainties to candels" 
+    sig_logsfr = 0.33
+    sig_logms = 0.07
+
+    np.random.seed(seed) # random seed  
+
+    # read in log M*, log SFR, central/satellite, SFR != 0 
+    logms, logsfr, cs, notzero = readHighz(name, i_z, censat='centrals')
+    censat = np.zeros(len(logms))
+    censat[cs] = 1
+
+    dlogsfr = sig_logsfr * np.random.randn(len(logsfr))
+    dlogms = sig_logms * np.random.randn(len(logms))
+    if np.sum(~notzero) == 0:
+        logsfr_new = logsfr + dlogsfr
+        logms_new = logms + dlogms
+    else: 
+        # for now, add noise to non-zero SFRs but leaver zero SFRs alone. 
+        logsfr_new = np.zeros(len(logsfr))
+        logsfr_new[notzero] = logsfr[notzero] + dlogsfr[notzero]
+        logsfr_new[~notzero] = logsfr[~notzero]
+        logms_new = logms + dlogms
+
+    # save to file 
+    fnew = fHighz(name, i_z, censat=None, noise=True, seed=seed) 
+    hdr = 'Gaussian noise with sigma_logSFR = 0.33 dex and sigma_M* = 0.07 dex added to data\n logM*, logSFR' 
+    np.savetxt(fnew, np.array([logms_new, logsfr_new, censat]).T, delimiter='\t', fmt='%.5f %.5f %i', header=hdr) 
+    return None 
+
+
+def fHighz(name, i_z, censat='all', noise=False, seed=1): 
+    """ High z project file names
+    """
+    dat_dir = ''.join([UT.dat_dir(), 'highz/'])
+    if name == 'candels': 
+        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
+    elif 'illustris' in name: 
+        f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
+    elif name == 'tng': 
+        f_data = ''.join([dat_dir, 'Illustris/IllustrisTNG_z', str(i_z), '.txt']) 
+    elif name == 'eagle': 
+        f_data = ''.join([dat_dir, 'EAGLE/EAGLE_z', str(i_z), '.txt']) 
+    elif name == 'sam-light-full': # SAM light cone full 
+        f_data = ''.join([dat_dir, 'SAM_lightcone/SAMfull_z', str(i_z), '.txt'])
+    elif name == 'sam-light-slice': # SAM light cone dz=0.01 slice around the median redshift 
+        f_data = ''.join([dat_dir, 'SAM_lightcone/SAMslice_z', str(i_z), '.txt'])
+    elif name == 'simba': 
+        f_data = ''.join([dat_dir, 'SIMBA/SIMBA_z', str(i_z), '.txt'])
+    else: 
+        raise NotImplementedError
+    if censat is not None: f_data = f_data.replace('.txt', '.%s.txt' % censat) 
+    if noise: 
+        f_data = f_data.replace('.txt', '.wnoise.seed%i.txt' % seed)
+    return f_data
+
 
 def dSFS(name, method='interpexterp'): 
     ''' calculate dSFS for high z catalog 
@@ -36,15 +231,15 @@ def dSFS(name, method='interpexterp'):
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     logms, logsfrs = [], [] 
-    sfms_fits, dsfss = [], [] 
+    sfs_fits, dsfss = [], [] 
     for i in range(1,len(zlo)+1): 
         logm, logsfr = readHighz(name, i, keepzeros=False)
         logms.append(logm)
         logsfrs.append(logsfr)
         # fit the SFMSes
         fSFS = highzSFSfit(name, i_z)
-        sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-        sfms_fits.append(sfms_fit) 
+        sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+        sfs_fits.append(sfs_fit) 
         if method == 'powerlaw': 
             _ = fSFS.powerlaw(logMfid=10.5) 
             dsfs = fSFS.d_SFS(logm, logsfr, method=method, silent=False) 
@@ -79,7 +274,7 @@ def dSFS(name, method='interpexterp'):
     for i_z in range(len(zlo)): 
         sub = fig.add_subplot(2,3,i_z+1) 
         sub.scatter(logms[i_z], logsfrs[i_z], color='k', s=1) 
-        sub.errorbar(sfms_fits[i_z][0], sfms_fits[i_z][1], sfms_fits[i_z][2], fmt='.C0')
+        sub.errorbar(sfs_fits[i_z][0], sfs_fits[i_z][1], sfs_fits[i_z][2], fmt='.C0')
         is_quiescent = ((dsfss[i_z] < -1.) & (dsfss[i_z] != -999.)) 
         sub.scatter(logms[i_z][is_quiescent], logsfrs[i_z][is_quiescent], color='C1', s=1) 
         sub.set_xlim([8.5, 12.]) 
@@ -132,80 +327,17 @@ def candels():
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
     fig_name = ''.join([UT.doc_dir(), 'highz/figs/candels_sfrM.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
-   
-
-def highz_sfms(name, noise=False, seed=1):
-    ''' SFMS fits to the SFR -- M* relation of CANDLES galaxies in 
-    the 6 redshift bins
-    '''
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
-
-    logms, logsfrs = [], [] 
-    sfms_fits = [] 
-    for i in range(1,len(zlo)+1): 
-        logm, logsfr = readHighz(name, i, keepzeros=False, noise=noise, seed=seed)
-        logms.append(logm)
-        logsfrs.append(logsfr)
-        # fit the SFMSes
-        fSFS = highzSFSfit(name, i, noise=noise, seed=seed)
-        sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-        sfms_fits.append(sfms_fit) 
-    
-    # SFMS overplotted ontop of SFR--M* relation 
-    fig = plt.figure(figsize=(12,8))
-    bkgd = fig.add_subplot(111, frameon=False)
-    for i_z in range(len(zlo)): 
-        sub = fig.add_subplot(2,3,i_z+1) 
-        DFM.hist2d(logms[i_z], logsfrs[i_z], color='C0', 
-                levels=[0.68, 0.95], range=[[7.8, 12.], [-4., 4.]], 
-                plot_datapoints=True, fill_contours=False, plot_density=True, 
-                ax=sub) 
-        # plot SFMS fit
-        sub.errorbar(sfms_fits[i_z][0], sfms_fits[i_z][1], sfms_fits[i_z][2], fmt='.k')
-        sub.set_xlim([8.5, 12.]) 
-        sub.set_ylim([-3., 4.]) 
-        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
-                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
-        if i_z == 0: 
-            sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
-                    ha='left', va='top', transform=sub.transAxes, fontsize=20)
-
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
-    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
-    fig.subplots_adjust(wspace=0.2, hspace=0.15)
-    if not noise: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_sfms.pdf'))
-    else: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_wnoise_sfms.pdf'))
-    fig.savefig(fig_name, bbox_inches='tight')
-    
-    # SFMS fit redshift evolution 
-    fig = plt.figure(figsize=(6,6))
-    sub = fig.add_subplot(111)
-    for i_z, sfms_fit in enumerate(sfms_fits):  
-        sub.fill_between(sfms_fit[0], sfms_fit[1]-sfms_fit[2], sfms_fit[1]+sfms_fit[2], 
-                color='C'+str(i_z), linewidth=0.5, alpha=0.75, 
-                label='$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$') 
-    sub.text(0.95, 0.05, ' '.join(name.upper().split('_')),
-            ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
-    sub.legend(loc='upper left', prop={'size':15}) 
-    sub.set_xlim([8.5, 12.]) 
-    sub.set_ylim([-0.5, 4.]) 
-    if not noise: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_sfmsz.pdf'))
-    else: fig_name = os.path.join(UT.doc_dir(), 'highz', 'figs', '%s%s' % (name.lower(), '_wnoise_sfmsz.pdf'))
-    fig.savefig(fig_name, bbox_inches='tight')
-    return None 
 
 
-def pssfr(name, i_z, noise=False, seed=1): 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
-
-    logm, logsfr = readHighz(name, i_z, keepzeros=False, noise=noise, seed=seed)
+def pssfr(name, i_z, censat='all', noise=False, seed=1): 
+    """ p(log SSFR) distribution 
+    """
+    logm, logsfr, cs, notzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
     logssfr = logsfr - logm 
+    cut = (cs & notzero) 
 
-    # fit the SFMS
-    fSFS = highzSFSfit(name, i_z, noise=noise, seed=seed)
+    # fit the SFS
+    fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed)
     mbins = fSFS._mbins[fSFS._mbins_sfs]
     nmbin = np.sum(fSFS._mbins_sfs)
     nrow, ncol = 2, int(np.ceil(0.5*nmbin))
@@ -213,7 +345,7 @@ def pssfr(name, i_z, noise=False, seed=1):
     fig = plt.figure(figsize=(5*ncol,5*nrow))
     bkgd = fig.add_subplot(1,1,1, frameon=False)
     for imbin in range(nmbin): 
-        inmbin = ((logm > mbins[imbin][0]) & (logm <= mbins[imbin][1]))
+        inmbin = ((logm > mbins[imbin][0]) & (logm <= mbins[imbin][1]) & cut)
         
         sub = fig.add_subplot(nrow, ncol, imbin+1)
         _ = sub.hist(logssfr[inmbin], bins=40, 
@@ -235,227 +367,84 @@ def pssfr(name, i_z, noise=False, seed=1):
         sub.set_xlim([-13.6, -8.]) 
         
         if imbin == 0:
-            _name = ' '.join(name.upper().split('_'))+'\n $'+str(zlo[i_z-1])+'< z <'+str(zhi[i_z-1])+'$'
-            sub.text(0.05, 0.95, _name,
+            sub.text(0.05, 0.95, '%s\n $%.1f < z < %.1f$' % (' '.join(name.upper().split('_')), zlo[i_z-1], zhi[i_z-1]),
                     ha='left', va='top', transform=sub.transAxes, fontsize=20)
-        sub.set_title(str(round(mbins[imbin][0],1))+'$<$ log $M_*$ $<$'+str(round(mbins[imbin][1],1))+'', 
-                    fontsize=25)
+        sub.set_title('%.1f $<$ log $M_* <$ %.1f' % (mbins[imbin][0], mbins[imbin][1]), fontsize=25)
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
-    bkgd.set_ylabel('$p\,(\;\mathrm{log}\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', 
+    bkgd.set_ylabel('$p\,(\;\log\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', 
             labelpad=5, fontsize=25)
     #fig.subplots_adjust(wspace=0.1, hspace=0.075)
-    if not noise: fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_z', str(i_z), '_pssfr.pdf'])
-    else: fig_name = ''.join([UT.doc_dir(), 'highz/figs/', name.lower(), '_z', str(i_z), '_wnoise_pssfr.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
-    return None 
 
-
-def highzSFSfit(name, i_z, noise=False, seed=1, overwrite=False): 
-    f_highz = fHighz(name, i_z, noise=noise, seed=seed)
-    f_sfs =  ''.join([f_highz.rsplit('/', 1)[0], '/sfs_fit', f_highz.rsplit('/', 1)[1].rsplit('.txt',1)[0], '.p']) 
-    
-    if os.path.isfile(f_sfs) and not overwrite: 
-        fSFS = pickle.load(open(f_sfs, 'rb'))
-    else: 
-        logm, logsfr = readHighz(name, i_z, keepzeros=False, noise=noise, seed=seed)
-        logssfr = logsfr - logm 
-
-        # fit the SFMS
-        fSFS = fstarforms()
-        sfms_fit = fSFS.fit(logm, logsfr, 
-                method='gaussmix',      # Gaussian Mixture Model fitting 
-                fit_range=[8.5, 12.0],  # stellar mass range
-                dlogm = 0.4,            # stellar mass bins of 0.4 dex
-                Nbin_thresh=100,        # at least 100 galaxies in bin 
-                fit_error='bootstrap',  # uncertainty estimate method 
-                n_bootstrap=100)        # number of bootstrap bins
-    
-        pickle.dump(fSFS, open(f_sfs, 'wb'))
-    return fSFS
-
-
-def readHighz(name, i_z, keepzeros=False, noise=False, seed=1): 
-    ''' read in CANDELS, Illustris, or EAGLE M* and SFR data in the 
-    iz redshift bin 
-    '''
-    f_data = fHighz(name, i_z)
-    name = name.lower() 
-    if not noise: 
-        if name == 'candels': 
-            _, logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
-            notzero = np.isfinite(logsfr)
-        elif 'illustris' in name: 
-            if name == 'illustris_10myr': isfr = 1
-            elif name == 'illustris_100myr': isfr = 3 
-            elif name == 'illustris_1gyr': isfr = 2 
-            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True, usecols=[0, isfr]) # M*, SFR 10Myr, SFR 1Gyr 
-            logms = np.log10(ms) 
-            logsfr = np.log10(sfr) 
-            notzero = (sfr != 0.)
-        elif name == 'tng':
-            logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # log M*, log SFR 
-            notzero = np.isfinite(logsfr)
-        elif name == 'eagle': 
-            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
-            logms = ms
-            logsfr = np.log10(sfr) 
-            notzero = (sfr != 0.)
-        elif 'sam-light' in name: 
-            _, ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) 
-            logms = np.log10(ms)
-            logsfr = np.log10(sfr)
-            notzero = (sfr != 0.)  
-        elif name == 'simba': 
-            ms, sfr = np.loadtxt(f_data, skiprows=2, unpack=True) # M*, SFR instantaneous
-            logms = np.log10(ms)
-            logsfr = np.log10(sfr) 
-            notzero = (sfr != 0.)
-    else: 
-        f_data = fHighz(name, i_z, noise=True, seed=seed) 
-        logms, logsfr = np.loadtxt(f_data, unpack=True, usecols=[0,1], skiprows=2) 
-        notzero = np.isfinite(logsfr)
-
-    if not keepzeros: 
-        return logms[notzero], logsfr[notzero]
-    else: 
-        return logms, logsfr, notzero 
-
-
-def fHighz(name, i_z, noise=False, seed=1): 
-    ''' High z project file names
-    '''
-    dat_dir = ''.join([UT.dat_dir(), 'highz/'])
-    if name == 'candels': 
-        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
-    elif 'illustris' in name: 
-        f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
-    elif name == 'tng': 
-        f_data = ''.join([dat_dir, 'Illustris/IllustrisTNG_z', str(i_z), '.txt']) 
-    elif name == 'eagle': 
-        f_data = ''.join([dat_dir, 'EAGLE/EAGLE_z', str(i_z), '.txt']) 
-    elif name == 'sam-light-full': # SAM light cone full 
-        f_data = ''.join([dat_dir, 'SAM_lightcone/SAMfull_z', str(i_z), '.txt'])
-    elif name == 'sam-light-slice': # SAM light cone dz=0.01 slice around the median redshift 
-        f_data = ''.join([dat_dir, 'SAM_lightcone/SAMslice_z', str(i_z), '.txt'])
-    elif name == 'simba': 
-        f_data = ''.join([dat_dir, 'SIMBA/SIMBA_z', str(i_z), '.txt'])
-    else: 
-        raise NotImplementedError
-
-    if noise: 
-        f_data = f_data.replace('.txt', '.wnoise.seed%i.txt' % seed)
-    return f_data
-
-
-def add_uncertainty(name, i_z, seed=1): 
-    ''' add in measurement uncertainties for SFR and M*. sigma_logSFR = 0.33 dex and 
-    sigma_logM* = 0.07 dex. This is done in the simplest way possible --- i.e. add 
-    gaussian noise 
-    '''
-    sig_logsfr = 0.33
-    sig_logms = 0.07
-
-    np.random.seed(seed)
-    # read in log M* and log SFR 
-    logms, logsfr, notzero = readHighz(name, i_z, keepzeros=True)
-
-    if np.sum(~notzero) == 0:
-        dlogsfr = sig_logsfr * np.random.randn(len(logsfr))
-        logsfr_new = logsfr + dlogsfr
-        
-        dlogms = sig_logms * np.random.randn(len(logms))
-        logms_new = logms + dlogms
-    else: 
-        # for now, add noise to non-zero SFRs but leaver zero SFRs alone. 
-        dlogsfr = sig_logsfr * np.random.randn(len(logsfr))
-        logsfr_new = np.zeros(len(logsfr))
-        logsfr_new[notzero] = logsfr[notzero] + dlogsfr[notzero]
-        logsfr_new[~notzero] = logsfr[~notzero]
-        
-        dlogms = sig_logms * np.random.randn(len(logms))
-        logms_new = logms + dlogms
-
-    # save to file 
-    fnew = fHighz(name, i_z, noise=True, seed=seed) 
-    hdr = 'Gaussian noise with sigma_logSFR = 0.33 dex and sigma_M* = 0.07 dex added to data\n logM*, logSFR' 
-    np.savetxt(fnew, np.array([logms_new, logsfr_new]).T, delimiter='\t', fmt='%.5f %.5f', header=hdr) 
+    ffig = os.path.join(dir_fig, '%s_z%i_%s_pssfr.pdf' % (name.lower(), i_z, censat))
+    if noise: ffig = ffig.replace('.pdf', '_wnoise.pdf') 
+    fig.savefig(ffig, bbox_inches='tight')
     return None 
 
 ################################################
 # figures: SFS 
 ################################################
-def SFR_Mstar_comparison(noise=False, seed=1):  
+def SFR_Mstar_comparison(censat='all', noise=False, seed=1):  
     ''' Compare the SFS fits among the data and simulation  
     '''
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
     # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(18,18))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_z in range(len(zlo)): 
         for i_n, name in enumerate(names):  # plot SFMS fits
-            sub = fig.add_subplot(6,6,i_z*6+i_n+1) 
-
             # fit SFR-M* 
             if name != 'candels': 
-                logm, logsfr = readHighz(name, i_z+1, keepzeros=False, noise=noise, seed=seed)
-                fSFS = highzSFSfit(name, i_z+1, noise=noise, seed=seed) # fit the SFMSes
+                logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
+                fSFS = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed) # fit the SFMSes
             else: 
-                logm, logsfr = readHighz(name, i_z+1, keepzeros=False, noise=False)
-                fSFS = highzSFSfit(name, i_z+1, noise=False) # fit the SFMSes
-            sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+                logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False)
+                fSFS = highzSFSfit(name, i_z+1, censat='all', noise=False) # fit the SFMSes
+            cut = (cs & notzero) 
 
-            DFM.hist2d(logm, logsfr, color='C0', 
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+
+            sub = fig.add_subplot(6,6,i_z*6+i_n+1) 
+            DFM.hist2d(logm[cut], logsfr[cut], color='C0', 
                     levels=[0.68, 0.95], range=[[7.8, 12.], [-4., 4.]], 
                     plot_datapoints=True, fill_contours=False, plot_density=True, 
                     ax=sub) 
-            # plot SFMS fit
-            sub.errorbar(sfms_fit[0], sfms_fit[1], sfms_fit[2], fmt='.k')
+            sub.errorbar(sfs_fit[0], sfs_fit[1], sfs_fit[2], fmt='.k') # plot SFS fit
             sub.set_xlim([8.5, 12.]) 
             sub.set_ylim([-3., 4.]) 
             if i_z < 5: sub.set_xticklabels([]) 
             if i_n != 0: sub.set_yticklabels([]) 
-            if i_n == 5: sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
-                    ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+            if i_n == 5: sub.text(0.95, 0.05, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
+                                  ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
             if i_z == 0: sub.set_title(lbls[i_n], fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfr_mstar_comparison_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfr_mstar_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    ffig = os.path.join(dir_fig, 'sfr_mstar_comparison_%s.pdf' % censat) 
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 
-def SFS_comparison(noise=False, seed=1): 
+def SFS_comparison(censat='all', noise=False, seed=1): 
     ''' Compare the SFS fits among the data and simulation  
     '''
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
-    sfms_dict = {} 
+    sfs_dict = {} 
     for name in names:  
-        sfms_fits = [] 
+        sfs_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=noise, seed=seed)
-                fSFS = highzSFSfit(name, i, noise=noise, seed=seed) # fit the SFMSes
-            else: 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=False)
-                fSFS = highzSFSfit(name, i, noise=False) # fit the SFMSes
-            sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-            sfms_fits.append(sfms_fit) 
-        sfms_dict[name] = sfms_fits
+            if name != 'candels': fSFS = highzSFSfit(name, i, censat=censat, noise=noise, seed=seed) # fit the SFSs
+            else: fSFS = highzSFSfit(name, i, censat='all', noise=False) # fit the SFSs
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+            sfs_fits.append(sfs_fit) 
+        sfs_dict[name] = sfs_fits
     
     # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(12,8))
@@ -466,63 +455,55 @@ def SFS_comparison(noise=False, seed=1):
         plts = []
         for i_n, name in enumerate(names):  # plot SFMS fits
             if name == 'candels': 
-                _plt = sub.errorbar(sfms_dict[name][i_z][0], 
-                        sfms_dict[name][i_z][1], yerr=sfms_dict[name][i_z][2], fmt='.k')
+                _plt = sub.errorbar(
+                    sfs_dict[name][i_z][0], 
+                    sfs_dict[name][i_z][1], 
+                    yerr=sfs_dict[name][i_z][2], fmt='.k')
             else: 
                 colour = 'C'+str(i_n) 
-                _plt = sub.fill_between(sfms_dict[name][i_z][0], 
-                        sfms_dict[name][i_z][1] - sfms_dict[name][i_z][2], 
-                        sfms_dict[name][i_z][1] + sfms_dict[name][i_z][2], 
-                        color='C%i' % i_n, alpha=0.75, linewidth=0.)
+                _plt = sub.fill_between(
+                    sfs_dict[name][i_z][0], 
+                    sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
+                    sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
+                    color='C%i' % i_n, alpha=0.75, linewidth=0.)
             plts.append(_plt) 
-        sub.set_xlim([8.5, 12.]) 
-        sub.set_ylim([-1., 4.]) 
+        sub.set_xlim(8.5, 12.) 
+        sub.set_ylim(-1., 4.) 
         if i_z < 3: sub.set_xticklabels([]) 
         if i_z not in [0, 3]: sub.set_yticklabels([]) 
-        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
-                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        sub.text(0.95, 0.05, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
+                 ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
         if i_z == 0: 
             sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
         elif i_z == 1: 
             sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
-            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
-            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_comparison_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    ffig = os.path.join(dir_fig, 'sfs_comparison_%s.pdf' % censat)
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 
-def SFS_zevo_comparison(noise=False, seed=1): 
+def SFS_zevo_comparison(censat='all', noise=False, seed=1): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
-    
-    sfms_dict = {} 
+
+    sfs_dict = {} 
     for name in names:  
-        sfms_fits = [] 
+        sfs_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=noise, seed=seed)
-                fSFS = highzSFSfit(name, i, noise=noise, seed=seed) # fit the SFMSes
-            else: 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=False)
-                fSFS = highzSFSfit(name, i, noise=False) # fit the SFMSes
-            sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-            sfms_fits.append(sfms_fit) 
-        sfms_dict[name] = sfms_fits
+            if name != 'candels': fSFS = highzSFSfit(name, i, censat=censat, noise=noise, seed=seed) # fit the SFSs
+            else: fSFS = highzSFSfit(name, i, censat='all', noise=False) # fit the SFSs
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+            sfs_fits.append(sfs_fit) 
+        sfs_dict[name] = sfs_fits
     
-    # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(12,8))
     bkgd = fig.add_subplot(111, frameon=False)
 
@@ -530,9 +511,9 @@ def SFS_zevo_comparison(noise=False, seed=1):
         sub = fig.add_subplot(2,3,i_n+1) 
         plts = []
         for i_z in range(len(zlo)): 
-            _plt = sub.fill_between(sfms_dict[name][i_z][0], 
-                    sfms_dict[name][i_z][1] - sfms_dict[name][i_z][2], 
-                    sfms_dict[name][i_z][1] + sfms_dict[name][i_z][2], 
+            _plt = sub.fill_between(sfs_dict[name][i_z][0], 
+                    sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
+                    sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
                     color='C%i' % i_z, alpha=0.75, linewidth=0.)
             plts.append(_plt) 
         sub.set_xlim([8.5, 12.]) 
@@ -548,11 +529,9 @@ def SFS_zevo_comparison(noise=False, seed=1):
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_zevo_comparison_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_zevo_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    ffig = os.path.join(dir_fig, 'sfs_zevo_comparison_%s.pdf' % censat)
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 ################################################
@@ -573,7 +552,7 @@ def fcomp(name, i_z, noise=False, seed=1):
     i_sfss, i_qs, i_ints, i_sbs = fSFS._GMM_compID(gbests, dev_thresh=0.5)
 
     nmbin = len(mbin0) 
-    f_comps = np.zeros((5, nmbin)) # zero, sfms, q, other0, other1
+    f_comps = np.zeros((5, nmbin)) # zero, sfs, q, other0, other1
     for i_m, gbest in zip(range(nmbin), gbests): 
         # calculate the fraction of galaxies have that zero SFR
         inmbin      = (logm > mbin0[i_m]) & (logm < mbin1[i_m]) # within bin 
@@ -625,7 +604,7 @@ def fcomp_comparison(noise=False, seed=1):
             if name != 'candels': mmid, f_comps = fcomp(name, i_z+1, noise=noise, seed=seed)
             else: mmid, f_comps = fcomp(name, i_z+1, noise=False)
             
-            f_zero, f_sfms, f_q, f_other0, f_other1 = list(f_comps)
+            f_zero, f_sfs, f_q, f_other0, f_other1 = list(f_comps)
             
             sub.fill_between(mmid, np.zeros(len(mmid)), f_zero, # SFR = 0 
                     linewidth=0, color='C3') 
@@ -633,9 +612,9 @@ def fcomp_comparison(noise=False, seed=1):
                     linewidth=0, color='C1') 
             sub.fill_between(mmid, f_zero+f_q, f_zero+f_q+f_other0,   # other0
                     linewidth=0, color='C2') 
-            sub.fill_between(mmid, f_zero+f_q+f_other0, f_zero+f_q+f_other0+f_sfms, # SFMS 
+            sub.fill_between(mmid, f_zero+f_q+f_other0, f_zero+f_q+f_other0+f_sfs, # SFMS 
                     linewidth=0, color='C0') 
-            sub.fill_between(mmid, f_zero+f_q+f_other0+f_sfms, f_zero+f_q+f_other0+f_sfms+f_other1, # star-burst 
+            sub.fill_between(mmid, f_zero+f_q+f_other0+f_sfs, f_zero+f_q+f_other0+f_sfs+f_other1, # star-burst 
                     linewidth=0, color='C4') 
 
             sub.set_xlim([8.5, 12.]) 
@@ -965,9 +944,9 @@ def SFS_SAM_comparison(noise=False, seed=1):
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
-    sfms_dict = {} 
+    sfs_dict = {} 
     for name in names:  
-        sfms_fits = [] 
+        sfs_fits = [] 
         for i in range(1,len(zlo)+1): 
             if noise and 'sam-light' in name: 
                 logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
@@ -975,9 +954,9 @@ def SFS_SAM_comparison(noise=False, seed=1):
             else:
                 logm, logsfr = readHighz(name, i, keepzeros=False)
                 fSFS = highzSFSfit(name, i) # fit the SFMSes
-            sfms_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-            sfms_fits.append(sfms_fit) 
-        sfms_dict[name] = sfms_fits
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+            sfs_fits.append(sfs_fit) 
+        sfs_dict[name] = sfs_fits
     
     # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(12,8))
@@ -988,9 +967,9 @@ def SFS_SAM_comparison(noise=False, seed=1):
         for i_n, name in enumerate(names):  
             if name == 'candels': colour = 'k'
             else: colour = 'C'+str(i_n) 
-            sub.fill_between(sfms_dict[name][i_z][0], 
-                    sfms_dict[name][i_z][1] - sfms_dict[name][i_z][2], 
-                    sfms_dict[name][i_z][1] + sfms_dict[name][i_z][2], 
+            sub.fill_between(sfs_dict[name][i_z][0], 
+                    sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
+                    sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
                     color=colour, alpha=0.75, linewidth=0., label=' '.join(name.upper().split('_')))
         sub.set_xlim([8.5, 12.]) 
         sub.set_ylim([-1., 4.]) 
@@ -1005,42 +984,49 @@ def SFS_SAM_comparison(noise=False, seed=1):
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
     if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_SAM_comparison.wnoise.seed%i.pdf' % seed])
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_SAM_comparison.wnoise.seed%i.pdf' % seed])
     else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfms_SAM_comparison.pdf'])
+        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_SAM_comparison.pdf'])
     fig.savefig(fig_name, bbox_inches='tight')
     return None
 
 
 if __name__=="__main__": 
-    #for name in ['illustris_100myr']: #'eagle', 'illustris_10myr', 'illustris_1gyr']:
-    #    for method in ['interpexterp', 'powerlaw']:  
-    #        #highz_sfms(name)
-    #        dSFS(name, method=method) 
-    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice', 'candels']:
-        continue 
-        print('--- %s ---' % name) 
-        for iz in range(1,7): 
-            print('--- %i of 7 ---' % iz) 
-            _ = highzSFSfit(name, iz, overwrite=True)
-            pssfr(name, iz)  
-        highz_sfms(name)
-
+    # fit SFS for CANDELS
+    '''
+    for iz in range(1,7): 
+        print('--- candels %i of 6 ---' % iz) 
+        _ = highzSFSfit('candels', iz, censat='all', overwrite=True)
+        pssfr('candels', iz, censat='all') 
+    '''
+    # fit SFS for sims  
+    '''
     for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
-        continue 
-        for iz in range(1,7): 
-            add_uncertainty(name, iz)
-            highzSFSfit(name, iz, noise=True, seed=1, overwrite=True)
-            pssfr(name, iz, noise=True, seed=1)  
-        highz_sfms(name, noise=True, seed=1)
-    #SFS_comparison()
-    #SFS_comparison(noise=True, seed=1)
+        for censat in ['all', 'centrals', 'satellites']:
+            for iz in range(1,7): 
+                print('--- %s %s %i of 6 ---' % (name, censat, iz)) 
+                _ = highzSFSfit(name, iz, censat=censat, overwrite=True)
+                pssfr(name, iz, censat=censat) 
+    '''
+    # fit SFS for sims w/ noise 
+    '''
+    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
+        for censat in ['all', 'centrals', 'satellites']:
+            for iz in range(1,7): 
+                print('--- %s %s %i of 6 ---' % (name, censat, iz)) 
+                highzSFSfit(name, iz, censat=censat, noise=True, seed=1, overwrite=True)
+                pssfr(name, iz, censat=censat, noise=True, seed=1)  
+    ''' 
+    # SFR - M* comparison 
+    for censat in ['all', 'centrals', 'satellites']:
+        SFR_Mstar_comparison(censat=censat)
+        SFR_Mstar_comparison(censat=censat, noise=True, seed=1)
+
+        SFS_comparison(censat=censat)
+        SFS_comparison(censat=censat, noise=True, seed=1)
     
-    #SFS_zevo_comparison()
-    #SFS_zevo_comparison(noise=True, seed=1)
-    
-    #SFR_Mstar_comparison()
-    #SFR_Mstar_comparison(noise=True, seed=1)
+        SFS_zevo_comparison()
+        SFS_zevo_comparison(noise=True, seed=1)
     
     #Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2)
     #Mlim_res_impact(n_mc=100, noise=True, seed=1, threshold=0.2)
@@ -1054,8 +1040,8 @@ if __name__=="__main__":
     #QF_comparison(noise=False, seed=1)
     #QF_comparison(noise=True, seed=1)
     
-    QF_zevo_comparison(noise=False, seed=1)
-    QF_zevo_comparison(noise=True, seed=1)
+    #QF_zevo_comparison(noise=False, seed=1)
+    #QF_zevo_comparison(noise=True, seed=1)
     
-    #sfms_SAM_comparison()
-    #sfms_SAM_comparison(noise=True, seed=1)
+    #sfs_SAM_comparison()
+    #sfs_SAM_comparison(noise=True, seed=1)
