@@ -537,54 +537,117 @@ def SFS_zevo_comparison(censat='all', noise=False, seed=1):
 ################################################
 # figures: QF 
 ################################################
-def fcomp(name, i_z, noise=False, seed=1):
-    ''' derive quiescent fraction from GMM best-fit. quiescent fraction defined as all components below SFS 
+def fcomp(name, i_z, censat='centrals', noise=False, seed=1):
+    ''' get the component weights from GMM best-fit. quiescent fraction defined 
+    as all components below SFS 
     '''
-    logm, logsfr, nonzero = readHighz(name, i_z, keepzeros=True, noise=noise, seed=seed)
-    fSFS = highzSFSfit(name, i_z, noise=noise, seed=seed)
+    logm, logsfr, cs, nonzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
+    fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed) # fit the SFSs
     
     # M* bins where SFS is reasonably fit 
     mbin0 = fSFS._mbins[fSFS._mbins_nbinthresh,0]
     mbin1 = fSFS._mbins[fSFS._mbins_nbinthresh,1]
     nmbin = len(mbin0) 
 
-    gbests = fSFS._gbests # best fit GMM
-    i_sfss, i_qs, i_ints, i_sbs = fSFS._GMM_compID(gbests, dev_thresh=0.5)
+    try: 
+        logm_sfs, _, _, w_sfs = fSFS._theta_sfs.T
+        _, _, werr_sfs = fSFS._err_sfs.T
+    except ValueError: 
+        logm_sfs = np.array([]) 
+    try: 
+        logm_q, _, _, w_q = fSFS._theta_q.T
+        _, _, werr_q = fSFS._err_q.T
+    except ValueError: 
+        logm_q = np.array([]) 
+    try: 
+        logm_int, _, _, w_int = fSFS._theta_int.T
+        _, _, werr_int = fSFS._err_int.T
+    except ValueError: 
+        logm_int = np.array([]) 
+    try: 
+        logm_sbs, _, _, w_sbs = fSFS._theta_sbs.T
+        _, _, werr_sbs = fSFS._err_sbs.T
+    except ValueError: 
+        logm_sbs = np.array([]) 
+    try: 
+        logm_int1, _, _, w_int1 = fSFS._theta_int1.T
+        _, _, werr_int1 = fSFS._err_int1.T
+    except ValueError: 
+        logm_int1 = np.array([]) 
+    try: 
+        logm_int2, _, _, w_int2 = fSFS._theta_int2.T
+        _, _, werr_int2 = fSFS._err_int2.T
+    except ValueError: 
+        logm_int2 = np.array([]) 
+    try:
+        logm_sbs1, _, _, w_sbs1 = fSFS._theta_sbs1.T
+        _, _, werr_sbs1 = fSFS._err_sbs1.T
+    except ValueError: 
+        logm_sbs1 = np.array([]) 
+    try: 
+        logm_sbs2, _, _, w_sbs2 = fSFS._theta_sbs2.T
+        _, _, werr_sbs2 = fSFS._err_sbs2.T
+    except ValueError: 
+        logm_sbs2 = np.array([]) 
 
-    nmbin = len(mbin0) 
     f_comps = np.zeros((5, nmbin)) # zero, sfs, q, other0, other1
-    for i_m, gbest in zip(range(nmbin), gbests): 
+    err_f_comps = np.zeros((5, nmbin)) # zero sfs, q, other0, other1 
+    for i_m in range(nmbin): 
         # calculate the fraction of galaxies have that zero SFR
-        inmbin      = (logm > mbin0[i_m]) & (logm < mbin1[i_m]) # within bin 
+        inmbin      = cs & (logm > mbin0[i_m]) & (logm < mbin1[i_m]) # within bin 
         inmbin_z    = inmbin & ~nonzero # has SFR = 0 
         f_comps[0, i_m] = float(np.sum(inmbin_z))/float(np.sum(inmbin))
 
-        weights_i = gbest.weights_
-
-        i_sfs = i_sfss[i_m]
-        i_q = i_qs[i_m]
-        i_int = i_ints[i_m]
-        i_sb = i_sbs[i_m]
-
         f_nz = 1. - f_comps[0, i_m]  # multiply by non-zero fraction
-        if i_sfs is not None: 
-            f_comps[1, i_m] = f_nz * np.sum(weights_i[i_sfs])
-        if i_q is not None: 
-            f_comps[2, i_m] = f_nz * np.sum(weights_i[i_q])
-        if i_int is not None: 
-            f_comps[3, i_m] = f_nz * np.sum(weights_i[i_int])
-        if i_sb is not None: 
-            f_comps[4, i_m] = f_nz * np.sum(weights_i[i_sb])
 
-    return 0.5*(mbin0 + mbin1), f_comps
+        mbin_sfs = (mbin0[i_m] < logm_sfs) & (logm_sfs < mbin1[i_m]) 
+        if np.sum(mbin_sfs) > 0: 
+            f_comps[1, i_m] = f_nz * w_sfs[mbin_sfs]
+            err_f_comps[1, i_m] = werr_sfs[mbin_sfs]
+
+        mbin_q = (mbin0[i_m] < logm_q) & (logm_q < mbin1[i_m]) 
+        if np.sum(mbin_q) > 0: 
+            f_comps[2, i_m] = f_nz * w_q[mbin_q] 
+            err_f_comps[2, i_m] = werr_q[mbin_q]
+
+        mbin_int = (mbin0[i_m] < logm_int) & (logm_int < mbin1[i_m]) 
+        mbin_int1 = (mbin0[i_m] < logm_int1) & (logm_int1 < mbin1[i_m]) 
+        mbin_int2 = (mbin0[i_m] < logm_int2) & (logm_int2 < mbin1[i_m]) 
+        if np.sum(mbin_int) > 0: 
+            f_comps[3, i_m] += f_nz * w_int[mbin_int]
+            err_f_comps[3, i_m] += werr_int[mbin_int]**2
+        if np.sum(mbin_int1) > 0: 
+            f_comps[3, i_m] += f_nz * w_int1[mbin_int1]
+            err_f_comps[3, i_m] += werr_int1[mbin_int1]**2
+        if np.sum(mbin_int2) > 0: 
+            f_comps[3, i_m] += f_nz * w_int2[mbin_int2]
+            err_f_comps[3, i_m] += werr_int2[mbin_int2]**2
+        err_f_comps[3, i_m] = np.sqrt(err_f_comps[3, i_m]) 
+        
+        mbin_sbs = (mbin0[i_m] < logm_sbs) & (logm_sbs < mbin1[i_m]) 
+        mbin_sbs1 = (mbin0[i_m] < logm_sbs1) & (logm_sbs1 < mbin1[i_m]) 
+        mbin_sbs2 = (mbin0[i_m] < logm_sbs2) & (logm_sbs2 < mbin1[i_m]) 
+        if np.sum(mbin_sbs) > 0: 
+            f_comps[4, i_m] += f_nz * w_sbs[mbin_sbs]
+            err_f_comps[4, i_m] += werr_sbs[mbin_sbs]**2
+        if np.sum(mbin_sbs1) > 0: 
+            f_comps[4, i_m] += f_nz * w_sbs1[mbin_sbs1]
+            err_f_comps[4, i_m] += werr_sbs1[mbin_sbs1]**2
+        if np.sum(mbin_sbs2) > 0: 
+            f_comps[4, i_m] += f_nz * w_sbs2[mbin_sbs2]
+            err_f_comps[4, i_m] += werr_sbs2[mbin_sbs2]**2
+        err_f_comps[4, i_m] = np.sqrt(err_f_comps[4, i_m]) 
+
+    return 0.5*(mbin0 + mbin1), f_comps, err_f_comps 
 
 
-def QF(name, i_z, noise=False, seed=1):
+def QF(name, i_z, censat='centrals', noise=False, seed=1):
     ''' derive quiescent fraction from GMM best-fit. quiescent fraction defined as all components below SFS 
     '''
-    mmid, fcomps = fcomp(name, i_z, noise=noise, seed=seed) 
+    mmid, fcomps, err_fcomps = fcomp(name, i_z, censat=censat, noise=noise, seed=seed) 
     f_Q = fcomps[0,:] + fcomps[2] + fcomps[3]
-    return mmid, f_Q 
+    err_f_Q = np.sqrt(err_fcomps[0,:]**2 + err_fcomps[2]**2 + err_fcomps[3]**2)
+    return mmid, f_Q, err_f_Q
 
 
 def fcomp_comparison(noise=False, seed=1): 
@@ -636,21 +699,19 @@ def fcomp_comparison(noise=False, seed=1):
     return None
 
 
-def QF_comparison(noise=False, seed=1): 
+def QF_comparison(censat='centrals', noise=False, seed=1): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
     fq_dict = {} 
     for name in names:  
         fqs = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': marr, fq = QF(name, i, noise=noise, seed=seed)
-            else: marr, fq = QF(name, i, noise=False)
-            fqs.append([marr, fq]) 
+            if name != 'candels': marr, fq, fqerr = QF(name, i, censat=censat, noise=noise, seed=seed)
+            else: marr, fq, fqerr = QF(name, i, censat='all', noise=False)
+            fqs.append([marr, fq, fqerr]) 
         fq_dict[name] = fqs
     
     fig = plt.figure(figsize=(12,8))
@@ -662,8 +723,10 @@ def QF_comparison(noise=False, seed=1):
         for i_n, name in enumerate(names):  # plot fQ fits
             if name == 'candels': colour = 'k'
             else: colour = 'C'+str(i_n) 
-            print fq_dict[name][i_z][0], fq_dict[name][i_z][1]
-            _plt, = sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], color=colour)
+            _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2],
+                                    alpha=0.5, color=colour, linewidth=0)
             plts.append(_plt) 
         sub.set_xlim([8.5, 12.]) 
         sub.set_ylim([0., 1.]) 
@@ -681,15 +744,14 @@ def QF_comparison(noise=False, seed=1):
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/fq_comparison_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/fq_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    
+    ffig = os.path.join(dir_fig, 'fq_comparison_%s.pdf' % censat)
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 
-def QF_zevo_comparison(noise=False, seed=1): 
+def QF_zevo_comparison(censat='centrals', noise=False, seed=1): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
@@ -702,9 +764,10 @@ def QF_zevo_comparison(noise=False, seed=1):
     for name in names:  
         fqs = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': marr, fq = QF(name, i, noise=noise, seed=seed)
-            else: marr, fq = QF(name, i, noise=False)
-            fqs.append([marr, fq]) 
+            if name != 'candels': marr, fq, fqerr = QF(name, i, censat=censat, noise=noise, seed=seed)
+            else: marr, fq, fqerr = QF(name, i, censat='all', noise=False)
+            if name == 'illustris_100myr': print(i, fq, fqerr) 
+            fqs.append([marr, fq, fqerr]) 
         fq_dict[name] = fqs
     
     fig = plt.figure(figsize=(12,8))
@@ -714,7 +777,10 @@ def QF_zevo_comparison(noise=False, seed=1):
 
         plts = []
         for i_z in range(len(zlo)): 
-            _plt, = sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], color='C'+str(i_z))
+            _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
+                                    alpha=0.5, color='C'+str(i_z), linewidth=0)
             plts.append(_plt) 
 
         sub.set_xlim([8.5, 12.]) 
@@ -730,11 +796,10 @@ def QF_zevo_comparison(noise=False, seed=1):
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/fq_zevo_comparison_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/fq_zevo_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    
+    ffig = os.path.join(dir_fig, 'fq_zevo_comparison_%s.pdf' % censat)
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 ##################################################
@@ -834,25 +899,24 @@ def Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False):
     return None
 
 
-def Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2): 
+def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, threshold=0.2): 
     ''' determine M_lim stellar mass where the resolution limit of simulations
     impact the SFS fits.
     '''
     names = ['eagle', 'illustris_100myr', 'tng', 'simba']
     lbls = ['EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     SFRres_dict = {'eagle': 0.018, 'illustris_100myr': 0.0126, 'tng': 0.014, 'simba': 0.182} 
     
-    # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(18,3*len(names)))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_n, name in enumerate(names):  # plot SFMS fits
         for i_z in range(len(zlo)): 
             # read in log M* and log SFR of sim (including SFR=0) 
-            logm, logsfr, nonzero = readHighz(name, i_z+1, keepzeros=True, noise=noise, seed=seed)
+            logm, logsfr, cs, nonzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
+            isnonzero = (cs & nonzero) 
+            iszero = (cs & ~nonzero) 
             # standard SFS fit 
-            sfs_std = highzSFSfit(name, i_z+1, noise=noise, seed=seed)
+            sfs_std = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed)
             sfs_std_sfr = np.zeros(sfs_std._mbins.shape[0]) 
             sfs_std_sfr[sfs_std._mbins_sfs] = sfs_std._fit_logsfr
             sfs_std_err_ssfr = np.zeros(sfs_std._mbins.shape[0]) 
@@ -864,14 +928,15 @@ def Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2):
             sfs_mc_mbins_sfs = [] 
             for i_mc in range(n_mc): # loop through everything n_mc times 
                 # sample logSFR' from [logSFR + dlogSFR] 
-                logsfr_nz   = np.log10(10**logsfr[nonzero] + dsfr_res * np.random.uniform(size=np.sum(nonzero)))
-                logsfr_z    = np.log10(dsfr_res * np.random.uniform(size=np.sum(~nonzero)))
-                _logsfr     = np.zeros(len(logsfr))
-                _logsfr[nonzero] = logsfr_nz
-                _logsfr[~nonzero] = logsfr_z 
+                logm_nz     = logm[isnonzero]
+                logsfr_nz   = np.log10(10**logsfr[isnonzero] + dsfr_res * np.random.uniform(size=np.sum(isnonzero)))
+                logm_z      = logm[iszero] 
+                logsfr_z    = np.log10(dsfr_res * np.random.uniform(size=np.sum(iszero)))
+                _logm       = np.concatenate([logm_nz, logm_z]) 
+                _logsfr     = np.concatenate([logsfr_nz, logsfr_z]) 
             
                 fSFS_mc = fstarforms() # initialize 
-                _sfs_fit = fSFS_mc.fit(logm, _logsfr, # fit SFS 
+                _sfs_fit = fSFS_mc.fit(_logm, _logsfr, # fit SFS 
                         method='gaussmix', 
                         fit_range=[8.5, 12.0],  
                         dlogm=0.4, 
@@ -898,7 +963,7 @@ def Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2):
             
             # --- plot the comparison --- 
             sub = fig.add_subplot(len(names),6,i_n*6+i_z+1) 
-            DFM.hist2d(logm[nonzero], logsfr[nonzero], color='C0', 
+            DFM.hist2d(logm[isnonzero], logsfr[isnonzero], color='C0', 
                     levels=[0.68, 0.95], range=[[7.8, 12.], [-4., 4.]], 
                     plot_datapoints=True, fill_contours=False, plot_density=True, 
                     ax=sub) 
@@ -926,11 +991,10 @@ def Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2):
     bkgd.set_ylabel(r'log SFR $[M_\odot \, yr^{-1}]$', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/Mlim_res_impact_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/Mlim_res_impact_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    
+    ffig = os.path.join(dir_fig, 'Mlim_res_impact_%s.pdf' % (censat))
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed) 
+    fig.savefig(ffig, bbox_inches='tight')
     plt.close()
     return None
 
@@ -1018,18 +1082,23 @@ if __name__=="__main__":
                 pssfr(name, iz, censat=censat, noise=True, seed=1)  
     ''' 
     # SFR - M* comparison 
+    '''
     for censat in ['all', 'centrals', 'satellites']:
         SFR_Mstar_comparison(censat=censat)
         SFR_Mstar_comparison(censat=censat, noise=True, seed=1)
-
+    '''
+    # SFS comparisons
+    '''
+    for censat in ['all', 'centrals', 'satellites']:
         SFS_comparison(censat=censat)
         SFS_comparison(censat=censat, noise=True, seed=1)
     
-        SFS_zevo_comparison()
-        SFS_zevo_comparison(noise=True, seed=1)
-    
-    #Mlim_res_impact(n_mc=20, noise=False, seed=1, threshold=0.2)
-    #Mlim_res_impact(n_mc=100, noise=True, seed=1, threshold=0.2)
+        SFS_zevo_comparison(censat=censat)
+        SFS_zevo_comparison(censat=censat, noise=True, seed=1)
+    '''   
+    #for censat in ['all', 'centrals', 'satellites']:
+    #    Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
+    #    Mlim_res_impact(censat=censat, n_mc=20, noise=True, seed=1, threshold=0.2)
 
     #Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False)
     #Pssfr_res_impact(n_mc=100, noise=True, seed=1, poisson=False)
@@ -1037,11 +1106,14 @@ if __name__=="__main__":
     #fcomp_comparison(noise=False, seed=1)
     #fcomp_comparison(noise=True, seed=1)
 
-    #QF_comparison(noise=False, seed=1)
-    #QF_comparison(noise=True, seed=1)
+    QF_zevo_comparison(censat='centrals', noise=True, seed=1)
+    '''
+    for censat in ['all', 'centrals', 'satellites']:
+        QF_comparison(censat=censat, noise=False, seed=1)
+        QF_comparison(censat=censat, noise=True, seed=1)
     
-    #QF_zevo_comparison(noise=False, seed=1)
-    #QF_zevo_comparison(noise=True, seed=1)
-    
+        QF_zevo_comparison(censat=censat, noise=False, seed=1)
+        QF_zevo_comparison(censat=censat, noise=True, seed=1)
+    ''' 
     #sfs_SAM_comparison()
     #sfs_SAM_comparison(noise=True, seed=1)

@@ -102,15 +102,19 @@ class fstarforms(object):
         '''
         self._dlogm = dlogm
         self._Nbin_thresh = Nbin_thresh
-        self._check_input(logmstar, logsfr)  # check the logmstar and logsfr inputs 
-        if logsfr_err is not None: 
-            if np.sum(np.invert(np.isfinite(logsfr_err))) > 0: 
-                raise ValueError("There are non-finite log SFR error values")  
 
-        if method not in ['gaussmix']: raise ValueError(method+" is not one of the methods!") 
+        # check inputs 
+        self._check_input(logmstar, logsfr)  
+        if logsfr_err is not None: 
+            if not np.all(np.isfinite(logsfr_err)): 
+                raise ValueError("There are non-finite log SFR error values")  
+        if method not in ['gaussmix']: 
+            raise ValueError(method+" is not one of the methods!") 
         self._fit_method = method 
         if fit_error not in ['bootstrap']: 
             raise ValueError("fitting currently only supports fit_error=bootstrap") 
+    
+        # fitting M* range  
         if fit_range is None: 
             # if fitting M* range is not specified, use all the galaxies
             # the fit range will be a bit padded. 
@@ -128,7 +132,7 @@ class fstarforms(object):
         mbins = np.array([mbin_low, mbin_high]).T
         self._mbins = mbins
         
-        # log M* bins are above the threshold  
+        # log M* bins above the threshold  
         self._mbins_nbinthresh = np.ones(mbins.shape[0]).astype(bool)
         for i in range(mbins.shape[0]): # log M* bins  
             in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
@@ -151,94 +155,176 @@ class fstarforms(object):
             self._gbests = gbests 
             self._gmms = _gmms
             self._bics = _bics
-            
-            # identify the GMM components 
+
+            # identify the SFS and other components 
             i_sfss, i_qs, i_ints, i_sbs = self._GMM_compID(gbests, dev_thresh=dev_thresh)
             self._mbins_sfs[np.where(self._mbins_nbinthresh)[0][np.array(i_sfss) == None]] = False # M* bins without SFS
             assert np.sum(self._mbins_nbinthresh) == np.sum(self._mbins_sfs) + np.sum(np.array(i_sfss) == None)
 
-            fit_logm, mu_sfss, sig_sfss = [], [], [] 
-            for i_sfs, gbest, logm_med in zip(i_sfss, gbests, logm_median): 
-                if i_sfs is not None: 
-                    fit_logm.append(logm_med)
-                    mu_sfss.append(UT.flatten(gbest.means_.flatten()[i_sfs]))
-                    sig_sfss.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfs])))
-            fit_logssfr = mu_sfss
-            fit_sig_logssfr = sig_sfss
+            m_gmm = np.tile(-999., (len(gbests), 8)) # positions of the best-fit GMM components in each of the logM* bins 
+            s_gmm = np.tile(-999., (len(gbests), 8)) # width of the best-fit GMM components in each of the logM* bins 
+            w_gmm = np.tile(-999., (len(gbests), 8)) # weights of the best-fit GMM components in each of the logM* bins 
 
-            # calculate the uncertainty of logSSFR fit 
-            if fit_error is None: 
-                self._fit_err_logssfr = None 
-                self._fit_err_sig_logssfr = None 
-            elif fit_error == 'bootstrap': 
-                # using bootstrap resampling 
-                boot_mu_logssfr, boot_sig_logssfr = [], []
-                for i_boot in range(n_bootstrap): 
-                    # resample the data w/ replacement 
-                    i_boot = np.random.choice(np.arange(len(logmstar)), size=len(logmstar), replace=True) 
-                    gboots = self._GMM_pssfr_nbest(logmstar[i_boot], logsfr[i_boot],
-                            self._mbins[self._mbins_sfs,:], nbests=nbests)
+            for i, i0, i1, i2, i3 in zip(range(len(gbests)), i_sfss, i_qs, i_ints, i_sbs): 
+                if i0 is not None:
+                    m_gmm[i,0] = gbests[i].means_.flatten()[i0]
+                    s_gmm[i,0] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i0]))
+                    w_gmm[i,0] = gbests[i].weights_[i0]
+                if i1 is not None:
+                    m_gmm[i,1] = gbests[i].means_.flatten()[i1]
+                    s_gmm[i,1] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i1]))
+                    w_gmm[i,1] = gbests[i].weights_[i1]
+                if i2 is not None:
+                    assert len(i2) <= 3
+                    for ii, i2i in enumerate(i2): 
+                        m_gmm[i,2+ii] = gbests[i].means_.flatten()[i2i]
+                        s_gmm[i,2+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i2i]))
+                        w_gmm[i,2+ii] = gbests[i].weights_[i2i]
+                if i3 is not None:
+                    assert len(i3) <= 3
+                    for ii, i3i in enumerate(i3): 
+                        m_gmm[i,5+ii] = gbests[i].means_.flatten()[i3i]
+                        s_gmm[i,5+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i3i]))
+                        w_gmm[i,5+ii] = gbests[i].weights_[i3i]
 
-                    # identify the SFS components 
-                    i_sfss_boot, _, _, _ = self._GMM_compID(gboots, dev_thresh=dev_thresh)
+            # get bootstrap errors for all GMM parameters
+            m_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # positions of the bootstrap GMMs  
+            s_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # widths of the bootstrap GMMs  
+            w_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # weights of the boostrap GMMs
+            for ibs in range(n_bootstrap): 
+                # resample the data w/ replacement 
+                i_boot = np.random.choice(np.arange(len(logmstar)), size=len(logmstar), replace=True) 
+                # fit GMMs with n_best components 
+                gboots = self._GMM_pssfr_nbest(logmstar[i_boot], logsfr[i_boot],
+                        self._mbins[self._mbins_sfs,:], nbests=nbests)
 
-                    mu_sfss_boot, sig_sfss_boot = [], [] 
-                    for i_sfs, gbest in zip(i_sfss_boot, gboots): 
-                        if i_sfs is not None: 
-                            mu_sfss_boot.append(UT.flatten(gbest.means_.flatten()[i_sfs]))
-                            sig_sfss_boot.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfs])))
-                        else: 
-                            mu_sfss_boot.append(None)
-                            sig_sfss_boot.append(None)
-                    boot_mu_logssfr.append(np.array(mu_sfss_boot))
-                    boot_sig_logssfr.append(np.array(sig_sfss_boot))
-                
-                boot_mu_logssfr = np.array(boot_mu_logssfr) 
-                boot_sig_logssfr = np.array(boot_sig_logssfr) 
+                # identify the SFS components 
+                _i_sfss, _i_qs, _i_ints, _i_sbs = self._GMM_compID(gboots, dev_thresh=dev_thresh)
 
-                fit_err_logssfr = np.zeros(np.sum(self._mbins_sfs)) 
-                fit_err_sig_logssfr = np.zeros(np.sum(self._mbins_sfs)) 
-                for ii in range(np.sum(self._mbins_sfs)): 
-                    notnone = (boot_mu_logssfr[:,ii] != None) 
-                    if np.sum(notnone) > 1: 
-                        fit_err_logssfr[ii] = np.std(boot_mu_logssfr[:,ii][notnone]) 
-                        fit_err_sig_logssfr[ii] = np.std(boot_sig_logssfr[:,ii][notnone]) 
-                    else: 
-                        fit_err_logssfr[ii] = np.inf
-                        fit_err_sig_logssfr[ii] = np.inf
-
-                self._fit_err_logssfr = fit_err_logssfr
-                self._fit_err_sig_logssfr = fit_err_sig_logssfr
-            else: 
-                raise NotImplementedError("not yet implemented") 
+                for i, i0, i1, i2, i3 in zip(range(len(gbests)), _i_sfss, _i_qs, _i_ints, _i_sbs): 
+                    if i0 is not None:
+                        m_gmm_boot[ibs,i,0] = gboots[i].means_.flatten()[i0]
+                        s_gmm_boot[ibs,i,0] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i0]))
+                        w_gmm_boot[ibs,i,0] = gboots[i].weights_[i0]
+                    if i1 is not None:
+                        m_gmm_boot[ibs,i,1] = gboots[i].means_.flatten()[i1]
+                        s_gmm_boot[ibs,i,1] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i1]))
+                        w_gmm_boot[ibs,i,1] = gboots[i].weights_[i1]
+                    if i2 is not None:
+                        assert len(i2) <= 3
+                        for ii, i2i in enumerate(i2): 
+                            m_gmm_boot[ibs,i,2+ii] = gboots[i].means_.flatten()[i2i]
+                            s_gmm_boot[ibs,i,2+ii] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i2i]))
+                            w_gmm_boot[ibs,i,2+ii] = gboots[i].weights_[i2i]
+                    if i3 is not None:
+                        assert len(i3) <= 3 
+                        for ii, i3i in enumerate(i3): 
+                            m_gmm_boot[ibs,i,5+ii] = gboots[i].means_.flatten()[i3i]
+                            s_gmm_boot[ibs,i,5+ii] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i3i]))
+                            w_gmm_boot[ibs,i,5+ii] = gboots[i].weights_[i3i]
             
+            # now loop through the logM* bins and calculate bootstrap uncertainties 
+            merr_boot = np.tile(-999., (len(gbests), 8))
+            serr_boot = np.tile(-999., (len(gbests), 8))
+            werr_boot = np.tile(-999., (len(gbests), 8))
+            for i in range(len(gbests)): 
+                for icomp, comp in zip([0, 1, 2, 5], [i_sfss, i_qs, i_ints, i_sbs]):
+                    if comp[i] is None:
+                        continue 
+                    if icomp <= 1: 
+                        hascomp = (m_gmm_boot[:,i,icomp] != -999.) 
+                        merr_boot[i,icomp] = np.std(m_gmm_boot[hascomp,i,icomp]) 
+                        serr_boot[i,icomp] = np.std(s_gmm_boot[hascomp,i,icomp]) 
+                        werr_boot[i,icomp] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp], np.zeros(np.sum(~hascomp))]))
+                    else: 
+                        for ii in range(len(comp[i])): 
+                            hascomp = (m_gmm_boot[:,i,icomp+ii] != -999.) 
+                            merr_boot[i,icomp+ii] = np.std(m_gmm_boot[hascomp,i,icomp+ii]) 
+                            serr_boot[i,icomp+ii] = np.std(s_gmm_boot[hascomp,i,icomp+ii]) 
+                            werr_boot[i,icomp+ii] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp+ii], np.zeros(np.sum(~hascomp))]))
+
+            tt_sfs  = [] # logM*, mu, sigma, weight of bestfit GMM  
+            tt_q    = [] 
+            tt_int  = [] 
+            tt_int1 = [] 
+            tt_int2 = [] 
+            tt_sbs  = [] 
+            tt_sbs1 = [] 
+            tt_sbs2 = [] 
+            tt_sfs_boot     = [] # mu_err, sigma_err, weight_err from boostrap 
+            tt_q_boot       = [] 
+            tt_int_boot     = [] 
+            tt_int1_boot    = [] 
+            tt_int2_boot    = [] 
+            tt_sbs_boot     = [] 
+            tt_sbs1_boot    = [] 
+            tt_sbs2_boot    = [] 
+            for _i, logm_med in enumerate(logm_median): 
+                if i_sfss[_i] is not None: 
+                    tt_sfs.append(np.array([logm_med, m_gmm[_i,0], s_gmm[_i,0], w_gmm[_i,0]]))
+                    tt_sfs_boot.append(np.array([merr_boot[_i,0], serr_boot[_i,0], werr_boot[_i,0]]))
+                if i_qs[_i] is not None: 
+                    tt_q.append(np.array([logm_med, m_gmm[_i,1], s_gmm[_i,1], w_gmm[_i,1]]))
+                    tt_q_boot.append(np.array([merr_boot[_i,1], serr_boot[_i,1], werr_boot[_i,1]]))
+                if i_ints[_i] is not None: 
+                    for ii, _tt_int, _tt_int_boot in zip(range(len(i_ints[_i])), [tt_int, tt_int1, tt_int2], [tt_int_boot, tt_int1_boot, tt_int2_boot]): 
+                        _tt_int.append(np.array([logm_med, m_gmm[_i,2+ii], s_gmm[_i,2+ii], w_gmm[_i,2+ii]]))
+                        _tt_int_boot.append(np.array([merr_boot[_i,2+ii], serr_boot[_i,2+ii], werr_boot[_i,2+ii]]))
+                if i_sbs[_i] is not None: 
+                    for ii, _tt_sbs, _tt_sbs_boot in zip(range(len(i_sbs[_i])), [tt_sbs, tt_sbs1, tt_sbs2], [tt_sbs_boot, tt_sbs1_boot, tt_sbs2_boot]): 
+                        _tt_sbs.append(np.array([logm_med, m_gmm[_i,5+ii], s_gmm[_i,5+ii], w_gmm[_i,5+ii]])) 
+                        _tt_sbs_boot.append(np.array([merr_boot[_i,5+ii], serr_boot[_i,5+ii], werr_boot[_i,5+ii]]))
+
+            self._theta_sfs = np.array(tt_sfs) 
+            self._err_sfs = np.array(tt_sfs_boot) 
+            self._theta_q = np.array(tt_q) 
+            self._err_q = np.array(tt_q_boot) 
+            self._theta_int = np.array(tt_int) 
+            self._err_int = np.array(tt_int_boot) 
+            self._theta_int1 = np.array(tt_int1) 
+            self._err_int1 = np.array(tt_int1_boot) 
+            self._theta_int2 = np.array(tt_int2) 
+            self._err_int2 = np.array(tt_int2_boot) 
+            self._theta_sbs = np.array(tt_sbs) 
+            self._err_sbs = np.array(tt_sbs_boot) 
+            self._theta_sbs1 = np.array(tt_sbs1) 
+            self._err_sbs1 = np.array(tt_sbs1_boot) 
+            self._theta_sbs2 = np.array(tt_sbs2) 
+            self._err_sbs2 = np.array(tt_sbs2_boot) 
         else: 
             raise NotImplementedError
 
         # save the fit ssfr and logm 
-        self._fit_logm = np.array(fit_logm)  
-        self._fit_logssfr = np.array(fit_logssfr)  
+        self._fit_logm = self._theta_sfs[:,0]
+        self._fit_logssfr = self._theta_sfs[:,1]
         self._fit_logsfr = self._fit_logm + self._fit_logssfr
-        self._fit_sig_logssfr = np.array(fit_sig_logssfr)
+        self._fit_err_logssfr = self._err_sfs[:,1] 
         return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
 
-    def _GMM_pssfr(self, logmstar, logsfr, mbins, max_comp=3): 
+    def _GMM_pssfr(self, logmstar, logsfr, mbins, max_comp=3, n_bootstrap=10): 
         ''' Fit GMM components to P(SSFR) of given data and return best-fit
         '''
         fit_logm = [] 
         gbests, nbests = [], [] 
         _gmms, _bics = [], [] 
-        for i in range(mbins.shape[0]): # log M* bins  
+
+        # loop through log M* bins  
+        for i in range(mbins.shape[0]): 
             in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
-            X = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
-            X = np.reshape(X, (-1,1))
-    
-            ncomps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
+
+            x = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+            x = np.reshape(x, (-1,1))
+
+            # save the SFS log M* and log SSFR values 
+            fit_logm.append(np.median(logmstar[in_mbin])) 
+            
+            # fit GMMs with a range of components 
+            ncomps = range(1, max_comp+1)
             gmms, bics = [], []  
             for i_n, n in enumerate(ncomps): 
                 gmm = GMix(n_components=n)
-                gmm.fit(X)
-                bics.append(gmm.bic(X)) # bayesian information criteria
+                gmm.fit(x)
+                bics.append(gmm.bic(x)) # bayesian information criteria
                 gmms.append(gmm)
 
             # components with the lowest BIC (preferred)
@@ -252,8 +338,6 @@ class fstarforms(object):
             _gmms.append(gmms) 
             _bics.append(bics)
 
-            # save the SFMS log M* and log SSFR values 
-            fit_logm.append(np.median(logmstar[in_mbin])) 
         return fit_logm, gbests, nbests, _gmms, _bics
     
     def _GMM_pssfr_nbest(self, logmstar, logsfr, mbins, nbests=None): 
@@ -479,7 +563,7 @@ class fstarforms(object):
         highsfr = (mu_gbest > SSFR_cut) 
         if np.sum(highsfr) == 1: 
             # only one component with high sfr. This is the one 
-            i_sfms = np.arange(n_gbest)[highsfr]
+            i_sfms = np.arange(n_gbest)[highsfr][0]
         elif np.sum(mu_gbest > SSFR_cut) > 1: 
             # if best fit has more than one component with high SFR (logSSFR > -11), 
             # we designate the component with the highest weight as the SFMS 
