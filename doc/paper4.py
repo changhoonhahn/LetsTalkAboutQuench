@@ -1011,57 +1011,103 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, threshold=0
 ##################################################
 # appendix: slice vs full  
 ##################################################
-def SFS_SAM_comparison(noise=False, seed=1): 
+def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=0.5): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
     names = ['sam-light-slice', 'sam-light-full']
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
-    sfs_dict = {} 
-    for name in names:  
-        sfs_fits = [] 
-        for i in range(1,len(zlo)+1): 
-            if noise and 'sam-light' in name: 
-                logm, logsfr = readHighz(name, i, keepzeros=False, noise=True, seed=1)
-                fSFS = highzSFSfit(name, i, noise=True, seed=1) # fit the SFMSes
-            else:
-                logm, logsfr = readHighz(name, i, keepzeros=False)
-                fSFS = highzSFSfit(name, i) # fit the SFMSes
-            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
-            sfs_fits.append(sfs_fit) 
-        sfs_dict[name] = sfs_fits
-    
-    # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(12,8))
-    bkgd = fig.add_subplot(111, frameon=False)
-    for i_z in range(len(zlo)): 
-        sub = fig.add_subplot(2,3,i_z+1) 
-        # plot SFMS fits
+    for i in range(1,len(zlo)+1): 
+        sub = fig.add_subplot(2,3,i) 
         for i_n, name in enumerate(names):  
-            if name == 'candels': colour = 'k'
-            else: colour = 'C'+str(i_n) 
-            sub.fill_between(sfs_dict[name][i_z][0], 
-                    sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
-                    sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
-                    color=colour, alpha=0.75, linewidth=0., label=' '.join(name.upper().split('_')))
+            if noise and 'sam-light' in name: 
+                logm, logsfr, cs, notzero = readHighz(name, i, censat='centrals', noise=noise, seed=seed)
+                fSFS = highzSFSfit(name, i, censat='centrals', noise=noise, seed=seed, 
+                        dlogM=dlogM, dev_thresh=dev_thresh) # fit the SFSs
+            else:
+                logm, logsfr, cs, notzero = readHighz(name, i, censat='centrals')
+                fSFS = highzSFSfit(name, i, censat='centrals',  dlogM=dlogM, dev_thresh=dev_thresh) # fit the SFSs
+            
+            cut = (cs & notzero) 
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+
+            DFM.hist2d(logm[cut], logsfr[cut], color='C%i' % i_n, 
+                    levels=[0.68, 0.95], range=[[7.8, 12.], [-4., 4.]], 
+                    plot_datapoints=False, fill_contours=False, plot_density=False, 
+                    ax=sub) 
+            #sub.errorbar(sfs_fit[0], sfs_fit[1], sfs_fit[2], fmt='.k') # plot SFS fit
+            sub.fill_between(sfs_fit[0], sfs_fit[1] - sfs_fit[2], sfs_fit[1] + sfs_fit[2], 
+                    color='C%i' % i_n, alpha=0.75, linewidth=0., label=' '.join(name.upper().split('_')), zorder=10)
         sub.set_xlim([8.5, 12.]) 
         sub.set_ylim([-1., 4.]) 
-        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+        sub.text(0.95, 0.05, '$'+str(zlo[i-1])+'< z <'+str(zhi[i-1])+'$', 
                 ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
-        if i_z == 0: 
-            sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 15}) 
+        if i == 1: sub.legend(loc='upper left', handletextpad=0.5, prop={'size': 15}) 
             #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
             #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+
+    bkgd = fig.add_subplot(111, frameon=False)
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_SAM_comparison.wnoise.seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/sfs_SAM_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    ffig = os.path.join(dir_fig, 'sfs_SAM_comparison_centrals_dlogM%.1f_devthresh%.1f.pdf' % (dlogM, dev_thresh)) 
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
+    return None
+
+
+def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=0.5): 
+    ''' Compare the SFMS fits among the data and simulation  
+    '''
+    names = ['sam-light-slice', 'sam-light-full']
+    lbls = ['SC-SAM slice', 'SC-SAM full'] 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    
+    fq_dict = {} 
+    for name in names:  
+        fqs = [] 
+        for i in range(1,len(zlo)+1): 
+            marr, fq, fqerr = QF(name, i, censat='centrals', noise=noise, seed=seed, dlogM=dlogM, dev_thresh=dev_thresh)
+            fqs.append([marr, fq, fqerr]) 
+        fq_dict[name] = fqs
+    
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+
+        plts = []
+        for i_n, name in enumerate(names):  # plot fQ fits
+            if name == 'candels': colour = 'k'
+            else: colour = 'C'+str(i_n) 
+            _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2],
+                                    alpha=0.5, color=colour, linewidth=0)
+            plts.append(_plt) 
+        sub.set_xlim([8.5, 12.]) 
+        sub.set_ylim([0., 1.]) 
+        if i_z < 3: sub.set_xticklabels([]) 
+        if i_z not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+        elif i_z == 1: 
+            sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    ffig = os.path.join(dir_fig, 'fq_SAM_comparison_centrals_dlogM%.1f_devthresh%.1f.pdf' % (dlogM, dev_thresh)) 
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fig.savefig(ffig, bbox_inches='tight')
     return None
 
 
@@ -1131,16 +1177,6 @@ if __name__=="__main__":
     #Pssfr_res_impact(n_mc=100, noise=True, seed=1, poisson=False)
     
     # quiescent fraction and GMM component fraction comparison
-    for censat in ['centrals']:
-        for dthresh in [0.5, 0.3]: 
-            QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
-            QF_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
-    
-            QF_zevo_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
-            QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
-
-            fcomp_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
-            fcomp_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
     '''
     for censat in ['all', 'centrals', 'satellites']:
         for dthresh in [0.5, 0.3]: 
@@ -1159,5 +1195,9 @@ if __name__=="__main__":
             fcomp_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
             fcomp_comparison(noise=True, seed=1, dlogM=0.6, dev_thresh=dthresh)
     ''' 
-    #sfs_SAM_comparison()
-    #sfs_SAM_comparison(noise=True, seed=1)
+    # comparison between SAM slice and full 
+    for dthresh in [0.5, 0.3]: 
+        SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
+        SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
+        #QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
+        #QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
