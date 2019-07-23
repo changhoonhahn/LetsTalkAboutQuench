@@ -7,77 +7,77 @@ import numpy as np
 import scipy as sp 
 import warnings 
 from scipy.optimize import curve_fit
-from sklearn.mixture import GMM 
 from sklearn.mixture import GaussianMixture as GMix
 
 import util as UT 
 
 
 class fstarforms(object): 
-    ''' class object for fitting the star formation main sequence
-    of a galaxy population. 
+    ''' class object for identifying the star formation sequence 
+    (hereafter SFS) given the SFRs and M*s of a galaxy population 
 
     Main functionality of this class include : 
     * fitting log SFR of the SFMS in bins of log M*  
     * fitting parameterizations of the SFMS using log SFR 
 
-
     to-do
-    * implement calculate f_SFMS (the SFMS fraction)
+    * implement calculate f_SFS (the SFMS fraction)
     '''
-    def __init__(self):
-        self._fit_method = None
+    def __init__(self, fit_range=None):
+        ''' initialize the fitting.
+
+        Parameters
+        ----------
+        fit_range : list, optional 
+            2 element list specifying the M* range -- [logM*_min, logM*_max]
+        '''
+        self._method = None
+        self._error_method = None 
         self._fit_logm = None 
         self._fit_logssfr = None
         self._fit_logsfr = None
         self._sfms_fit = None 
+    
+        # log M* range of the fitting 
+        self._logM_min = None 
+        self._logM_max = None 
+        if fit_range is not None: 
+            self._logM_min = fit_range[0]
+            self._logM_max = fit_range[1]
 
-    def fit(self, logmstar, logsfr, logsfr_err=None, method='gaussmix', fit_range=None, dlogm=0.2,
-            Nbin_thresh=100, dev_thresh=0.5, max_comp=3, fit_error='bootstrap', n_bootstrap=None,
+    def fit(self, logmstar, logsfr, logsfr_err=None, method='gaussmix', dlogm=0.2,
+            Nbin_thresh=100, slope_prior=[0.0, 2.], max_comp=3, error_method='bootstrap', n_bootstrap=None,
             silent=False): 
-        '''Given log SFR and log Mstar values of a galaxy population, 
+        '''
+        Given log SFR and log Mstar values of a galaxy population, 
         return the power-law best fit to the SFMS. After some initial 
         common sense cuts, P(log SSFR) in bins of stellar mass are fit 
         using specified method. 
 
         Parameters
         ----------
-        logmstar : (np.array) 
-            log stellar mass of galaxy population 
-
-        logsfr : (np.array) 
-            log sfr of galaxy population 
-
-        method : (str)
-            string specifying the method of the fit. Options are
-            'gaussmix' uses Gaussian Mixture Models to fit the P(SSFR) distribution. 
-            'gaussmix_err' uses Gaussian Mixture Models *but* accounts for uncertainty
+        logmstar : array 
+            array of log M* of galaxy population 
+        logsfr : array
+            array of log SFR of galaxy population 
+        method : str
+            string specifying the method of identifying the SFS.
+            - 'gaussmix' uses Gaussian Mixture Models to fit the P(SSFR) distribution. 
+            - 'gaussmix_err' uses Gaussian Mixture Models *but* accounts for uncertainty
             in the SFRs. 
-
-        fit_range : (list) 
-            Optional. 2 element list specifying the fitting stellar
-            mass range -- [logM*_min, logM*_max]
-
-        dlogm : (float) 
-            Optional. Default 0.2 dex. Width of logM* bins. 
-
-        Nbin_thresh : (float)
-            Optional. Default is 100. If a logM* bin has less than 
-            100 galaxies, the bin is omitted. 
-
-        SSFR_cut : (float or function) 
-            Optional. Some SSFR cut to impose on the galaxy population
-            before doing the fitting. For 'gaussfit' and 'negbinomfit' 
-            default SSFR_cut is logSSFR > -11.
-
-        fit_error : 
-            Optional. Default is None. If specified, estimates the error
-            in the fit using either boostrap (fit_error='bootstrap') or 
-            jackknifing (fit_error='jackknife') 
-
-        n_bootstrap : 
-            Optional. If fit_error='bootstrap' specify, the number of 
+        dlogm : float, optional
+            Default 0.2 dex. Width of logM* bins. 
+        Nbin_thresh : float, optional 
+             Default is 100. If a logM* bin has less than 100 galaxies, the bin is omitted. 
+        error_method : str, optional
+            Default is 'boostrap'. Method for estimating the uncertainties of the SFS fit 
+            - 'bootstrap' for bootstrap uncertainties
+            - 'jackknife' for jackknife uncertainties 
+        n_bootstrap : int, optional
+            Default is None. If error_method=='bootstrap', this specifies the number of 
             bootstrap samples. 
+        silent : boolean, optiona
+            If True, does not output any messages
 
         Returns 
         -------
@@ -100,197 +100,38 @@ class fstarforms(object):
         - Dempster, Laird, Rubin, 1977 (EM algoritmh) 
         - Wu, 1983 (EM convergence) 
         '''
-        self._dlogm = dlogm
-        self._Nbin_thresh = Nbin_thresh
+        if method not in ['gaussmix']: raise ValueError(method+" is not one of the methods!") 
+        self._method = method 
 
-        # check inputs 
-        self._check_input(logmstar, logsfr)  
-        if logsfr_err is not None: 
-            if not np.all(np.isfinite(logsfr_err)): 
-                raise ValueError("There are non-finite log SFR error values")  
-        if method not in ['gaussmix']: 
-            raise ValueError(method+" is not one of the methods!") 
-        self._fit_method = method 
-        if fit_error not in ['bootstrap']: 
-            raise ValueError("fitting currently only supports fit_error=bootstrap") 
-    
-        # fitting M* range  
-        if fit_range is None: 
-            # if fitting M* range is not specified, use all the galaxies
-            # the fit range will be a bit padded. 
-            fit_range = [int(logmstar.min()/dlogm)*dlogm, np.ceil(logmstar.max()/dlogm)*dlogm]
+        if error_method not in ['bootstrap']: raise ValueError("fitting currently only supports 'bootstrap'") 
+        self._error_method = error_method
 
-        mass_cut = (logmstar > fit_range[0]) & (logmstar < fit_range[1])
+        self._dlogm = dlogm                 # logM* bin width
+        self._Nbin_thresh = Nbin_thresh     # Nbin threshold 
+
+        self._check_input(logmstar, logsfr, logsfr_err) # check inputs 
+
+        if (self._logM_min is None) or (self._logM_max is None): # get M* range from the input logM*
+            # the fit range will be a bit padded.
+            self._logM_min = int(logmstar.min()/dlogm)*dlogm
+            self._logM_max = np.ceil(logmstar.max()/dlogm)*dlogm
+
+        mass_cut = (logmstar > self._logM_min) & (logmstar < self._logM_max)
         if np.sum(mass_cut) == 0: 
-            print("trying to fit SFMS over range %f < log M* < %f" % (fit_range[0], fit_range[1]))
+            print("trying to fit SFMS over range %f < log M* < %f" % (self._logM_min, self._logM_max))
             print("input spans %f < log M* < %f" % (logmstar.min(), logmstar.max()))
             raise ValueError("no galaxies within that cut!")
+    
+        self._mbins = _get_mbin(self, logMmin, logMmax, dlogm) # log M* binning 
 
-        # log M* binning 
-        mbin_low = np.arange(fit_range[0], fit_range[1], dlogm)
-        mbin_high = mbin_low + dlogm
-        mbins = np.array([mbin_low, mbin_high]).T
-        self._mbins = mbins
-        
-        # log M* bins above the threshold  
-        self._mbins_nbinthresh = np.ones(mbins.shape[0]).astype(bool)
-        for i in range(mbins.shape[0]): # log M* bins  
-            in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
-            if np.sum(in_mbin) < Nbin_thresh: # not enough galaxies
-                self._mbins_nbinthresh[i] = False
+        # log M* bins with more than Nbin_thresh galaxies
+        bin_cnt, _ = np.histogram(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,1]]))
+        self._has_nbinthresh = (bin_cnt > Nbin_thresh) 
 
-        self._mbins_sfs = self._mbins_nbinthresh.copy() 
+        #self._mbins_sfs = self._mbins_nbinthresh.copy() 
 
         if 'gaussmix' in method:
-            # for each logM* bin, fit P(log SSFR) distribution using a Gaussian mixture model 
-            # with at most 3 components and some common sense priors based on the fact
-            # that SFMS is roughly a log-normal distribution. This does not require a log(SSFR) 
-            # cut like gaussfit and negbinomfit and can be flexibly applied to a wide range of 
-            # SSFR distributions.
-            logm_median, gbests, nbests, _gmms, _bics = self._GMM_pssfr(logmstar, logsfr, 
-                    self._mbins[self._mbins_nbinthresh,:], max_comp=max_comp)
-            if logm_median[0] > 10.: 
-                warnings.warn("The lowest M* bin is greater than 10^10, this may compromise the SFS identification scheme") 
-            # save the bestfit GMMs
-            self._gbests = gbests 
-            self._gmms = _gmms
-            self._bics = _bics
-
-            # identify the SFS and other components 
-            i_sfss, i_qs, i_ints, i_sbs = self._GMM_compID(gbests, dev_thresh=dev_thresh)
-            self._mbins_sfs[np.where(self._mbins_nbinthresh)[0][np.array(i_sfss) == None]] = False # M* bins without SFS
-            assert np.sum(self._mbins_nbinthresh) == np.sum(self._mbins_sfs) + np.sum(np.array(i_sfss) == None)
-
-            m_gmm = np.tile(-999., (len(gbests), 8)) # positions of the best-fit GMM components in each of the logM* bins 
-            s_gmm = np.tile(-999., (len(gbests), 8)) # width of the best-fit GMM components in each of the logM* bins 
-            w_gmm = np.tile(-999., (len(gbests), 8)) # weights of the best-fit GMM components in each of the logM* bins 
-
-            for i, i0, i1, i2, i3 in zip(range(len(gbests)), i_sfss, i_qs, i_ints, i_sbs): 
-                if i0 is not None:
-                    m_gmm[i,0] = gbests[i].means_.flatten()[i0]
-                    s_gmm[i,0] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i0]))
-                    w_gmm[i,0] = gbests[i].weights_[i0]
-                if i1 is not None:
-                    m_gmm[i,1] = gbests[i].means_.flatten()[i1]
-                    s_gmm[i,1] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i1]))
-                    w_gmm[i,1] = gbests[i].weights_[i1]
-                if i2 is not None:
-                    assert len(i2) <= 3
-                    for ii, i2i in enumerate(i2): 
-                        m_gmm[i,2+ii] = gbests[i].means_.flatten()[i2i]
-                        s_gmm[i,2+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i2i]))
-                        w_gmm[i,2+ii] = gbests[i].weights_[i2i]
-                if i3 is not None:
-                    assert len(i3) <= 3
-                    for ii, i3i in enumerate(i3): 
-                        m_gmm[i,5+ii] = gbests[i].means_.flatten()[i3i]
-                        s_gmm[i,5+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i3i]))
-                        w_gmm[i,5+ii] = gbests[i].weights_[i3i]
-
-            # get bootstrap errors for all GMM parameters
-            m_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # positions of the bootstrap GMMs  
-            s_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # widths of the bootstrap GMMs  
-            w_gmm_boot = np.tile(-999., (n_bootstrap, len(gbests), 8)) # weights of the boostrap GMMs
-            for ibs in range(n_bootstrap): 
-                # resample the data w/ replacement 
-                i_boot = np.random.choice(np.arange(len(logmstar)), size=len(logmstar), replace=True) 
-                # fit GMMs with n_best components 
-                gboots = self._GMM_pssfr_nbest(logmstar[i_boot], logsfr[i_boot],
-                        self._mbins[self._mbins_sfs,:], nbests=nbests)
-
-                # identify the SFS components 
-                _i_sfss, _i_qs, _i_ints, _i_sbs = self._GMM_compID(gboots, dev_thresh=dev_thresh)
-
-                for i, i0, i1, i2, i3 in zip(range(len(gbests)), _i_sfss, _i_qs, _i_ints, _i_sbs): 
-                    if i0 is not None:
-                        m_gmm_boot[ibs,i,0] = gboots[i].means_.flatten()[i0]
-                        s_gmm_boot[ibs,i,0] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i0]))
-                        w_gmm_boot[ibs,i,0] = gboots[i].weights_[i0]
-                    if i1 is not None:
-                        m_gmm_boot[ibs,i,1] = gboots[i].means_.flatten()[i1]
-                        s_gmm_boot[ibs,i,1] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i1]))
-                        w_gmm_boot[ibs,i,1] = gboots[i].weights_[i1]
-                    if i2 is not None:
-                        assert len(i2) <= 3
-                        for ii, i2i in enumerate(i2): 
-                            m_gmm_boot[ibs,i,2+ii] = gboots[i].means_.flatten()[i2i]
-                            s_gmm_boot[ibs,i,2+ii] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i2i]))
-                            w_gmm_boot[ibs,i,2+ii] = gboots[i].weights_[i2i]
-                    if i3 is not None:
-                        assert len(i3) <= 3 
-                        for ii, i3i in enumerate(i3): 
-                            m_gmm_boot[ibs,i,5+ii] = gboots[i].means_.flatten()[i3i]
-                            s_gmm_boot[ibs,i,5+ii] = np.sqrt(UT.flatten(gboots[i].covariances_.flatten()[i3i]))
-                            w_gmm_boot[ibs,i,5+ii] = gboots[i].weights_[i3i]
-            
-            # now loop through the logM* bins and calculate bootstrap uncertainties 
-            merr_boot = np.tile(-999., (len(gbests), 8))
-            serr_boot = np.tile(-999., (len(gbests), 8))
-            werr_boot = np.tile(-999., (len(gbests), 8))
-            for i in range(len(gbests)): 
-                for icomp, comp in zip([0, 1, 2, 5], [i_sfss, i_qs, i_ints, i_sbs]):
-                    if comp[i] is None:
-                        continue 
-                    if icomp <= 1: 
-                        hascomp = (m_gmm_boot[:,i,icomp] != -999.) 
-                        merr_boot[i,icomp] = np.std(m_gmm_boot[hascomp,i,icomp]) 
-                        serr_boot[i,icomp] = np.std(s_gmm_boot[hascomp,i,icomp]) 
-                        werr_boot[i,icomp] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp], np.zeros(np.sum(~hascomp))]))
-                    else: 
-                        for ii in range(len(comp[i])): 
-                            hascomp = (m_gmm_boot[:,i,icomp+ii] != -999.) 
-                            merr_boot[i,icomp+ii] = np.std(m_gmm_boot[hascomp,i,icomp+ii]) 
-                            serr_boot[i,icomp+ii] = np.std(s_gmm_boot[hascomp,i,icomp+ii]) 
-                            werr_boot[i,icomp+ii] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp+ii], np.zeros(np.sum(~hascomp))]))
-
-            tt_sfs  = [] # logM*, mu, sigma, weight of bestfit GMM  
-            tt_q    = [] 
-            tt_int  = [] 
-            tt_int1 = [] 
-            tt_int2 = [] 
-            tt_sbs  = [] 
-            tt_sbs1 = [] 
-            tt_sbs2 = [] 
-            tt_sfs_boot     = [] # mu_err, sigma_err, weight_err from boostrap 
-            tt_q_boot       = [] 
-            tt_int_boot     = [] 
-            tt_int1_boot    = [] 
-            tt_int2_boot    = [] 
-            tt_sbs_boot     = [] 
-            tt_sbs1_boot    = [] 
-            tt_sbs2_boot    = [] 
-            for _i, logm_med in enumerate(logm_median): 
-                if i_sfss[_i] is not None: 
-                    tt_sfs.append(np.array([logm_med, m_gmm[_i,0], s_gmm[_i,0], w_gmm[_i,0]]))
-                    tt_sfs_boot.append(np.array([merr_boot[_i,0], serr_boot[_i,0], werr_boot[_i,0]]))
-                if i_qs[_i] is not None: 
-                    tt_q.append(np.array([logm_med, m_gmm[_i,1], s_gmm[_i,1], w_gmm[_i,1]]))
-                    tt_q_boot.append(np.array([merr_boot[_i,1], serr_boot[_i,1], werr_boot[_i,1]]))
-                if i_ints[_i] is not None: 
-                    for ii, _tt_int, _tt_int_boot in zip(range(len(i_ints[_i])), [tt_int, tt_int1, tt_int2], [tt_int_boot, tt_int1_boot, tt_int2_boot]): 
-                        _tt_int.append(np.array([logm_med, m_gmm[_i,2+ii], s_gmm[_i,2+ii], w_gmm[_i,2+ii]]))
-                        _tt_int_boot.append(np.array([merr_boot[_i,2+ii], serr_boot[_i,2+ii], werr_boot[_i,2+ii]]))
-                if i_sbs[_i] is not None: 
-                    for ii, _tt_sbs, _tt_sbs_boot in zip(range(len(i_sbs[_i])), [tt_sbs, tt_sbs1, tt_sbs2], [tt_sbs_boot, tt_sbs1_boot, tt_sbs2_boot]): 
-                        _tt_sbs.append(np.array([logm_med, m_gmm[_i,5+ii], s_gmm[_i,5+ii], w_gmm[_i,5+ii]])) 
-                        _tt_sbs_boot.append(np.array([merr_boot[_i,5+ii], serr_boot[_i,5+ii], werr_boot[_i,5+ii]]))
-
-            self._theta_sfs = np.array(tt_sfs) 
-            self._err_sfs = np.array(tt_sfs_boot) 
-            self._theta_q = np.array(tt_q) 
-            self._err_q = np.array(tt_q_boot) 
-            self._theta_int = np.array(tt_int) 
-            self._err_int = np.array(tt_int_boot) 
-            self._theta_int1 = np.array(tt_int1) 
-            self._err_int1 = np.array(tt_int1_boot) 
-            self._theta_int2 = np.array(tt_int2) 
-            self._err_int2 = np.array(tt_int2_boot) 
-            self._theta_sbs = np.array(tt_sbs) 
-            self._err_sbs = np.array(tt_sbs_boot) 
-            self._theta_sbs1 = np.array(tt_sbs1) 
-            self._err_sbs1 = np.array(tt_sbs1_boot) 
-            self._theta_sbs2 = np.array(tt_sbs2) 
-            self._err_sbs2 = np.array(tt_sbs2_boot) 
+            self.GMMfit()
         else: 
             raise NotImplementedError
 
@@ -300,23 +141,141 @@ class fstarforms(object):
         self._fit_logsfr = self._fit_logm + self._fit_logssfr
         self._fit_err_logssfr = self._err_sfs[:,1] 
         return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
+    
+    def _GMMfit(self, logmstar, logsfr, max_comp=max_comp, slope_prior=slope_prior): 
+        ''' First fit the p(log SSFR) distributions of each logM* bin using
+        a Guassian mixture model with at most `max_comp` components and some
+        common sense priors, which are based on the fact that the SFS is 
+        roughly a log-normal distribution. Afterwards, the SFS is identified 
+        using `self._GMM_compID`. 
 
-    def _GMM_pssfr(self, logmstar, logsfr, mbins, max_comp=3, n_bootstrap=10): 
+
+        This method does not require a log(SSFR) cut like gaussfit and negbinomfit 
+        and can be flexibly applied to a wide range of SSFR distributions.
+        '''
+        # fit GMMs 
+        logm_median, gbests, nbests, _gmms, _bics = \
+                self._GMMfit_bins(logmstar, logsfr, self._mbins[self._mbins_nbinthresh,:], max_comp=max_comp)
+
+        self._gbests = gbests # best-fit GMMs
+        self._nbests = nbests # number of components in the best-fit GMMs 
+        self._gmms = _gmms # all the GMMs
+        self._bics = _bics # all the BICs
+
+        # identify the SFS and other components from the best-fit GMMs 
+        icomps = self._GMM_compID(gbests, logm_median, slope_prior=slope_prior) # i_sfs's, i_q's, i_int's, i_sb's     
+        i_sfss, i_qs, i_ints, i_sbs = icomps 
+
+        m_gmm, s_gmm, w_gmm = _GMM_comps_msw(gbests, icomps)
+
+        # get bootstrap errors for all GMM parameters
+        m_gmm_boot, s_gmm_boot, w_gmm_boot = [], [], []  # positions, widths, and weights of the bootstrap GMMs  
+        for ibs in range(n_bootstrap): 
+            # resample the data w/ replacement 
+            i_boot = np.random.choice(np.arange(len(logmstar)), size=len(logmstar), replace=True) 
+            # fit GMMs with n_best components 
+            gboots = self._GMMfit_bins_nbest(logmstar[i_boot], logsfr[i_boot], nbests)
+            # identify the components 
+            icomps_boot = self._GMM_compID(gboots, logm_median, slope_prior=slope_prior) # i_sfs's, i_q's, i_int's, i_sb's     
+            
+            _m_gmm_boot, _s_gmm_boot, _w_gmm_boot = _GMM_comps_msw(gboots, icomps_boot)
+            m_gmm_boot.append(_m_gmm_boot) 
+            s_gmm_boot.append(_s_gmm_boot) 
+            w_gmm_boot.append(_w_gmm_boot) 
+        m_gmm_boot = np.array(m_gmm_boot)
+        s_gmm_boot = np.array(s_gmm_boot)
+        w_gmm_boot = np.array(w_gmm_boot)
+        
+        # now loop through the logM* bins and calculate bootstrap uncertainties 
+        merr_boot = np.tile(-999., (len(gbests), 8))
+        serr_boot = np.tile(-999., (len(gbests), 8))
+        werr_boot = np.tile(-999., (len(gbests), 8))
+        for i in range(len(gbests)): 
+            for icomp, comp in zip([0, 1, 2, 5], [i_sfss, i_qs, i_ints, i_sbs]):
+                if comp[i] is None:
+                    continue 
+                if icomp <= 1: 
+                    hascomp = (m_gmm_boot[:,i,icomp] != -999.) 
+                    merr_boot[i,icomp] = np.std(m_gmm_boot[hascomp,i,icomp]) 
+                    serr_boot[i,icomp] = np.std(s_gmm_boot[hascomp,i,icomp]) 
+                    werr_boot[i,icomp] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp], np.zeros(np.sum(~hascomp))]))
+                else: 
+                    for ii in range(len(comp[i])): 
+                        hascomp = (m_gmm_boot[:,i,icomp+ii] != -999.) 
+                        merr_boot[i,icomp+ii] = np.std(m_gmm_boot[hascomp,i,icomp+ii]) 
+                        serr_boot[i,icomp+ii] = np.std(s_gmm_boot[hascomp,i,icomp+ii]) 
+                        werr_boot[i,icomp+ii] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp+ii], np.zeros(np.sum(~hascomp))]))
+
+        tt_sfs  = [] # logM*, mu, sigma, weight of bestfit GMM  
+        tt_q    = [] 
+        tt_int  = [] 
+        tt_int1 = [] 
+        tt_int2 = [] 
+        tt_sbs  = [] 
+        tt_sbs1 = [] 
+        tt_sbs2 = [] 
+        tt_sfs_boot     = [] # mu_err, sigma_err, weight_err from boostrap 
+        tt_q_boot       = [] 
+        tt_int_boot     = [] 
+        tt_int1_boot    = [] 
+        tt_int2_boot    = [] 
+        tt_sbs_boot     = [] 
+        tt_sbs1_boot    = [] 
+        tt_sbs2_boot    = [] 
+        for _i, logm_med in enumerate(logm_median): 
+            if i_sfss[_i] is not None: 
+                tt_sfs.append(np.array([logm_med, m_gmm[_i,0], s_gmm[_i,0], w_gmm[_i,0]]))
+                tt_sfs_boot.append(np.array([merr_boot[_i,0], serr_boot[_i,0], werr_boot[_i,0]]))
+            if i_qs[_i] is not None: 
+                tt_q.append(np.array([logm_med, m_gmm[_i,1], s_gmm[_i,1], w_gmm[_i,1]]))
+                tt_q_boot.append(np.array([merr_boot[_i,1], serr_boot[_i,1], werr_boot[_i,1]]))
+            if i_ints[_i] is not None: 
+                for ii, _tt_int, _tt_int_boot in zip(range(len(i_ints[_i])), [tt_int, tt_int1, tt_int2], [tt_int_boot, tt_int1_boot, tt_int2_boot]): 
+                    _tt_int.append(np.array([logm_med, m_gmm[_i,2+ii], s_gmm[_i,2+ii], w_gmm[_i,2+ii]]))
+                    _tt_int_boot.append(np.array([merr_boot[_i,2+ii], serr_boot[_i,2+ii], werr_boot[_i,2+ii]]))
+            if i_sbs[_i] is not None: 
+                for ii, _tt_sbs, _tt_sbs_boot in zip(range(len(i_sbs[_i])), [tt_sbs, tt_sbs1, tt_sbs2], [tt_sbs_boot, tt_sbs1_boot, tt_sbs2_boot]): 
+                    _tt_sbs.append(np.array([logm_med, m_gmm[_i,5+ii], s_gmm[_i,5+ii], w_gmm[_i,5+ii]])) 
+                    _tt_sbs_boot.append(np.array([merr_boot[_i,5+ii], serr_boot[_i,5+ii], werr_boot[_i,5+ii]]))
+
+        self._theta_sfs     = np.array(tt_sfs) 
+        self._err_sfs       = np.array(tt_sfs_boot) 
+        self._theta_q       = np.array(tt_q) 
+        self._err_q         = np.array(tt_q_boot) 
+        self._theta_int     = np.array(tt_int) 
+        self._err_int       = np.array(tt_int_boot) 
+        self._theta_int1    = np.array(tt_int1) 
+        self._err_int1      = np.array(tt_int1_boot) 
+        self._theta_int2    = np.array(tt_int2) 
+        self._err_int2      = np.array(tt_int2_boot) 
+        self._theta_sbs     = np.array(tt_sbs) 
+        self._err_sbs       = np.array(tt_sbs_boot) 
+        self._theta_sbs1    = np.array(tt_sbs1) 
+        self._err_sbs1      = np.array(tt_sbs1_boot) 
+        self._theta_sbs2    = np.array(tt_sbs2) 
+        self._err_sbs2      = np.array(tt_sbs2_boot) 
+        return None 
+
+    def _GMMfit_bins(self, logmstar, logsfr, max_comp=3): 
         ''' Fit GMM components to P(SSFR) of given data and return best-fit
         '''
-        fit_logm = [] 
-        gbests, nbests = [], [] 
-        _gmms, _bics = [], [] 
+        n_bin = self._mbins.shape[0] # number of stellar mass bins.
+    
+        # sort logM* into M* bins
+        i_bins = np.digitize(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,0]]))
+    
+        bin_mid, gbests, nbests, _gmms, _bics = [], [], [], [], [] 
 
-        # loop through log M* bins  
-        for i in range(mbins.shape[0]): 
-            in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
+        # fit GMM to p(SSFR) in each log M* bins  
+        for i in range(n_bin): 
+            # if there are not enough galaxies 
+            if not self._has_nbinthresh[i]: continue 
+            in_bin = (i_bins == i)  
 
             x = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
             x = np.reshape(x, (-1,1))
 
-            # save the SFS log M* and log SSFR values 
-            fit_logm.append(np.median(logmstar[in_mbin])) 
+            bin_mid.append(np.median(logmstar[in_bin])) 
             
             # fit GMMs with a range of components 
             ncomps = range(1, max_comp+1)
@@ -337,17 +296,25 @@ class fstarforms(object):
             gbests.append(gbest)
             _gmms.append(gmms) 
             _bics.append(bics)
-
-        return fit_logm, gbests, nbests, _gmms, _bics
+        
+        if bin_mid[0] > 10.: 
+            warnings.warn("The lowest M* bin is greater than 10^10, this may compromise the SFS identification scheme") 
+        return bin_mid, gbests, nbests, _gmms, _bics
     
-    def _GMM_pssfr_nbest(self, logmstar, logsfr, mbins, nbests=None): 
+    def _GMMfit_bins_nbest(self, logmstar, logsfr, nbests): 
         ''' Fit GMM components to P(SSFR) of given data and return best-fit
         '''
+        n_bin = self._mbins.shape[0]
+        i_bins = np.digitize(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,0]]))
+
         gmms = [] 
-        for i in range(mbins.shape[0]): # log M* bins  
-            in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
-            X = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
-            X = np.reshape(X, (-1,1))
+        for i in range(n_bin): 
+            # if there are not enough galaxies 
+            if not self._has_nbinthresh[i]: continue 
+            in_bin = (i_bins == i)  
+
+            x = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+            x = np.reshape(x, (-1,1))
     
             gmm = GMix(n_components=nbests[i])
             gmm.fit(X)
@@ -355,7 +322,7 @@ class fstarforms(object):
             gmms.append(gmm) 
         return gmms
 
-    def _GMM_compID(self, gbests, dev_thresh=0.5): 
+    def _GMM_compID(self, gbests, logm, slope_prior=[0., 2.]): 
         ''' Given the best-fit GMMs for all the stellar mass bins, identify the SFS 
         and the other components. STarting from the lowest M* bin, we identify
         the SFS based on the highest weight component. Then in the next M* bin, we 
@@ -363,25 +330,27 @@ class fstarforms(object):
         of the previous M* bin. 
         '''
         i_sfss, i_qs, i_ints, i_sbs = [], [], [], [] 
-        for ibin, gbest in enumerate(gbests): 
-            mu_gbest = gbest.means_.flatten()
-            w_gbest  = gbest.weights_
-            n_gbest  = len(mu_gbest) 
+        for ibin, gmm in enumerate(gbests): 
+            mu_gmm = gmm.means_.flatten()
+            w_gmm  = gmm.weights_
+            n_gmm  = len(mu_gmm) 
 
             i_sfs, i_q, i_int, i_sb = None, None, None, None
+
             if ibin == 0: # lowest M* bin SFS is the highest weight bin 
-                i_sfs = np.argmax(w_gbest)
-                mu_sfs_im1 = mu_gbest[i_sfs]
+                i_sfs       = np.argmax(w_gmm)
+                mu_sfs_im1  = mu_gmm[i_sfs]
+                logm_im1    = logm[ibin]
             else: 
-                i_sfs = np.argmax(w_gbest)
-                i_comps = np.ones(n_gbest).astype(bool) 
-                if np.abs(mu_gbest - mu_sfs_im1).min() < dev_thresh: 
-                    while np.abs(mu_gbest[i_sfs] - mu_sfs_im1) > dev_thresh:  
-                        i_comps = (i_comps & (np.arange(n_gbest) != i_sfs))
-                        i_sfs = np.arange(n_gbest)[w_gbest == np.max(w_gbest[i_comps])]
-                    mu_sfs_im1 = mu_gbest[i_sfs]
-                else: 
-                    i_sfs = None 
+                # only GMMs with SFRs within the SFS slope priors can be 
+                # selected as SFS component.
+                dlogm = logm[ibin] - logm_im1 
+                ssfr_range = [dlogm * (slope_prior[0] - 1.), dlogm * (slope_prior[1] - 1.)] # the -1 comes from converting to SSFR
+
+                potential_sfs = ((mu_gbest > mu_sfs_im1 + sfr_range[0]) & (mu_gbest < mu_sfs_im1 + sfr_range[1]))
+                if np.sum(potential_sfs) > 0: 
+                    # select GMM with the highest weight within the bins 
+                    i_sfs = (np.arange(n_gbest)[potential_sfs])[w_gbest[potential_sfs].argmax()]
         
             # if there's a component with high SFR than SFMS -- i.e. star-burst 
             if i_sfs is not None: 
@@ -410,6 +379,38 @@ class fstarforms(object):
             i_ints.append(i_int) 
             i_sbs.append(i_sb) 
         return i_sfss, i_qs, i_ints, i_sbs
+
+    def _GMM_comps_msw(self, bests, icomps): 
+        ''' given the best fit GMMs and the component indices, put them into arrays
+        '''
+        i_sfss, i_qs, i_ints, i_sbs = icomps 
+
+        m_gmm = np.tile(-999., (len(gbests), 8)) # positions of the best-fit GMM components in each of the logM* bins 
+        s_gmm = np.tile(-999., (len(gbests), 8)) # width of the best-fit GMM components in each of the logM* bins 
+        w_gmm = np.tile(-999., (len(gbests), 8)) # weights of the best-fit GMM components in each of the logM* bins 
+
+        for i, i0, i1, i2, i3 in zip(range(len(gbests)), i_sfss, i_qs, i_ints, i_sbs): 
+            if i0 is not None:
+                m_gmm[i,0] = gbests[i].means_.flatten()[i0]
+                s_gmm[i,0] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i0]))
+                w_gmm[i,0] = gbests[i].weights_[i0]
+            if i1 is not None:
+                m_gmm[i,1] = gbests[i].means_.flatten()[i1]
+                s_gmm[i,1] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i1]))
+                w_gmm[i,1] = gbests[i].weights_[i1]
+            if i2 is not None:
+                assert len(i2) <= 3
+                for ii, i2i in enumerate(i2): 
+                    m_gmm[i,2+ii] = gbests[i].means_.flatten()[i2i]
+                    s_gmm[i,2+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i2i]))
+                    w_gmm[i,2+ii] = gbests[i].weights_[i2i]
+            if i3 is not None:
+                assert len(i3) <= 3
+                for ii, i3i in enumerate(i3): 
+                    m_gmm[i,5+ii] = gbests[i].means_.flatten()[i3i]
+                    s_gmm[i,5+ii] = np.sqrt(UT.flatten(gbests[i].covariances_.flatten()[i3i]))
+                    w_gmm[i,5+ii] = gbests[i].weights_[i3i]
+        return m_gmm, s_gmm, w_gmm 
 
     def powerlaw(self, logMfid=None, mlim=None, silent=True): 
         ''' Find the best-fit power-law parameterization of the 
@@ -602,8 +603,8 @@ class fstarforms(object):
                 i_sb = np.arange(n_gbest)[above_sfms]
         return [i_sfms, i_q, i_int, i_sb] 
     
-    def _check_input(self, logmstar, logsfr): 
-        ''' check that input logMstar or logSFR values do not make sense!
+    def _check_input(self, logmstar, logsfr, logsfr_err): 
+        ''' check whether input logMstar or logSFR values make sense!
         '''
         if len(logmstar) != len(logsfr): 
             raise ValueError("logmstar and logsfr are not the same length arrays") 
@@ -613,222 +614,17 @@ class fstarforms(object):
             warnings.warn("There are galaxies with log M* > 13. ... that's weird") 
         if np.sum(np.invert(np.isfinite(logsfr))) > 0: 
             raise ValueError("There are non-finite log SFR values")  
-        return None 
-
-    def _fit(self, logmstar, logsfr, logsfr_err=None, method=None, fit_range=None, dlogm=0.2,
-            Nbin_thresh=100, SSFR_cut=None, max_comp=3, fit_error=None, n_bootstrap=None,
-            silent=False): 
-        '''Given log SFR and log Mstar values of a galaxy population, 
-        return the power-law best fit to the SFMS. After some initial 
-        common sense cuts, P(log SSFR) in bins of stellar mass are fit 
-        using specified method. 
-
-        Parameters
-        ----------
-        logmstar : (np.array) 
-            log stellar mass of galaxy population 
-
-        logsfr : (np.array) 
-            log sfr of galaxy population 
-
-        method : (str)
-            string specifying the method of the fit. Options are
-            ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err'].
-            'gaussmix' uses Gaussian Mixture Models to fit the P(SSFR) distribution. 
-            'gaussmix_err' uses Gaussian Mixture Models *but* accounts for uncertainty
-            in the SFRs. 
-
-        fit_range : (list) 
-            Optional. 2 element list specifying the fitting stellar
-            mass range -- [logM*_min, logM*_max]
-
-        dlogm : (float) 
-            Optional. Default 0.2 dex. Width of logM* bins. 
-
-        Nbin_thresh : (float)
-            Optional. Default is 100. If a logM* bin has less than 
-            100 galaxies, the bin is omitted. 
-
-        SSFR_cut : (float or function) 
-            Optional. Some SSFR cut to impose on the galaxy population
-            before doing the fitting. For 'gaussfit' and 'negbinomfit' 
-            default SSFR_cut is logSSFR > -11.
-
-        fit_error : 
-            Optional. Default is None. If specified, estimates the error
-            in the fit using either boostrap (fit_error='bootstrap') or 
-            jackknifing (fit_error='jackknife') 
-
-        n_bootstrap : 
-            Optional. If fit_error='bootstrap' specify, the number of 
-            bootstrap samples. 
-
-        Returns 
-        -------
-        fit_logm, fit_logsfr : (array, array)
-             
-        Notes
-        -----
-        - Since the inputs are logM* and logSFR, SFR=0 is by construction 
-        not accepted. 
-            
-        References
-        ---------- 
-        - Bluck et al., 2016 (arXiv:1607.03318)
-        - Feldmann, 2017 (arXiv:1705.03014) 
-        - Bisigello et al., 2017 (arXiv: 1706.06154)
-        Gaussian Mixture Modelling: 
-        - Kuhn and Feigelson, 2017 (arXiv:1711.11101) 
-        - McLachlan and Peel, 2000
-        - Lloyd, 1982 (k-means algorithm)
-        - Dempster, Laird, Rubin, 1977 (EM algoritmh) 
-        - Wu, 1983 (EM convergence) 
-        '''
-        self._check_input(logmstar, logsfr)  # check the logmstar and logsfr inputs 
         if logsfr_err is not None: 
-            if np.sum(np.invert(np.isfinite(logsfr_err))) > 0: 
+            if not np.all(np.isfinite(logsfr_err)): 
                 raise ValueError("There are non-finite log SFR error values")  
-
-        if method not in ['logMbin_extrap', 'gaussfit', 'negbinomfit', 'gaussmix', 'gaussmix_err']: 
-            raise ValueError(method+" is not one of the methods!") 
-        self._fit_method = method 
-
-        if fit_error is not None: 
-            if fit_error not in ['bootstrap', 'jackknife']: 
-                raise ValueError("fitting currently only supports fit_error=bootstrap or jackknife") 
-
-        if method == 'gaussmix_err' and fit_error is not None: 
-            raise NotImplementedError("error estimation for gaussian mixture model fitting"+\
-                    " using extreme deconvolution is currently not supported. Considering how long"+\
-                    "extreme deconvolution takes, not sure if it should be...")  
-
-        if fit_range is None: 
-            # if fitting M* range is not specified, use all the galaxies
-            # the fit range will be a bit padded. 
-            if method == 'lowMbin_extrap': 
-                warnings.warn('Specify fitting range of lowMbin_extrap '+\
-                        'fit method will return garbage') 
-            fit_range = [int(logmstar.min()/dlogm)*dlogm, np.ceil(logmstar.max()/dlogm)*dlogm]
-
-        mass_cut = (logmstar > fit_range[0]) & (logmstar < fit_range[1])
-        if np.sum(mass_cut) == 0: 
-            print("trying to fit SFMS over range %f < log M* < %f" % (fit_range[0], fit_range[1]))
-            print("input spans %f < log M* < %f" % (logmstar.min(), logmstar.max()))
-            raise ValueError("no galaxies within that cut!")
-        # log M* binning 
-        mbin_low = np.arange(fit_range[0], fit_range[1], dlogm)
-        mbin_high = mbin_low + dlogm
-        mbins = np.array([mbin_low, mbin_high]).T
-        self._mbins = mbins
-        self._mbins_nbinthresh = np.ones(mbins.shape[0]).astype(bool)
-        self._mbins_sfs = np.ones(mbins.shape[0]).astype(bool)
-        self._dlogm = dlogm
-        self._Nbin_thresh = Nbin_thresh
-
-        if 'gaussmix' in method:
-            # for each logM* bin, fit P(log SSFR) distribution using a Gaussian mixture model 
-            # with at most 3 components and some common sense priors based on the fact
-            # that SFMS is roughly a log-normal distribution. This does not require a log(SSFR) 
-            # cut like gaussfit and negbinomfit and can be flexibly applied to a wide range of 
-            # SSFR distributions.
-            if (method == 'gaussmix_err') and  (logsfr_err is None): 
-                raise ValueError("This method requires logSFR errors") 
-
-            fit_logm = [] 
-            fit_logssfr, fit_sig_logssfr = [], [] # mean and variance of the SFMS component
-            if fit_error is not None: fit_err_logssfr, fit_err_sig_logssfr = [], [] # uncertainty in the mean and variance
-            gbests = []
-            _gmms, _bics = [], [] 
-            for i in range(mbins.shape[0]): # log M* bins  
-                in_mbin = (logmstar > mbins[i,0]) & (logmstar < mbins[i,1])
-
-                X = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
-                X = np.reshape(X, (-1,1))
-                if method == 'gaussmix_err':
-                    # error bars on of logSFR
-                    Xerr = logsfr_err[in_mbin] 
-                    Xerr = np.reshape(Xerr, (-1,1,1))
-
-                if np.sum(in_mbin) < Nbin_thresh: # not enough galaxies
-                    self._mbins_nbinthresh[i] = False
-                    continue
-
-                n_comps = range(1, max_comp+1)# [1,2,3] default max_comp = 3
-                gmms, bics = [], []  
-                for i_n, n in enumerate(n_comps): 
-                    if method == 'gaussmix': 
-                        gmm = GMix(n_components=n)
-                        gmm.fit(X)
-                        bics.append(gmm.bic(X)) # bayesian information criteria
-                    elif method == 'gaussmix_err': 
-                        gmm =xdGMM(n_components=n)
-                        gmm.fit(X, Xerr)
-                        bics.append(gmm.bic(X, Xerr)) # bayesian information criteria
-                    gmms.append(gmm)
-
-                # components with the lowest BIC (preferred)
-                i_best = np.array(bics).argmin()
-                n_best = n_comps[i_best] # number of components of the best-fit 
-                gbest = gmms[i_best] # best fit GMM 
-                
-                # save the best gmm, all the gmms, and bics 
-                gbests.append(gbest)
-                _gmms.append(gmms) 
-                _bics.append(bics)
-
-                # identify the different components
-                i_sfms, i_q, i_int, i_sb = self._GMM_idcomp(gbest, SSFR_cut=SSFR_cut, silent=True)
+        return None 
     
-                if i_sfms is None: 
-                    self._mbins_sfs[i] = False 
-                    continue 
-                
-                # save the SFMS log M* and log SSFR values 
-                fit_logm.append(np.median(logmstar[in_mbin])) 
-                fit_logssfr.append(UT.flatten(gbest.means_.flatten()[i_sfms]))
-                fit_sig_logssfr.append(np.sqrt(UT.flatten(gbest.covariances_.flatten()[i_sfms])))
-
-                # calculate the uncertainty of logSSFR fit 
-                if fit_error is None: 
-                    pass 
-                elif fit_error == 'bootstrap': 
-                    # using bootstrap resampling 
-                    boot_mu_logssfr, boot_sig_logssfr = [], []
-                    for i_boot in range(n_bootstrap): 
-                        # resample the data w/ replacement 
-                        X_boot = np.random.choice(X.flatten(), size=len(X), replace=True) 
-                        gmm_boot = GMix(n_components=n_best)
-                        gmm_boot.fit(X_boot.reshape(-1,1))
-                
-                        i_sfms_boot, _, _, _ = self._GMM_idcomp(gmm_boot, SSFR_cut=SSFR_cut, silent=True)
-                        if i_sfms_boot is None: 
-                            continue 
-                        boot_mu_logssfr.append(UT.flatten(gmm_boot.means_.flatten()[i_sfms_boot]))
-                        boot_sig_logssfr.append(np.sqrt(UT.flatten(gmm_boot.covariances_.flatten()[i_sfms_boot])))
-                    fit_err_logssfr.append(np.std(np.array(boot_mu_logssfr)))
-                    fit_err_sig_logssfr.append(np.std(np.array(boot_sig_logssfr)))
-                else: 
-                    raise NotImplementedError("not yet implemented") 
-                
-            self._gbests = gbests # save the bestfit GMM  
-            self._gmms = _gmms
-            self._bics = _bics
-        else: 
-            raise NotImplementedError
-
-        # save the fit ssfr and logm 
-        self._fit_logm = np.array(fit_logm)  
-        self._fit_logssfr = np.array(fit_logssfr)  
-        self._fit_logsfr = self._fit_logm + self._fit_logssfr
-        self._fit_sig_logssfr = np.array(fit_sig_logssfr)
-        if fit_error is None: 
-            self._fit_err_logssfr = None 
-            self._fit_err_sig_logssfr = None
-            return [self._fit_logm, self._fit_logsfr]
-        else: 
-            self._fit_err_logssfr = np.array(fit_err_logssfr) 
-            self._fit_err_sig_logssfr = np.array(fit_err_sig_logssfr)
-            return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
+    def _get_mbin(self, logMmin, logMmax, dlogm):  
+        ''' return log M* binning  
+        '''
+        mbin_low = np.arange(logMmin, logMmax, dlogm)
+        mbin_high = mbin_low + dlogm
+        return np.array([mbin_low, mbin_high]).T
 
 
 class xdGMM(object): 
