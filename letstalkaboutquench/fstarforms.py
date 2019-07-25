@@ -154,7 +154,8 @@ class fstarforms(object):
         '''
         # fit GMMs 
         logm_median, gbests, nbests, _gmms, _bics = self._GMMfit_bins(logmstar, logsfr, max_comp=max_comp)
-
+    
+        self._mbins_median = logm_median
         self._gbests = gbests # best-fit GMMs
         self._nbests = nbests # number of components in the best-fit GMMs 
         self._gmms = _gmms # all the GMMs
@@ -165,6 +166,15 @@ class fstarforms(object):
         i_sfss, i_qs, i_ints, i_sbs = icomps 
 
         m_gmm, s_gmm, w_gmm = self._GMM_comps_msw(gbests, icomps)
+
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
+        ####### fix bootstrap errors ########
 
         # get bootstrap errors for all GMM parameters
         m_gmm_boot, s_gmm_boot, w_gmm_boot = [], [], []  # positions, widths, and weights of the bootstrap GMMs  
