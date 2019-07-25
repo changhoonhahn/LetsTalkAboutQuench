@@ -34,7 +34,7 @@ zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
 zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
 dir_fig = os.path.join(UT.doc_dir(), 'highz', 'figs') 
 
-def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, dev_thresh=0.5, overwrite=False): 
+def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], overwrite=False): 
     """ fit SFS to the SFR-M* relation of `name` catalog `i_z` redshift bin 
     
     :param name: 
@@ -58,7 +58,8 @@ def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, dev_thr
     """
     f_dat = fHighz(name, i_z, censat=censat, noise=noise, seed=seed)
     f_sfs =  os.path.join(os.path.dirname(f_dat), 
-                          'SFSfit_%s.dlogM%.1f.devthresh%.1f.p' % (os.path.basename(f_dat).strip('.txt'), dlogM, dev_thresh))
+                          'SFSfit_%s.dlogM%.1f.slope_prior_%.1f_%.1f.p' % 
+                          (os.path.basename(f_dat).strip('.txt'), dlogM, slope_prior[0], slope_prior[1]))
     
     if os.path.isfile(f_sfs) and not overwrite: 
         fSFS = pickle.load(open(f_sfs, 'rb'))
@@ -67,14 +68,13 @@ def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, dev_thr
         cut = (cs & notzero) 
 
         # fit the SFMS
-        fSFS = fstarforms()
+        fSFS = fstarforms(fit_range=[8.5, 12.0]) # stellar mass range
         sfs_fit = fSFS.fit(logm[cut], logsfr[cut], 
                 method='gaussmix',      # Gaussian Mixture Model fitting 
-                fit_range=[8.5, 12.0],  # stellar mass range
                 dlogm = dlogM,          # stellar mass bins of 0.4 dex
-                dev_thresh = dev_thresh, 
+                slope_prior = slope_prior, 
                 Nbin_thresh=100,        # at least 100 galaxies in bin 
-                fit_error='bootstrap',  # uncertainty estimate method 
+                error_method='bootstrap',  # uncertainty estimate method 
                 n_bootstrap=100)        # number of bootstrap bins
         pickle.dump(fSFS, open(f_sfs, 'wb'))
     return fSFS
@@ -330,7 +330,7 @@ def candels():
     fig.savefig(fig_name, bbox_inches='tight')
 
 
-def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, dev_thresh=0.5, seed=1): 
+def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.], seed=1): 
     """ p(log SSFR) distribution 
     """
     logm, logsfr, cs, notzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
@@ -338,9 +338,9 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, dev_thresh=0.5, seed=
     cut = (cs & notzero) 
 
     # fit the SFS
-    fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, dev_thresh=dev_thresh)
-    mbins = fSFS._mbins[fSFS._mbins_sfs]
-    nmbin = np.sum(fSFS._mbins_sfs)
+    fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
+    mbins = fSFS._mbins#[fSFS._mbins_sfs]
+    nmbin = len(mbins)#np.sum(fSFS._mbins_sfs)
     nrow, ncol = 2, int(np.ceil(0.5*nmbin))
 
     fig = plt.figure(figsize=(5*ncol,5*nrow))
@@ -352,25 +352,30 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, dev_thresh=0.5, seed=
         _ = sub.hist(logssfr[inmbin], bins=40, 
                 range=[-14., -8.], density=True, histtype='stepfilled', 
                 color='k', alpha=0.25, linewidth=1.75)
-    
-        i_mbin = np.where((fSFS._fit_logm > mbins[imbin][0]) & (fSFS._fit_logm < mbins[imbin][1]))[0][0]
-        gmm_ws = fSFS._gbests[i_mbin].weights_.flatten()
-        gmm_mus = fSFS._gbests[i_mbin].means_.flatten()
-        gmm_vars = fSFS._gbests[i_mbin].covariances_.flatten()
-        icomps = fSFS._GMM_idcomp(fSFS._gbests[i_mbin], SSFR_cut=-11.)
-        isfs = icomps[0]
         
-        x_ssfr = np.linspace(-14., -8, 100)
-        for icomp in range(len(gmm_mus)):  
-            sub.plot(x_ssfr, gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]), c='k', lw=0.75, ls=':') 
-        sub.plot(x_ssfr, gmm_ws[isfs] * MNorm.pdf(x_ssfr, gmm_mus[isfs], gmm_vars[isfs]), c='b', lw=1, ls='-') 
+        if np.sum((fSFS._fit_logm > mbins[imbin][0]) & (fSFS._fit_logm < mbins[imbin][1])) > 0: 
+            i_mbin = np.where((fSFS._fit_logm > mbins[imbin][0]) & (fSFS._fit_logm < mbins[imbin][1]))[0][0]
+            gmm_ws = fSFS._gbests[i_mbin].weights_.flatten()
+            gmm_mus = fSFS._gbests[i_mbin].means_.flatten()
+            gmm_vars = fSFS._gbests[i_mbin].covariances_.flatten()
+            icomps = fSFS._GMM_idcomp(fSFS._gbests[i_mbin], SSFR_cut=-11.)
+            isfs = icomps[0]
+            
+            x_ssfr = np.linspace(-14., -8, 100)
+            for icomp in range(len(gmm_mus)):  
+                sub.plot(x_ssfr, gmm_ws[icomp] * MNorm.pdf(x_ssfr, gmm_mus[icomp], gmm_vars[icomp]), c='k', lw=0.75, ls=':') 
+            if isfs is not None: 
+                sub.plot(x_ssfr, gmm_ws[isfs] * MNorm.pdf(x_ssfr, gmm_mus[isfs], gmm_vars[isfs]), c='b', lw=1, ls='-') 
         sub.legend(loc='upper left', prop={'size':15}) 
         sub.set_xlim([-13.6, -8.]) 
         
         if imbin == 0:
-            sub.text(0.05, 0.95, '%s\n $%.1f < z < %.1f$' % (' '.join(name.upper().split('_')), zlo[i_z-1], zhi[i_z-1]),
-                    ha='left', va='top', transform=sub.transAxes, fontsize=20)
-        sub.set_title('%.1f $<$ log $M_* <$ %.1f' % (mbins[imbin][0], mbins[imbin][1]), fontsize=25)
+            sub.text(0.05, 0.95, 
+                    '%s\n $%.1f < z < %.1f$' % (' '.join(name.upper().split('_')), zlo[i_z-1], zhi[i_z-1]),
+                    ha='left', va='top', transform=sub.transAxes, fontsize=15)
+        sub.text(0.05, 0.05, r'$N_{\rm gal} = %i$' % (np.sum(inmbin)), 
+                ha='left', va='bottom', transform=sub.transAxes, fontsize=15)
+        sub.set_title('%.1f $<$ log $M_* <$ %.1f' % (mbins[imbin][0], mbins[imbin][1]), fontsize=15)
 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel('log$(\; \mathrm{SSFR}\; [\mathrm{yr}^{-1}]\;)$', labelpad=5, fontsize=25) 
@@ -378,7 +383,8 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, dev_thresh=0.5, seed=
             labelpad=5, fontsize=25)
     #fig.subplots_adjust(wspace=0.1, hspace=0.075)
 
-    ffig = os.path.join(dir_fig, '%s_z%i_%s_pssfr.dlogM%.1f.devthresh%.1f.pdf' % (name.lower(), i_z, censat, dlogM, dev_thresh))
+    ffig = os.path.join(dir_fig, '%s_z%i_%s_pssfr.dlogM%.1f.slope_prior%.1f_%.1f.pdf' % 
+            (name.lower(), i_z, censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise.pdf') 
     fig.savefig(ffig, bbox_inches='tight')
     return None 
@@ -1116,11 +1122,8 @@ if __name__=="__main__":
     '''
     for iz in range(1,7): 
         print('--- candels %i of 6 ---' % iz) 
-        for dthresh in [0.5, 0.3]: 
-            _ = highzSFSfit('candels', iz, censat='all', dlogM=0.4, dev_thresh=dthresh, overwrite=True)
-            _ = highzSFSfit('candels', iz, censat='all', dlogM=0.6, dev_thresh=dthresh, overwrite=True)
-            pssfr('candels', iz, censat='all', dlogM=0.4, dev_thresh=dthresh) 
-            pssfr('candels', iz, censat='all', dlogM=0.6, dev_thresh=dthresh) 
+        _ = highzSFSfit('candels', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
+        pssfr('candels', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.]) 
     '''
     # fit SFS for sims  
     '''
@@ -1128,13 +1131,16 @@ if __name__=="__main__":
         for censat in ['all', 'centrals', 'satellites']:
             for iz in range(1,7): 
                 print('--- %s %s %i of 6 ---' % (name, censat, iz)) 
-                for dthresh in [0.5, 0.3]: 
-                    _ = highzSFSfit(name, iz, censat=censat, dlogM=0.4, dev_thresh=dthresh, overwrite=True)
-                    _ = highzSFSfit(name, iz, censat=censat, dlogM=0.6, dev_thresh=dthresh, overwrite=True)
-                    pssfr(name, iz, censat=censat, dlogM=0.4, dev_thresh=dthresh) 
-                    pssfr(name, iz, censat=censat, dlogM=0.6, dev_thresh=dthresh) 
+                _ = highzSFSfit(name, iz, censat=censat, dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
+                pssfr(name, iz, censat=censat, dlogM=0.4, slope_prior=[0., 2.]) 
     '''
     # fit SFS for sims w/ noise 
+    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
+        for censat in ['centrals']:
+            for iz in range(1,7): 
+                print('--- %s %s %i of 6 ---' % (name, censat, iz)) 
+                _ = highzSFSfit(name, iz, censat=censat, noise=True, dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
+                pssfr(name, iz, censat=censat, noise=True, dlogM=0.4, slope_prior=[0., 2.]) 
     '''
     for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
         for censat in ['all', 'centrals', 'satellites']:
@@ -1194,10 +1200,10 @@ if __name__=="__main__":
             fcomp_comparison(noise=False, seed=1, dlogM=0.6, dev_thresh=dthresh)
             fcomp_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
             fcomp_comparison(noise=True, seed=1, dlogM=0.6, dev_thresh=dthresh)
-    ''' 
     # comparison between SAM slice and full 
     for dthresh in [0.5, 0.3]: 
         SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
         SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
         #QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
         #QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
+    ''' 

@@ -122,16 +122,15 @@ class fstarforms(object):
             print("input spans %f < log M* < %f" % (logmstar.min(), logmstar.max()))
             raise ValueError("no galaxies within that cut!")
     
-        self._mbins = _get_mbin(self, logMmin, logMmax, dlogm) # log M* binning 
+        self._mbins = self._get_mbin(self._logM_min, self._logM_max, self._dlogm) # log M* binning 
 
         # log M* bins with more than Nbin_thresh galaxies
-        bin_cnt, _ = np.histogram(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,1]]))
+        bin_cnt, _ = np.histogram(logmstar, bins=np.append(self._mbins[:,0], self._mbins[-1,1]))
         self._has_nbinthresh = (bin_cnt > Nbin_thresh) 
-
         #self._mbins_sfs = self._mbins_nbinthresh.copy() 
 
         if 'gaussmix' in method:
-            self.GMMfit()
+            self._GMMfit(logmstar, logsfr, max_comp=max_comp, slope_prior=slope_prior, n_bootstrap=n_bootstrap)
         else: 
             raise NotImplementedError
 
@@ -142,7 +141,7 @@ class fstarforms(object):
         self._fit_err_logssfr = self._err_sfs[:,1] 
         return [self._fit_logm, self._fit_logsfr, self._fit_err_logssfr]
     
-    def _GMMfit(self, logmstar, logsfr, max_comp=max_comp, slope_prior=slope_prior): 
+    def _GMMfit(self, logmstar, logsfr, max_comp=3, slope_prior=[0., 2.], n_bootstrap=None): 
         ''' First fit the p(log SSFR) distributions of each logM* bin using
         a Guassian mixture model with at most `max_comp` components and some
         common sense priors, which are based on the fact that the SFS is 
@@ -154,8 +153,7 @@ class fstarforms(object):
         and can be flexibly applied to a wide range of SSFR distributions.
         '''
         # fit GMMs 
-        logm_median, gbests, nbests, _gmms, _bics = \
-                self._GMMfit_bins(logmstar, logsfr, self._mbins[self._mbins_nbinthresh,:], max_comp=max_comp)
+        logm_median, gbests, nbests, _gmms, _bics = self._GMMfit_bins(logmstar, logsfr, max_comp=max_comp)
 
         self._gbests = gbests # best-fit GMMs
         self._nbests = nbests # number of components in the best-fit GMMs 
@@ -166,7 +164,7 @@ class fstarforms(object):
         icomps = self._GMM_compID(gbests, logm_median, slope_prior=slope_prior) # i_sfs's, i_q's, i_int's, i_sb's     
         i_sfss, i_qs, i_ints, i_sbs = icomps 
 
-        m_gmm, s_gmm, w_gmm = _GMM_comps_msw(gbests, icomps)
+        m_gmm, s_gmm, w_gmm = self._GMM_comps_msw(gbests, icomps)
 
         # get bootstrap errors for all GMM parameters
         m_gmm_boot, s_gmm_boot, w_gmm_boot = [], [], []  # positions, widths, and weights of the bootstrap GMMs  
@@ -178,7 +176,7 @@ class fstarforms(object):
             # identify the components 
             icomps_boot = self._GMM_compID(gboots, logm_median, slope_prior=slope_prior) # i_sfs's, i_q's, i_int's, i_sb's     
             
-            _m_gmm_boot, _s_gmm_boot, _w_gmm_boot = _GMM_comps_msw(gboots, icomps_boot)
+            _m_gmm_boot, _s_gmm_boot, _w_gmm_boot = self._GMM_comps_msw(gboots, icomps_boot)
             m_gmm_boot.append(_m_gmm_boot) 
             s_gmm_boot.append(_s_gmm_boot) 
             w_gmm_boot.append(_w_gmm_boot) 
@@ -262,7 +260,8 @@ class fstarforms(object):
         n_bin = self._mbins.shape[0] # number of stellar mass bins.
     
         # sort logM* into M* bins
-        i_bins = np.digitize(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,0]]))
+        i_bins = np.digitize(logmstar, np.append(self._mbins[:,0], self._mbins[-1,1]))
+        i_bins -= 1
     
         bin_mid, gbests, nbests, _gmms, _bics = [], [], [], [], [] 
 
@@ -272,7 +271,7 @@ class fstarforms(object):
             if not self._has_nbinthresh[i]: continue 
             in_bin = (i_bins == i)  
 
-            x = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+            x = logsfr[in_bin] - logmstar[in_bin] # logSSFRs
             x = np.reshape(x, (-1,1))
 
             bin_mid.append(np.median(logmstar[in_bin])) 
@@ -305,19 +304,21 @@ class fstarforms(object):
         ''' Fit GMM components to P(SSFR) of given data and return best-fit
         '''
         n_bin = self._mbins.shape[0]
-        i_bins = np.digitize(logmstar, np.concatenate([self._mbins[:,0], self._mbins[-1,0]]))
+        i_bins = np.digitize(logmstar, np.append(self._mbins[:,0], self._mbins[-1,1]))
+        i_bins -= 1 
 
         gmms = [] 
+        ii = 0 
         for i in range(n_bin): 
             # if there are not enough galaxies 
             if not self._has_nbinthresh[i]: continue 
             in_bin = (i_bins == i)  
 
-            x = logsfr[in_mbin] - logmstar[in_mbin] # logSSFRs
+            x = logsfr[in_bin] - logmstar[in_bin] # logSSFRs
             x = np.reshape(x, (-1,1))
     
-            gmm = GMix(n_components=nbests[i])
-            gmm.fit(X)
+            gmm = GMix(n_components=nbests[ii])
+            gmm.fit(x)
             # save the best gmm, all the gmms, and bics 
             gmms.append(gmm) 
         return gmms
@@ -347,40 +348,40 @@ class fstarforms(object):
                 dlogm = logm[ibin] - logm_im1 
                 ssfr_range = [dlogm * (slope_prior[0] - 1.), dlogm * (slope_prior[1] - 1.)] # the -1 comes from converting to SSFR
 
-                potential_sfs = ((mu_gbest > mu_sfs_im1 + sfr_range[0]) & (mu_gbest < mu_sfs_im1 + sfr_range[1]))
+                potential_sfs = ((mu_gmm > mu_sfs_im1 + ssfr_range[0]) & (mu_gmm < mu_sfs_im1 + ssfr_range[1]))
                 if np.sum(potential_sfs) > 0: 
                     # select GMM with the highest weight within the bins 
-                    i_sfs = (np.arange(n_gbest)[potential_sfs])[w_gbest[potential_sfs].argmax()]
+                    i_sfs = (np.arange(n_gmm)[potential_sfs])[w_gmm[potential_sfs].argmax()]
         
             # if there's a component with high SFR than SFMS -- i.e. star-burst 
             if i_sfs is not None: 
-                above_sfs = (mu_gbest > mu_gbest[i_sfs])
+                above_sfs = (mu_gmm > mu_gmm[i_sfs])
                 if np.sum(above_sfs) > 0: 
-                    i_sb = np.arange(n_gbest)[above_sfs]
+                    i_sb = np.arange(n_gmm)[above_sfs]
 
             # lowest SSFR component with SSFR less than SFMS will be designated as the 
             # quenched component 
             if i_sfs is not None: 
-                notsf = (mu_gbest < mu_gbest[i_sfs]) #& (mu_gbest < -11.) 
+                notsf = (mu_gmm < mu_gmm[i_sfs]) #& (mu_gbest < -11.) 
                 if np.sum(notsf) > 0: 
-                    i_q = (np.arange(n_gbest)[notsf])[mu_gbest[notsf].argmin()]
+                    i_q = (np.arange(n_gmm)[notsf])[mu_gmm[notsf].argmin()]
                     # check if there's an intermediate population 
-                    interm = (mu_gbest < mu_gbest[i_sfs]) & (mu_gbest > mu_gbest[i_q]) 
+                    interm = (mu_gmm < mu_gmm[i_sfs]) & (mu_gmm > mu_gmm[i_q]) 
                     if np.sum(interm) > 0: 
-                        i_int = np.arange(n_gbest)[interm]
+                        i_int = np.arange(n_gmm)[interm]
             else: # no SFMS 
-                i_q = (np.arange(n_gbest))[mu_gbest.argmin()]
+                i_q = (np.arange(n_gmm))[mu_gmm.argmin()]
                 # check if there's an intermediate population 
-                interm = (mu_gbest > mu_gbest[i_q]) 
+                interm = (mu_gmm > mu_gmm[i_q]) 
                 if np.sum(interm) > 0: 
-                    i_int = np.arange(n_gbest)[interm]
+                    i_int = np.arange(n_gmm)[interm]
             i_sfss.append(i_sfs)
             i_qs.append(i_q)
             i_ints.append(i_int) 
             i_sbs.append(i_sb) 
         return i_sfss, i_qs, i_ints, i_sbs
 
-    def _GMM_comps_msw(self, bests, icomps): 
+    def _GMM_comps_msw(self, gbests, icomps): 
         ''' given the best fit GMMs and the component indices, put them into arrays
         '''
         i_sfss, i_qs, i_ints, i_sbs = icomps 
