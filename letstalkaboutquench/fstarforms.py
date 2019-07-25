@@ -347,11 +347,17 @@ class fstarforms(object):
                 # selected as SFS component.
                 dlogm = logm[ibin] - logm_im1 
                 ssfr_range = [dlogm * (slope_prior[0] - 1.), dlogm * (slope_prior[1] - 1.)] # the -1 comes from converting to SSFR
+                #print logm_im1, logm[ibin], dlogm 
+                #print mu_sfs_im1 
+                #print ssfr_range[0], ssfr_range[1]
+                #print mu_gmm
 
                 potential_sfs = ((mu_gmm > mu_sfs_im1 + ssfr_range[0]) & (mu_gmm < mu_sfs_im1 + ssfr_range[1]))
                 if np.sum(potential_sfs) > 0: 
                     # select GMM with the highest weight within the bins 
                     i_sfs = (np.arange(n_gmm)[potential_sfs])[w_gmm[potential_sfs].argmax()]
+                    mu_sfs_im1  = mu_gmm[i_sfs]
+                    logm_im1    = logm[ibin]
         
             # if there's a component with high SFR than SFMS -- i.e. star-burst 
             if i_sfs is not None: 
