@@ -344,6 +344,8 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.],
     nrow, ncol = 2, int(np.ceil(0.5*nmbin))
     ii = 0 
 
+    icomps = fSFS._GMM_compID(fSFS._gbests, fSFS._mbins_median, slope_prior=slope_prior)
+
     fig = plt.figure(figsize=(5*ncol,5*nrow))
     bkgd = fig.add_subplot(1,1,1, frameon=False)
     for imbin in range(nmbin): 
@@ -360,7 +362,6 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.],
             gmm_mus = fSFS._gbests[i_mbin].means_.flatten()
             gmm_vars = fSFS._gbests[i_mbin].covariances_.flatten()
 
-            icomps = fSFS._GMM_compID(fSFS._gbests, fSFS._mbins_median, slope_prior=slope_prior)
             isfs = icomps[0][ii]
 
             x_ssfr = np.linspace(-14., -8, 100)
@@ -438,6 +439,8 @@ def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_pri
             'sfr_mstar_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % (censat, dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -498,6 +501,8 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -549,6 +554,8 @@ def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prio
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 ################################################
@@ -718,6 +725,8 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -772,6 +781,8 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
     ffig = os.path.join(dir_fig, 'fq_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -829,6 +840,8 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 ##################################################
@@ -928,7 +941,7 @@ def Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False):
     return None
 
 
-def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, threshold=0.2): 
+def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, slope_prior=[0.,2.], threshold=0.2): 
     ''' determine M_lim stellar mass where the resolution limit of simulations
     impact the SFS fits.
     '''
@@ -945,11 +958,19 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, threshold=0
             isnonzero = (cs & nonzero) 
             iszero = (cs & ~nonzero) 
             # standard SFS fit 
-            sfs_std = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed)
-            sfs_std_sfr = np.zeros(sfs_std._mbins.shape[0]) 
-            sfs_std_sfr[sfs_std._mbins_sfs] = sfs_std._fit_logsfr
-            sfs_std_err_ssfr = np.zeros(sfs_std._mbins.shape[0]) 
-            sfs_std_err_ssfr[sfs_std._mbins_sfs] = sfs_std._fit_err_logssfr
+            sfs_std = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, 
+                    dlogM=dlogM, slope_prior=slope_prior)
+            ########## reimplement everything below ########## 
+            ########## reimplement everything below ########## 
+            ########## reimplement everything below ########## 
+            ########## reimplement everything below ########## 
+            ########## reimplement everything below ########## 
+            ########## reimplement everything below ########## 
+
+            #sfs_std_sfr = np.zeros(sfs_std._mbins.shape[0]) 
+            #sfs_std_sfr[sfs_std._mbins_sfs] = sfs_std._fit_logsfr
+            #sfs_std_err_ssfr = np.zeros(sfs_std._mbins.shape[0]) 
+            #sfs_std_err_ssfr[sfs_std._mbins_sfs] = sfs_std._fit_err_logssfr
 
             dsfr_res = SFRres_dict[name] # SFR resolution 
 
@@ -1074,6 +1095,8 @@ def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
             (dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -1127,6 +1150,8 @@ def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
             (dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
     return None
 
 
@@ -1140,8 +1165,8 @@ if __name__=="__main__":
     '''
     # fit SFS for sims  
     '''
-    for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
-        for censat in ['all', 'centrals', 'satellites']:
+    for censat in ['all', 'centrals', 'satellites']:
+        for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
             for iz in range(1,7): 
                 print('--- %s %s %i of 6 ---' % (name, censat, iz)) 
                 _ = highzSFSfit(name, iz, censat=censat, dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
@@ -1167,9 +1192,9 @@ if __name__=="__main__":
         SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=[0., 2.])
         SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.]) 
     '''   
-    #for censat in ['all', 'centrals', 'satellites']:
-    #    Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
-    #    Mlim_res_impact(censat=censat, n_mc=20, noise=True, seed=1, threshold=0.2)
+    for censat in ['centrals']:
+        Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
+        Mlim_res_impact(censat=censat, n_mc=20, noise=True, seed=1, threshold=0.2)
 
     #Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False)
     #Pssfr_res_impact(n_mc=100, noise=True, seed=1, poisson=False)
@@ -1188,18 +1213,14 @@ if __name__=="__main__":
         QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
         QF_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
 
-        QF_zevo_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=slope_prior)
-        QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        QF_zevo_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=[0.4, 2.])
+        QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0.4, 2.])
     '''
     # comparison between SAM slice and full 
-    SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-    SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-    QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-    QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
-    #for prior in [0., 0.2, 0.4]:   
-    #    SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
-    #    SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
-        #QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
-        #QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
+    for prior in [0., 0.2, 0.4]:   
+        SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
+        SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
+        QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
+        QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
     ''' 
