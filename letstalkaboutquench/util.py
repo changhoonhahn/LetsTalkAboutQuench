@@ -159,3 +159,15 @@ def NB_pdf_logx(k, mu, theta, loc=0, dk=1.):
                                         
     pdeff[big] = (cdf2 - cdf1)/(np.log10(k[big]+dk) - np.log10(k[big]-dk))
     return pdeff
+
+
+def fig_tex(ffig, pdf=False): 
+    ''' given filename of figure return a latex friendly file name
+    '''
+    path, ffig_base = os.path.split(ffig) 
+    ext = ffig_base.rsplit('.', 1)[-1] 
+    ffig_name = ffig_base.rsplit('.', 1)[0]
+
+    _ffig_name = ffig_name.replace('.', '_') 
+    if pdf: ext = 'pdf' 
+    return os.path.join(path, '.'.join([_ffig_name, ext])) 
