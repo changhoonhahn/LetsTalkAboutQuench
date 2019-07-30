@@ -655,7 +655,7 @@ def fcomp(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
             f_comps[4, i_m] += f_nz * w_sbs2[mbin_sbs2]
             err_f_comps[4, i_m] += werr_sbs2[mbin_sbs2]**2
         err_f_comps[4, i_m] = np.sqrt(err_f_comps[4, i_m]) 
-
+    
     return 0.5*(mbin0 + mbin1), f_comps, err_f_comps 
 
 
@@ -663,8 +663,8 @@ def QF(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
     ''' derive quiescent fraction from GMM best-fit. quiescent fraction defined as all components below SFS 
     '''
     mmid, fcomps, err_fcomps = fcomp(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) 
-    f_Q = fcomps[0,:] + fcomps[2] + fcomps[3]
-    err_f_Q = np.sqrt(err_fcomps[0,:]**2 + err_fcomps[2]**2 + err_fcomps[3]**2)
+    f_Q = fcomps[0,:] + fcomps[2,:] + fcomps[3,:]
+    err_f_Q = np.sqrt(err_fcomps[0,:]**2 + err_fcomps[2,:]**2 + err_fcomps[3,:]**2)
     return mmid, f_Q, err_f_Q
 
 
@@ -786,13 +786,13 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
     
     fq_dict = {} 
     for name in names:  
+        print('--- %s ---' % name) 
         fqs = [] 
         for i in range(1,len(zlo)+1): 
             if name != 'candels': 
                 marr, fq, fqerr = QF(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
             else: 
                 marr, fq, fqerr = QF(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
-            #if name == 'illustris_100myr': print(i, fq, fqerr) 
             fqs.append([marr, fq, fqerr]) 
         fq_dict[name] = fqs
     
@@ -804,8 +804,7 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
 
         plts = []
         for i_z in range(len(zlo)): 
-            print('z=', 0.5*(zlo[i_z] + zhi[i_z]), fq_dict[name][i_z][1], fq_dict[name][i_z][2]) 
-            sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
+            #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
             _plt = sub.fill_between(fq_dict[name][i_z][0], 
                                     fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
                                     fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
@@ -1078,7 +1077,7 @@ def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     return None
 
 
-def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=0.5): 
+def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
     names = ['sam-light-slice', 'sam-light-full']
@@ -1090,7 +1089,7 @@ def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=0.5):
     for name in names:  
         fqs = [] 
         for i in range(1,len(zlo)+1): 
-            marr, fq, fqerr = QF(name, i, censat='centrals', noise=noise, seed=seed, dlogM=dlogM, dev_thresh=dev_thresh)
+            marr, fq, fqerr = QF(name, i, censat='centrals', noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
             fqs.append([marr, fq, fqerr]) 
         fq_dict[name] = fqs
     
@@ -1124,7 +1123,8 @@ def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=0.5):
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
-    ffig = os.path.join(dir_fig, 'fq_SAM_comparison_centrals_dlogM%.1f_devthresh%.1f.pdf' % (dlogM, dev_thresh)) 
+    ffig = os.path.join(dir_fig, 'fq_SAM_comparison_centrals_dlogM%.1f_slope_prior_%.1f_%.1f.pdf' % 
+            (dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
     fig.savefig(ffig, bbox_inches='tight')
     return None
@@ -1161,11 +1161,11 @@ if __name__=="__main__":
     # SFS comparisons
     '''
     for censat in ['all', 'centrals', 'satellites']:
-        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
-        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=[0., 2.])
+        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     
-        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
-        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior) 
+        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=[0., 2.])
+        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.]) 
     '''   
     #for censat in ['all', 'centrals', 'satellites']:
     #    Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
@@ -1174,14 +1174,15 @@ if __name__=="__main__":
     #Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False)
     #Pssfr_res_impact(n_mc=100, noise=True, seed=1, poisson=False)
     # GMM component fraction comparison
+    #for censat in ['centrals']:
+    #    fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    #    fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     for censat in ['all', 'centrals', 'satellites']:
-        fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=slope_prior)
-        fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+        fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     # quiescent fraction and 
-    for censat in ['centrals']:
-        QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     for censat in ['all', 'centrals', 'satellites']:
         QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
@@ -1191,6 +1192,10 @@ if __name__=="__main__":
         QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     '''
     # comparison between SAM slice and full 
+    SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     #for prior in [0., 0.2, 0.4]:   
     #    SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[prior, 2.])

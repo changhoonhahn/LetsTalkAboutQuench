@@ -167,15 +167,6 @@ class fstarforms(object):
 
         m_gmm, s_gmm, w_gmm = self._GMM_comps_msw(gbests, icomps)
 
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-        ####### fix bootstrap errors ########
-
         # get bootstrap errors for all GMM parameters
         m_gmm_boot, s_gmm_boot, w_gmm_boot = [], [], []  # positions, widths, and weights of the bootstrap GMMs  
         for ibs in range(n_bootstrap): 
@@ -187,6 +178,7 @@ class fstarforms(object):
             icomps_boot = self._GMM_compID(gboots, logm_median, slope_prior=slope_prior) # i_sfs's, i_q's, i_int's, i_sb's     
             
             _m_gmm_boot, _s_gmm_boot, _w_gmm_boot = self._GMM_comps_msw(gboots, icomps_boot)
+
             m_gmm_boot.append(_m_gmm_boot) 
             s_gmm_boot.append(_s_gmm_boot) 
             w_gmm_boot.append(_w_gmm_boot) 
@@ -200,8 +192,7 @@ class fstarforms(object):
         werr_boot = np.tile(-999., (len(gbests), 8))
         for i in range(len(gbests)): 
             for icomp, comp in zip([0, 1, 2, 5], [i_sfss, i_qs, i_ints, i_sbs]):
-                if comp[i] is None:
-                    continue 
+                if comp[i] is None: continue 
                 if icomp <= 1: 
                     hascomp = (m_gmm_boot[:,i,icomp] != -999.) 
                     merr_boot[i,icomp] = np.std(m_gmm_boot[hascomp,i,icomp]) 
@@ -213,7 +204,6 @@ class fstarforms(object):
                         merr_boot[i,icomp+ii] = np.std(m_gmm_boot[hascomp,i,icomp+ii]) 
                         serr_boot[i,icomp+ii] = np.std(s_gmm_boot[hascomp,i,icomp+ii]) 
                         werr_boot[i,icomp+ii] = np.std(np.concatenate([w_gmm_boot[hascomp,i,icomp+ii], np.zeros(np.sum(~hascomp))]))
-
         tt_sfs  = [] # logM*, mu, sigma, weight of bestfit GMM  
         tt_q    = [] 
         tt_int  = [] 
@@ -331,6 +321,7 @@ class fstarforms(object):
             gmm.fit(x)
             # save the best gmm, all the gmms, and bics 
             gmms.append(gmm) 
+            ii += 1
         return gmms
 
     def _GMM_compID(self, gbests, logm, slope_prior=[0., 2.]): 
