@@ -348,9 +348,10 @@ class fstarforms(object):
                 # selected as SFS component.
                 dlogm = logm[ibin] - logm_im1 
                 ssfr_range = [dlogm * (slope_prior[0] - 1.), dlogm * (slope_prior[1] - 1.)] # the -1 comes from converting to SSFR
+                #print '-------------------------------------------------'
                 #print logm_im1, logm[ibin], dlogm 
-                #print mu_sfs_im1 
-                #print ssfr_range[0], ssfr_range[1]
+                #print mu_sfs_im1
+                #print mu_sfs_im1 + ssfr_range[0], mu_sfs_im1 + ssfr_range[1]
                 #print mu_gmm
 
                 potential_sfs = ((mu_gmm > mu_sfs_im1 + ssfr_range[0]) & (mu_gmm < mu_sfs_im1 + ssfr_range[1]))

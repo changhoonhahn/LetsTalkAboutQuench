@@ -565,7 +565,7 @@ def fcomp(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
     ''' get the component weights from GMM best-fit. quiescent fraction defined 
     as all components below SFS 
     '''
-    logm, logsfr, cs, nonzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
+    logm, logsfr, cs, nonzero = readhighz(name, i_z, censat=censat, noise=noise, seed=seed)
     fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
     
     # M* bins where SFS is reasonably fit 
@@ -847,7 +847,7 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
 ##################################################
 # appendix: resolution effects 
 ##################################################
-def Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False): 
+def Pssfr_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, poisson=False): 
     ''' Plot the impact of SFR resolution on the P(SSFR) distribution. 
     '''
     names = ['eagle', 'illustris_100myr', 'tng', 'simba']
@@ -862,9 +862,10 @@ def Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False):
             if i_m == 0: mbin = mbins[i_c] 
             else: mbin = [10.5, 10.9]
 
-            logm, logsfr, nonzero = readHighz(name, 1, keepzeros=True, noise=noise, seed=seed)
+            logm, logsfr, cs, nonzero = readHighz(name, 1, censat=censat, noise=noise, seed=seed)
+            #logm, logsfr, nonzero = readHighz(name, 1, keepzeros=True, noise=noise, seed=seed)
             
-            inmbin = (logm > mbin[0]) & (logm < mbin[1]) # in M* bin 
+            inmbin = (logm > mbin[0]) & (logm < mbin[1]) & cs # in M* bin 
             ngal_bin = float(np.sum(inmbin)) 
 
             dsfr_res = SFRres_dict[name] # SFR resolution 
@@ -914,29 +915,28 @@ def Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False):
             #sub.errorbar(0.5*(h1[1:] + h1[:-1])+0.02, np.mean(hs_nz, axis=0), 
             #        yerr=np.std(hs_nz, axis=0), fmt='.k', markersize=.5)
 
-            sub.set_xlim([-13.25, -8.8])
+            sub.set_xlim([-13.25, -8.6])
             if i_m == 0: sub.set_xticks([])
             else: sub.set_xticks([-13., -11., -9.]) 
-            if i_m == 0: sub.set_ylim([0., 1.]) 
-            else:  sub.set_ylim([0., 2.]) 
-            if i_c != 0: sub.set_yticks([]) 
+            sub.set_ylim(0., None) 
+            #if i_m == 0: sub.set_ylim([0., 1.]) 
+            #else:  sub.set_ylim([0., 2.]) 
+            #if i_c != 0: sub.set_yticks([]) 
             if i_m == 0: sub.set_title(lbls[i_c], fontsize=20) 
+            sub.set_ylim(0., 1.3*sub.get_ylim()[1])
             sub.text(0.5, 0.92, '$'+str(mbin[0])+'< \log M_* <'+str(mbin[1])+'$',
                 ha='center', va='top', transform=sub.transAxes, fontsize=15)
     
-            if (i_c == 2) and (i_m == 1): 
-                sub.legend(loc='lower left', bbox_to_anchor=(0.01, 0.65), frameon=False, prop={'size':13}) 
+            if (i_c == 3) and (i_m == 1): 
+                sub.legend(loc='lower left', handletextpad=0.1, bbox_to_anchor=(0.01, 0.65), frameon=False, prop={'size':13}) 
     bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_ylabel(r'P(log SSFR  $[yr^{-1}])$', labelpad=10, fontsize=20)
     bkgd.set_xlabel(r'log SSFR  $[yr^{-1}]$', labelpad=10, fontsize=20)
 
-    fig.subplots_adjust(wspace=0.05, hspace=0.05)
-
-    if noise: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/Pssfr_res_impact_wnoise_seed%i.pdf' % seed])
-    else: 
-        fig_name = ''.join([UT.doc_dir(), 'highz/figs/Pssfr_res_impact_comparison.pdf'])
-    fig.savefig(fig_name, bbox_inches='tight')
+    fig.subplots_adjust(wspace=0.2, hspace=0.05)
+    ffig = os.path.join(dir_fig, 'Pssfr_res_impact_comparison_%s.pdf' % censat)
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed) 
+    fig.savefig(ffig, bbox_inches='tight')
     plt.close()
     return None
 
@@ -960,22 +960,14 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
             # standard SFS fit 
             sfs_std = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, 
                     dlogM=dlogM, slope_prior=slope_prior)
-            ########## reimplement everything below ########## 
-            ########## reimplement everything below ########## 
-            ########## reimplement everything below ########## 
-            ########## reimplement everything below ########## 
-            ########## reimplement everything below ########## 
-            ########## reimplement everything below ########## 
-
-            #sfs_std_sfr = np.zeros(sfs_std._mbins.shape[0]) 
-            #sfs_std_sfr[sfs_std._mbins_sfs] = sfs_std._fit_logsfr
-            #sfs_std_err_ssfr = np.zeros(sfs_std._mbins.shape[0]) 
-            #sfs_std_err_ssfr[sfs_std._mbins_sfs] = sfs_std._fit_err_logssfr
-
+            sfs_std_logm    = sfs_std._fit_logm
+            sfs_std_sfr     = sfs_std._fit_logsfr
+            sfs_std_sfr_err = sfs_std._fit_err_logssfr
+            
             dsfr_res = SFRres_dict[name] # SFR resolution 
 
-            sfs_mc = np.zeros((n_mc, sfs_std._mbins.shape[0]))
-            sfs_mc_mbins_sfs = [] 
+            sfs_mc = np.zeros((n_mc, len(sfs_std_logm)))
+            #sfs_mc_mbins_sfs = [] 
             for i_mc in range(n_mc): # loop through everything n_mc times 
                 # sample logSFR' from [logSFR + dlogSFR] 
                 logm_nz     = logm[isnonzero]
@@ -984,30 +976,32 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
                 logsfr_z    = np.log10(dsfr_res * np.random.uniform(size=np.sum(iszero)))
                 _logm       = np.concatenate([logm_nz, logm_z]) 
                 _logsfr     = np.concatenate([logsfr_nz, logsfr_z]) 
-            
-                fSFS_mc = fstarforms() # initialize 
-                _sfs_fit = fSFS_mc.fit(_logm, _logsfr, # fit SFS 
-                        method='gaussmix', 
-                        fit_range=[8.5, 12.0],  
-                        dlogm=0.4, 
-                        n_bootstrap=1, 
-                        Nbin_thresh=100) 
-                sfs_mc[i_mc, fSFS_mc._mbins_sfs] = _sfs_fit[1]
-                sfs_mc_mbins_sfs.append(fSFS_mc._mbins_sfs) 
-                
-            mu_sfs_mc = np.sum(sfs_mc, axis=0)/np.sum(np.array(sfs_mc_mbins_sfs), axis=0)  # average SFS SFR of n_mc
-            joint_mbins = sfs_std._mbins_sfs & (np.sum(np.array(sfs_mc_mbins_sfs), axis=0) == n_mc)
+
+                fSFS_mc = fstarforms(fit_range=[8.5, 12.0]) # stellar mass range
+                sfs_fit = fSFS_mc.fit(_logm, _logsfr,
+                        method='gaussmix',      # Gaussian Mixture Model fitting 
+                        dlogm = dlogM,          # stellar mass bins of 0.4 dex
+                        slope_prior = slope_prior, 
+                        Nbin_thresh=100,        # at least 100 galaxies in bin 
+                        error_method='bootstrap',  # uncertainty estimate method 
+                        n_bootstrap=1)        # number of bootstrap bins
+                for ii in range(len(sfs_std_logm)):
+                    sfs_mc[i_mc,ii] = fSFS_mc._fit_logsfr[np.argmin(np.abs((fSFS_mc._fit_logm) - sfs_std_logm[ii]))]
+                #sfs_mc[i_mc,:] = fSFS_mc._fit_logsfr
+                #sfs_mc_mbins_sfs.append(fSFS_mc._fit_logm) 
+            mu_sfs_mc = np.average(sfs_mc, axis=0)  # average SFS SFR of n_mc
+            #joint_mbins = sfs_std._mbins_sfs & (np.sum(np.array(sfs_mc_mbins_sfs), axis=0) == n_mc)
             #np.isfinite(mu_sfs_mc) # M* bins with SFS 
 
-            dsfs_res = sfs_std_sfr[joint_mbins] - mu_sfs_mc[joint_mbins] # change in SFS fit from resolution limit 
+            dsfs_res = sfs_std_sfr - mu_sfs_mc # change in SFS fit from resolution limit 
             print name, i_z
             print dsfs_res
             
             # determine logM* limit based on when dsfs_res shifts by > threshold dex 
-            mbin_mid = 0.5 * (sfs_std._mbins[:,0] + sfs_std._mbins[:,1])
-            above_thresh = (np.abs(dsfs_res) > threshold) & (mbin_mid[joint_mbins] < 10.) 
+            if noise: threshold = np.sqrt(threshold**2 + 0.33**2)
+            above_thresh = (np.abs(dsfs_res) > threshold) & (sfs_std_logm < 10.) 
             if np.sum(above_thresh) > 0:
-                mlim = (mbin_mid[joint_mbins][(np.abs(dsfs_res) > threshold)]).max() + 0.5 * sfs_std._dlogm 
+                mlim = (sfs_std_logm[(np.abs(dsfs_res) > threshold)]).max() + 0.5 * dlogM 
             else: 
                 mlim = None 
             
@@ -1018,8 +1012,8 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
                     plot_datapoints=True, fill_contours=False, plot_density=True, 
                     ax=sub) 
             # plot standard SFS fit
-            plt_std = sub.errorbar(mbin_mid[joint_mbins], sfs_std_sfr[joint_mbins], sfs_std_err_ssfr[joint_mbins], fmt='.k')
-            plt_res = sub.scatter(mbin_mid[joint_mbins], mu_sfs_mc[joint_mbins], marker='x', color='C1', lw=1, s=40)
+            plt_std = sub.errorbar(sfs_std_logm, sfs_std_sfr, sfs_std_sfr_err, fmt='.k') # plot SFS fit
+            plt_res = sub.scatter(sfs_std_logm, mu_sfs_mc, marker='x', color='C1', lw=1, s=40)
 
             if i_n == 3 and i_z == 5: sub.legend([plt_std, plt_res], 
                     ['w/ SFR res. eff.', r"$\mathrm{SFR}_i' \in [\mathrm{SFR}, \mathrm{SFR}+\Delta_\mathrm{SFR}]$"], 
@@ -1193,10 +1187,11 @@ if __name__=="__main__":
         SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.]) 
     '''   
     for censat in ['centrals']:
-        Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
+        #Pssfr_res_impact(censat=censat, n_mc=20, noise=False, seed=1, poisson=False)
+        #Pssfr_res_impact(censat=censat, n_mc=20, noise=True, seed=1, poisson=False)
+        #Mlim_res_impact(censat=censat, n_mc=20, noise=False, seed=1, threshold=0.2)
         Mlim_res_impact(censat=censat, n_mc=20, noise=True, seed=1, threshold=0.2)
 
-    #Pssfr_res_impact(n_mc=20, noise=False, seed=1, poisson=False)
     #Pssfr_res_impact(n_mc=100, noise=True, seed=1, poisson=False)
     # GMM component fraction comparison
     #for censat in ['centrals']:
