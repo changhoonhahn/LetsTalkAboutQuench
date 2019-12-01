@@ -11,9 +11,7 @@ import corner as DFM
 from scipy.stats import multivariate_normal as MNorm
 # -- letstalkaboutquench --
 from letstalkaboutquench import util as UT
-from letstalkaboutquench import catalogs as Cats
-from letstalkaboutquench import galprop as Gprop
-from letstalkaboutquench.fstarforms import fstarforms
+from starfs.starfs import starFS as sFS
 # -- plotting --
 import matplotlib as mpl
 import matplotlib.pyplot as plt 
@@ -68,7 +66,7 @@ def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, slope_p
         cut = (cs & notzero) 
 
         # fit the SFMS
-        fSFS = fstarforms(fit_range=[8.5, 12.0]) # stellar mass range
+        fSFS = sFS(fit_range=[8.5, 12.0]) # stellar mass range
         sfs_fit = fSFS.fit(logm[cut], logsfr[cut], 
                 method='gaussmix',      # Gaussian Mixture Model fitting 
                 dlogm = dlogM,          # stellar mass bins of 0.4 dex
@@ -331,8 +329,8 @@ def candels():
 
 
 def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.], seed=1): 
-    """ p(log SSFR) distribution 
-    """
+    ''' p(log SSFR) distribution 
+    '''
     logm, logsfr, cs, notzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
     logssfr = logsfr - logm 
     cut = (cs & notzero) 
@@ -370,7 +368,7 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.],
             if isfs is not None: 
                 sub.plot(x_ssfr, gmm_ws[isfs] * MNorm.pdf(x_ssfr, gmm_mus[isfs], gmm_vars[isfs]), c='b', lw=1, ls='-') 
             ii += 1 
-        sub.legend(loc='upper left', prop={'size':15}) 
+        #sub.legend(loc='upper left', prop={'size':15}) 
         sub.set_xlim([-13.6, -8.]) 
         
         if imbin == 0:
@@ -428,17 +426,16 @@ def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_pri
             sub.set_ylim([-3., 4.]) 
             if i_z < 5: sub.set_xticklabels([]) 
             if i_n != 0: sub.set_yticklabels([]) 
-            if i_n == 5: sub.text(0.95, 0.05, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
-                                  ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+            if i_n == 0: sub.text(0.025, 0.95, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
+                                  ha='left', va='top', transform=sub.transAxes, fontsize=20)
             if i_z == 0: sub.set_title(lbls[i_n], fontsize=25) 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     ffig = os.path.join(dir_fig, 
             'sfr_mstar_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % (censat, dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -483,8 +480,8 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
                     sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
                     color='C%i' % i_n, alpha=0.75, linewidth=0.)
             plts.append(_plt) 
-        sub.set_xlim(8.5, 12.) 
-        sub.set_ylim(-1., 4.) 
+        sub.set_xlim(9., 11.5) 
+        sub.set_ylim(-1., 3.75) 
         if i_z < 3: sub.set_xticklabels([]) 
         if i_z not in [0, 3]: sub.set_yticklabels([]) 
         sub.text(0.95, 0.05, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
@@ -493,14 +490,13 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
             sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
         elif i_z == 1: 
             sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     ffig = os.path.join(dir_fig, 'sfs_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % 
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -532,13 +528,22 @@ def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prio
         sub = fig.add_subplot(2,3,i_n+1) 
         plts = []
         for i_z in range(len(zlo)): 
-            _plt = sub.fill_between(sfs_dict[name][i_z][0], 
-                    sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
-                    sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
-                    color='C%i' % i_z, alpha=0.75, linewidth=0.)
+            _plt = sub.fill_between([0], [0], [0], 
+                    color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
+            if name != 'candels': 
+                sub.fill_between(sfs_dict[name][i_z][0], 
+                        sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
+                        sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
+                        color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25), linewidth=0)
+            else: 
+                sub.fill_between(sfs_dict[name][i_z][0], 
+                        sfs_dict[name][i_z][1] - sfs_dict[name][i_z][2], 
+                        sfs_dict[name][i_z][1] + sfs_dict[name][i_z][2], 
+                        color=lighten_color('k', 0.1 + float(i_z) * 0.15), linewidth=0)
+            #        color='C%i' % i_z, alpha=0.75, linewidth=0.)
             plts.append(_plt) 
-        sub.set_xlim([8.5, 12.]) 
-        sub.set_ylim([-1., 4.]) 
+        sub.set_xlim(9., 11.5) 
+        sub.set_ylim(-1., 3.75) 
         if i_n < 3: sub.set_xticklabels([]) 
         if i_n not in [0, 3]: sub.set_yticklabels([]) 
         sub.text(0.95, 0.05, lbls[i_n], ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
@@ -546,14 +551,13 @@ def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prio
             sub.legend(plts[:3], zlbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
         elif i_n == 1: 
             sub.legend(plts[3:], zlbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     ffig = os.path.join(dir_fig, 'sfs_zevo_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % 
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -565,7 +569,7 @@ def fcomp(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
     ''' get the component weights from GMM best-fit. quiescent fraction defined 
     as all components below SFS 
     '''
-    logm, logsfr, cs, nonzero = readhighz(name, i_z, censat=censat, noise=noise, seed=seed)
+    logm, logsfr, cs, nonzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
     fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
     
     # M* bins where SFS is reasonably fit 
@@ -709,7 +713,7 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
             sub.fill_between(mmid, f_zero+f_q+f_other0+f_sfs, f_zero+f_q+f_other0+f_sfs+f_other1, # star-burst 
                     linewidth=0, color='C4') 
 
-            sub.set_xlim([8.5, 12.]) 
+            sub.set_xlim([9, 11.5]) 
             sub.set_ylim([0., 1.]) 
             if i_z < 5: sub.set_xticklabels([]) 
             if i_n != 0: sub.set_yticklabels([]) 
@@ -724,7 +728,6 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
     ffig = os.path.join(dir_fig, 'fcomp_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % 
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -754,14 +757,20 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
 
         plts = []
         for i_n, name in enumerate(names):  # plot fQ fits
-            if name == 'candels': colour = 'k'
-            else: colour = 'C'+str(i_n) 
-            _plt = sub.fill_between(fq_dict[name][i_z][0], 
-                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
-                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2],
-                                    alpha=0.5, color=colour, linewidth=0)
+            if name == 'candels': 
+                colour = 'k'
+                _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][1] + fq_dict[name][i_z][2],
+                                        alpha=0.3, color=colour, linewidth=0, zorder=1)
+            else: 
+                colour = 'C'+str(i_n) 
+                _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][1] + fq_dict[name][i_z][2],
+                                        alpha=0.5, color=colour, linewidth=0, zorder=10)
             plts.append(_plt) 
-        sub.set_xlim([8.5, 12.]) 
+        sub.set_xlim([9., 11.2]) 
         sub.set_ylim([0., 1.]) 
         if i_z < 3: sub.set_xticklabels([]) 
         if i_z not in [0, 3]: sub.set_yticklabels([]) 
@@ -773,14 +782,13 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
             sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
             #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
             #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
     ffig = os.path.join(dir_fig, 'fq_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -816,22 +824,33 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
         plts = []
         for i_z in range(len(zlo)): 
             #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
-            _plt = sub.fill_between(fq_dict[name][i_z][0], 
-                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
-                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
-                                    alpha=0.5, color='C'+str(i_z), linewidth=0)
+            _plt = sub.fill_between([0], [0], [0], 
+                    color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
+            if name != 'candels': 
+                sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
+                                        color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25), linewidth=0)
+            else: 
+                sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
+                                        color=lighten_color('k', 0.1 + float(i_z) * 0.15), 
+                                        linewidth=0)
+            #                        alpha=0.5, color='C'+str(i_z), linewidth=0)
             plts.append(_plt) 
 
-        sub.set_xlim([8.5, 11.5]) 
+        sub.set_xlim([9., 11.2]) 
         sub.set_ylim([0., 1.]) 
         if i_n < 3: sub.set_xticklabels([]) 
         if i_n not in [0, 3]: sub.set_yticklabels([]) 
-        sub.text(0.95, 0.05, lbls[i_n], ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
-        if i_n == 0: 
-            sub.legend(plts[:3], zlbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
-        elif i_n == 1: 
-            sub.legend(plts[3:], zlbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+        sub.text(0.05, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if i_n == 2: 
+            sub.legend(plts, zlbls, loc='upper right', handletextpad=0.3, prop={'size': 12}) 
+        #    sub.legend(plts[:3], zlbls[:3], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+        #elif i_n == 4: 
+        #    sub.legend(plts[3:], zlbls[3:], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -839,7 +858,6 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
     ffig = os.path.join(dir_fig, 'fq_zevo_comparison_%s.dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % 
             (censat, dlogM, slope_prior[0], slope_prior[1]))
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -994,8 +1012,6 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
             #np.isfinite(mu_sfs_mc) # M* bins with SFS 
 
             dsfs_res = sfs_std_sfr - mu_sfs_mc # change in SFS fit from resolution limit 
-            print name, i_z
-            print dsfs_res
             
             # determine logM* limit based on when dsfs_res shifts by > threshold dex 
             if noise: threshold = np.sqrt(threshold**2 + 0.33**2)
@@ -1149,6 +1165,26 @@ def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     return None
 
 
+def lighten_color(color, amount=0.5):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+
+    Examples:
+    >> lighten_color('g', 0.3)
+    >> lighten_color('#F034A3', 0.6)
+    >> lighten_color((.3,.55,.1), 0.5)
+    """
+    import matplotlib.colors as mc
+    import colorsys
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
+
+
 if __name__=="__main__": 
     # fit SFS for CANDELS
     '''
@@ -1177,15 +1213,15 @@ if __name__=="__main__":
                 pssfr(name, iz, censat=censat, noise=True, dlogM=0.4, slope_prior=[0., 2.]) 
         SFR_Mstar_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     ''' 
-    # SFS comparisons
     '''
     for censat in ['all', 'centrals', 'satellites']:
-        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=[0., 2.])
-        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+        slope_prior = [0.4, 2.]
+        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
+        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     
-        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=[0., 2.])
-        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.]) 
-    '''   
+        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
+        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior) 
+    
     for censat in ['centrals']:
         #Pssfr_res_impact(censat=censat, n_mc=20, noise=False, seed=1, poisson=False)
         #Pssfr_res_impact(censat=censat, n_mc=20, noise=True, seed=1, poisson=False)
@@ -1197,19 +1233,23 @@ if __name__=="__main__":
     #for censat in ['centrals']:
     #    fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     #    fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-    '''
-    for censat in ['all', 'centrals', 'satellites']:
-        fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-        fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+
+    fcomp_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     # quiescent fraction and 
+    for censat in ['centrals']:
+        slope_prior = [0., 2.]
+        QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        QF_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     '''
     for censat in ['all', 'centrals', 'satellites']:
-        QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
-        QF_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+        slope_prior = [0., 2.]
+        QF_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        QF_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
 
-        QF_zevo_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=[0.4, 2.])
-        QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0.4, 2.])
+        QF_zevo_comparison(censat=censat, noise=False, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     '''
     # comparison between SAM slice and full 
     '''
