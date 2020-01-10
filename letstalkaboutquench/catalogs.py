@@ -4,7 +4,7 @@ import numpy as np
 import warnings 
 from astropy import units as U
 # --- Local ---
-import util as UT
+from . import util as UT
     
     
 class Catalog: 
