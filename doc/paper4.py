@@ -60,6 +60,7 @@ def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, slope_p
                           (os.path.basename(f_dat).strip('.txt'), dlogM, slope_prior[0], slope_prior[1]))
     
     if os.path.isfile(f_sfs) and not overwrite: 
+        print(f_sfs)
         fSFS = pickle.load(open(f_sfs, 'rb'))
     else: 
         logm, logsfr, cs, notzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
@@ -111,7 +112,7 @@ def readHighz(name, i_z, censat='all', noise=False, seed=1):
     if not noise: 
         f_data = fHighz(name, i_z, censat=None, noise=False) # data file name 
 
-        if name == 'candels': 
+        if 'candels' in name: 
             if censat != 'all': 
                 raise ValueError('no central/satellite classification for CANDELS data') 
             _, logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
@@ -204,6 +205,8 @@ def fHighz(name, i_z, censat='all', noise=False, seed=1):
     dat_dir = ''.join([UT.dat_dir(), 'highz/'])
     if name == 'candels': 
         f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
+    elif name == 'candels_goods': 
+        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_GOODS_Iyer_z', str(i_z), '.txt']) 
     elif 'illustris' in name: 
         f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
     elif name == 'tng': 
@@ -518,7 +521,7 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.],
 def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     ''' Compare the SFS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
     
     # SFMS overplotted ontop of SFR--M* relation 
@@ -527,7 +530,7 @@ def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_pri
     for i_z in range(len(zlo)): 
         for i_n, name in enumerate(names):  # plot SFMS fits
             # fit SFR-M* 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
                 fSFS = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFMSes
             else: 
@@ -566,14 +569,14 @@ def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_pri
 def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
-    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     
     sfs_dict = {} 
     for name in names:  
         sfs_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 fSFS = highzSFSfit(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
             else: 
                 fSFS = highzSFSfit(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
@@ -628,7 +631,7 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
 def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
     zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
 
@@ -636,7 +639,7 @@ def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prio
     for name in names:  
         sfs_fits = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 fSFS = highzSFSfit(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
             else: 
                 fSFS = highzSFSfit(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
@@ -806,8 +809,8 @@ def QF(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
 def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     '''
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
-    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     
@@ -817,7 +820,7 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
     for i_z in range(len(zlo)): 
         for i_n, name in enumerate(names):  # plot SFMS fits
             sub = fig.add_subplot(6,6,i_z*6+i_n+1) 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 mmid, f_comps, err_fcomps = fcomp(name, i_z+1, censat=censat, noise=noise, seed=seed, dlogM=dlogM, 
                         slope_prior=slope_prior)
             else: 
@@ -860,14 +863,14 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
 def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
-    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     
     fq_dict = {} 
     for name in names:  
         fqs = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 marr, fq, fqerr = QF(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
             else: 
                 marr, fq, fqerr = QF(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
@@ -881,7 +884,7 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
 
         plts = []
         for i_n, name in enumerate(names):  # plot fQ fits
-            if name == 'candels': 
+            if 'candels' in name: 
                 colour = 'k'
                 _plt = sub.fill_between(fq_dict[name][i_z][0], 
                                         fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
@@ -921,8 +924,8 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
 def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
-    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
@@ -932,7 +935,7 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
         print('--- %s ---' % name) 
         fqs = [] 
         for i in range(1,len(zlo)+1): 
-            if name != 'candels': 
+            if 'candels' not in name: 
                 marr, fq, fqerr = QF(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
             else: 
                 marr, fq, fqerr = QF(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
@@ -950,7 +953,7 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
             #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
             _plt = sub.fill_between([0], [0], [0], 
                     color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
-            if name != 'candels': 
+            if 'candels' not in name: 
                 sub.fill_between(fq_dict[name][i_z][0], 
                                         fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
                                         fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
@@ -1316,6 +1319,9 @@ if __name__=="__main__":
         print('--- candels %i of 6 ---' % iz) 
         _ = highzSFSfit('candels', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
         pssfr('candels', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.]) 
+        print('--- candels (GOODS only) %i of 6 ---' % iz) 
+        _ = highzSFSfit('candels_goods', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
+        pssfr('candels_goods', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.]) 
     '''
     # fit SFS for sims  
     '''
@@ -1337,9 +1343,16 @@ if __name__=="__main__":
                 pssfr(name, iz, censat=censat, noise=True, dlogM=0.4, slope_prior=[0., 2.]) 
         SFR_Mstar_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     ''' 
+    for censat in ['all', 'centrals', 'satellites']:
+        slope_prior = [0.0, 2.]
+        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
+        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+    
+        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
+        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior) 
     '''
     for censat in ['all', 'centrals', 'satellites']:
-        slope_prior = [0.4, 2.]
+        slope_prior = [0.0, 2.]
         SFS_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
         SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     
@@ -1387,6 +1400,6 @@ if __name__=="__main__":
     #        fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     #        fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
 
-    for method in ['powerlaw', 'interpexterp']: 
-        fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-        fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+    #for method in ['powerlaw', 'interpexterp']: 
+    #    fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+    #    fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
