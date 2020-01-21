@@ -592,7 +592,7 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
 
         plts = []
         for i_n, name in enumerate(names):  # plot SFMS fits
-            if name == 'candels': 
+            if 'candels' in name: 
                 _plt = sub.errorbar(
                     sfs_dict[name][i_z][0], 
                     sfs_dict[name][i_z][1], 
@@ -989,6 +989,79 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
     fig.savefig(fpdf, bbox_inches='tight')
     return None
 
+
+##################################################
+# appendix: CANDELS fields 
+##################################################
+def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
+    ''' Compare the SFS fits among the data and simulation  
+    '''
+    names = ['candels', 'candels_goods']
+    lbls = ['CANDELS', 'CANDELS (GOODS)'] 
+    
+    # SFMS overplotted ontop of SFR--M* relation 
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        for i_n, name in enumerate(names):  # plot SFMS fits
+            # fit SFR-M* 
+            logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False, seed=1)
+            fSFS = highzSFSfit(name, i_z+1, censat='all', noise=False, seed=1, dlogM=dlogM, slope_prior=slope_prior) # fit the SFMSes
+            cut = (cs & notzero) 
+
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+
+            sub = fig.add_subplot(2,3,i_z+1) 
+            DFM.hist2d(logm[cut], logsfr[cut], color='C%i' % i_n, 
+                    levels=[0.68, 0.95], range=[[7.8, 12.], [-4., 4.]], 
+                    plot_datapoints=False, fill_contours=False, plot_density=False, 
+                    ax=sub) 
+            sub.errorbar(sfs_fit[0], sfs_fit[1], sfs_fit[2], fmt='.C%i' % i_n, label=lbls[i_n]) # plot SFS fit
+            sub.set_xlim([8.5, 12.]) 
+            sub.set_ylim([-3., 4.]) 
+            if i_z < 3: sub.set_xticklabels([]) 
+            if i_z not in [0, 3]: sub.set_yticklabels([]) 
+            if i_n == 0: sub.text(0.025, 0.95, '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), 
+                                  ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if i_z == 5: sub.legend(loc='lower right', fontsize=15)
+
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    ffig = os.path.join(dir_fig, 'CANDLES_sfr_mstar_comparison_dlogM%.1f.slope_prior_%.1f_%.1f.png' % (dlogM, slope_prior[0], slope_prior[1])) 
+    fig.savefig(ffig, bbox_inches='tight')
+    
+    fig = plt.figure(figsize=(18,6))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        for i_n, name in enumerate(names):  # plot SFMS fits
+            # fit SFR-M* 
+            logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False, seed=1)
+            cut = (cs & notzero) 
+
+            sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
+
+            sub = fig.add_subplot(2,6,i_n*6+i_z+1) 
+            sub.scatter(logm[cut], logsfr[cut], color='k', s=0.01) 
+            sub.set_xlim([8.5, 12.]) 
+            sub.set_ylim([-3., 4.]) 
+            if i_z != 0: sub.set_yticklabels([]) 
+            if i_n == 0:
+                sub.set_xticklabels([]) 
+                sub.set_title( '$%.1f < z < %.1f$' % (zlo[i_z], zhi[i_z]), fontsize=20) 
+            if i_z == 0: 
+                sub.text(0.025, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=15)
+
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    ffig = os.path.join(dir_fig, 'CANDLES_fields.png') 
+    fig.savefig(ffig, bbox_inches='tight')
+    return None
+    return None
+
 ##################################################
 # appendix: resolution effects 
 ##################################################
@@ -1343,13 +1416,6 @@ if __name__=="__main__":
                 pssfr(name, iz, censat=censat, noise=True, dlogM=0.4, slope_prior=[0., 2.]) 
         SFR_Mstar_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     ''' 
-    for censat in ['all', 'centrals', 'satellites']:
-        slope_prior = [0.0, 2.]
-        SFS_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
-        SFS_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
-    
-        SFS_zevo_comparison(censat=censat, dlogM=0.4, slope_prior=slope_prior)
-        SFS_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior) 
     '''
     for censat in ['all', 'centrals', 'satellites']:
         slope_prior = [0.0, 2.]
@@ -1403,3 +1469,4 @@ if __name__=="__main__":
     #for method in ['powerlaw', 'interpexterp']: 
     #    fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     #    fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+    CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
