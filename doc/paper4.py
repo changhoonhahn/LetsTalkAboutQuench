@@ -1062,6 +1062,64 @@ def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
     return None
     return None
 
+
+def CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.]): 
+    ''' Compare the QF derived from GMMs between CANDELS and CANDELS GOODS fields
+    '''
+    names = ['candels', 'candels_goods']
+    lbls = ['CANDELS', 'CANDELS (GOODS)'] 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
+    
+    fq_dict = {} 
+    for name in names:  
+        print('--- %s ---' % name) 
+        fqs = [] 
+        for i in range(1,len(zlo)+1): 
+            marr, fq, fqerr = QF(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
+            fqs.append([marr, fq, fqerr]) 
+        fq_dict[name] = fqs
+    
+    fig = plt.figure(figsize=(10,5))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_n, name in enumerate(names):  # plot fQ fits
+        sub = fig.add_subplot(1,2,i_n+1) 
+        print('--- %s ---' % name) 
+
+        plts = []
+        for i_z in range(len(zlo)): 
+            #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
+            _plt = sub.fill_between([0], [0], [0], 
+                    color=lighten_color('k', 0.1 + float(i_z) * 0.15), linewidth=0)
+            sub.fill_between(fq_dict[name][i_z][0], 
+                                    fq_dict[name][i_z][1] - fq_dict[name][i_z][2], 
+                                    fq_dict[name][i_z][1] + fq_dict[name][i_z][2], 
+                                    color=lighten_color('k', 0.1 + float(i_z) * 0.15), 
+                                    linewidth=0)
+            #                        alpha=0.5, color='C'+str(i_z), linewidth=0)
+            plts.append(_plt) 
+
+        sub.set_xlim([9., 11.2]) 
+        sub.set_ylim([0., 1.]) 
+        if i_n not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.05, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if i_n == 1: 
+            sub.legend(plts, zlbls, loc='upper right', handletextpad=0.3, prop={'size': 12}) 
+        #    sub.legend(plts[:3], zlbls[:3], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+        #elif i_n == 4: 
+        #    sub.legend(plts[3:], zlbls[3:], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    
+    ffig = os.path.join(dir_fig, 'CANDLES_fields.fq_zevo.dlogM%.1f.slope_prior_%.1f_%.1f.png' % 
+            (dlogM, slope_prior[0], slope_prior[1]))
+    fig.savefig(ffig, bbox_inches='tight')
+    return None
+
+
 ##################################################
 # appendix: resolution effects 
 ##################################################
@@ -1469,4 +1527,5 @@ if __name__=="__main__":
     #for method in ['powerlaw', 'interpexterp']: 
     #    fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     #    fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-    CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
+    #CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
+    CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.])
