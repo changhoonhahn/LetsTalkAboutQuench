@@ -15,5 +15,5 @@ setup(name = 'LetsTalkAboutQuench',
       requires = ['numpy','matplotlib','scipy', 'sklearn', 'extreme_deconvolution'],
       provides = ['LetsTalkAboutQuench'],
       packages = ['letstalkaboutquench'],
-      scripts=['letstalkaboutquench/catalogs.py', 'letstalkaboutquench/fstarforms.py', 'letstalkaboutquench/util.py']
+      scripts=['letstalkaboutquench/catalogs.py', 'letstalkaboutquench/util.py']
 )

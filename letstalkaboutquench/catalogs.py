@@ -242,6 +242,18 @@ class Catalog:
         assert psat.max() <= 1. 
         return psat
     
+    def Mhalo_GroupFinder(self, name): 
+        ''' read in halo mass from Jeremy's group finder
+        '''
+        cat_name = name.split('_')[0] # name of catalog
+        if cat_name not in ['illustris', 'eagle', 'mufasa', 'scsam']: 
+            raise NotImplementedError("Group finder values not yet available for catalog") 
+            
+        # group finder file name
+        f_name = ''.join([UT.dat_dir(), 'group_finder/', self.groupfind_dict[cat_name]]) 
+        mhalo = np.loadtxt(f_name, unpack=True, usecols=[6]) 
+        return mhalo 
+    
     def noGFSplashbacks(self, name, cut='3vir', silent=True, overwrite=False, test=False): 
         ''' Using the output from the group finder remove pure central galaxies (psat < 0.01) 
         that may potentially splashback galaxies
