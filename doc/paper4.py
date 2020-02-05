@@ -116,7 +116,10 @@ def readHighz(name, i_z, censat='all', noise=False, seed=1):
             if censat != 'all': 
                 raise ValueError('no central/satellite classification for CANDELS data') 
             _, logms, logsfr = np.loadtxt(f_data, skiprows=2, unpack=True) # z, M*, SFR
-            notzero = np.isfinite(logsfr)
+            if name != 'candels_cami': 
+                notzero = np.isfinite(logsfr)
+            else: 
+                notzero = np.isfinite(logsfr) & (logsfr > -3.) 
 
         elif 'illustris' in name: 
             ill_ind = {'illustris_10myr': 1, 'illustris_100myr': 3, 'illustris_1gyr': 2} 
@@ -207,6 +210,8 @@ def fHighz(name, i_z, censat='all', noise=False, seed=1):
         f_data = ''.join([dat_dir, 'CANDELS/CANDELS_Iyer_z', str(i_z), '.txt']) 
     elif name == 'candels_goods': 
         f_data = ''.join([dat_dir, 'CANDELS/CANDELS_GOODS_Iyer_z', str(i_z), '.txt']) 
+    elif name ==  'candels_cami': 
+        f_data = ''.join([dat_dir, 'CANDELS/CANDELS_cami_z%s.txt' % i_z]) 
     elif 'illustris' in name: 
         f_data = ''.join([dat_dir, 'Illustris/Illustris_z', str(i_z), '.txt']) 
     elif name == 'tng': 
@@ -415,6 +420,60 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
     fig.savefig(ffig, bbox_inches='tight')
     return None 
 
+
+def probSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
+    ''' calculate dSFS for specified high z catalog 
+    ''' 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    logms, logsfrs = [], [] 
+    sfs_fits, probsfss = [], [] 
+
+    for i_z in range(len(zlo)): 
+    
+        # read in logM and logSFR along with bestfits
+        if name != 'candels': 
+            logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
+            fSFS = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+        else: 
+            logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False)
+            fSFS = highzSFSfit(name, i_z+1, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+        cut = (cs & notzero) 
+
+        logms.append(logm[cut])
+        logsfrs.append(logsfr[cut])
+        sfs_fits.append([fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]) 
+
+        # calculate probSFS 
+        probsfs = fSFS.probSFS(logm[cut], logsfr[cut]) 
+        probsfss.append(probsfs) 
+
+    # SFMS overplotted ontop of SFR--M* relation 
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+        
+        hasprob = (probsfss[i_z] != -999.)
+        sub.scatter(logms[i_z][hasprob], logsfrs[i_z][hasprob], c=probsfss[i_z][hasprob], s=1, linewidth=0) 
+        sub.errorbar(sfs_fits[i_z][0], sfs_fits[i_z][1], sfs_fits[i_z][2], fmt='.C0')
+        sub.set_xlim([8.5, 12.]) 
+        sub.set_ylim([-3., 4.]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+                    ha='left', va='top', transform=sub.transAxes, fontsize=20)
+
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.2, hspace=0.15)
+
+    ffig = os.path.join(dir_fig, 'probsfs.%s_%s.dlogM%.1f.slope_prior%.1f_%.1f.png' % (name.lower(), censat, dlogM, slope_prior[0], slope_prior[1]))
+    if noise: ffig = ffig.replace('.png', '_wnoise.png') 
+    fig.savefig(ffig, bbox_inches='tight')
+    return None 
 
 
 def candels(): 
@@ -996,8 +1055,8 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
 def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
     ''' Compare the SFS fits among the data and simulation  
     '''
-    names = ['candels', 'candels_goods']
-    lbls = ['CANDELS', 'CANDELS (GOODS)'] 
+    names = ['candels', 'candels_goods', 'candels_cami']
+    lbls = ['CANDELS', 'CANDELS (GOODS)', 'CANDELS (Camilla)'] 
     
     # SFMS overplotted ontop of SFR--M* relation 
     fig = plt.figure(figsize=(12,8))
@@ -1032,7 +1091,7 @@ def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
     ffig = os.path.join(dir_fig, 'CANDLES_sfr_mstar_comparison_dlogM%.1f.slope_prior_%.1f_%.1f.png' % (dlogM, slope_prior[0], slope_prior[1])) 
     fig.savefig(ffig, bbox_inches='tight')
     
-    fig = plt.figure(figsize=(18,6))
+    fig = plt.figure(figsize=(18,3*len(names)))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_z in range(len(zlo)): 
         for i_n, name in enumerate(names):  # plot SFMS fits
@@ -1042,7 +1101,7 @@ def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
 
             sfs_fit = [fSFS._fit_logm, fSFS._fit_logsfr, fSFS._fit_err_logssfr]
 
-            sub = fig.add_subplot(2,6,i_n*6+i_z+1) 
+            sub = fig.add_subplot(len(names),6,i_n*6+i_z+1) 
             sub.scatter(logm[cut], logsfr[cut], color='k', s=0.01) 
             sub.set_xlim([8.5, 12.]) 
             sub.set_ylim([-3., 4.]) 
@@ -1066,8 +1125,8 @@ def CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.]):
 def CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the QF derived from GMMs between CANDELS and CANDELS GOODS fields
     '''
-    names = ['candels', 'candels_goods']
-    lbls = ['CANDELS', 'CANDELS (GOODS)'] 
+    names = ['candels', 'candels_goods', 'candels_cami']
+    lbls = ['CANDELS', 'CANDELS (GOODS)', 'CANDELS (Camilla)'] 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
     zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
@@ -1081,10 +1140,10 @@ def CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.]):
             fqs.append([marr, fq, fqerr]) 
         fq_dict[name] = fqs
     
-    fig = plt.figure(figsize=(10,5))
+    fig = plt.figure(figsize=(5*len(names),5))
     bkgd = fig.add_subplot(111, frameon=False)
     for i_n, name in enumerate(names):  # plot fQ fits
-        sub = fig.add_subplot(1,2,i_n+1) 
+        sub = fig.add_subplot(1,len(names),i_n+1) 
         print('--- %s ---' % name) 
 
         plts = []
@@ -1453,6 +1512,9 @@ if __name__=="__main__":
         print('--- candels (GOODS only) %i of 6 ---' % iz) 
         _ = highzSFSfit('candels_goods', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
         pssfr('candels_goods', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.]) 
+        print('--- candels (CAMILLA SED only) %i of 6 ---' % iz) 
+        _ = highzSFSfit('candels_cami', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.], overwrite=True)
+        pssfr('candels_cami', iz, censat='all', dlogM=0.4, slope_prior=[0., 2.]) 
     '''
     # fit SFS for sims  
     '''
@@ -1523,9 +1585,15 @@ if __name__=="__main__":
     #        dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
     #        fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     #        fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-
+    #for name in ['eagle']:
+    #    probSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     #for method in ['powerlaw', 'interpexterp']: 
     #    fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     #    fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-    #CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
+    # candels fields comparison 
+    CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
     CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.])
+    '''
+    CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
+    CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.])
+    '''
