@@ -259,6 +259,9 @@ def dSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.
         if method == 'powerlaw': 
             _ = fSFS.powerlaw(logMfid=10.5) 
             dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
+        elif method == 'broken_powerlaw': 
+            _ = fSFS.broken_powerlaw(logMturnover=10.) 
+            dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
         elif method == 'interpexterp': 
             dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, err_thresh=0.2, silent=False) 
         dsfss.append(dsfs) 
@@ -280,9 +283,9 @@ def dSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.
             sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
                     ha='left', va='top', transform=sub.transAxes, fontsize=20)
 
-    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'log ( SFR $[M_\odot \, yr^{-1}]$ )', labelpad=15, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     fig.subplots_adjust(wspace=0.2, hspace=0.15)
 
     ffig = os.path.join(dir_fig, 'dsfs.%s_%s.%s.dlogM%.1f.slope_prior%.1f_%.1f.png' % (name.lower(), censat, method, dlogM, slope_prior[0], slope_prior[1]))
@@ -311,6 +314,9 @@ def fQ_dSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.,
         # calculate dSFS 
         if method == 'powerlaw': 
             _ = fSFS.powerlaw(logMfid=10.5) 
+            dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
+        elif method == 'broken_powerlaw': 
+            _ = fSFS.broken_powerlaw(logMturnover=10., mlim=fSFS._has_nbinthresh) 
             dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
         elif method == 'interpexterp': 
             dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, err_thresh=0.2, silent=False) 
@@ -380,6 +386,9 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
             if method == 'powerlaw': 
                 _ = fSFS.powerlaw(logMfid=10.5) 
                 dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
+            elif method == 'broken_powerlaw': 
+                _ = fSFS.broken_powerlaw(logMturnover=10., mlim=fSFS._has_nbinthresh) 
+                dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
             elif method == 'interpexterp': 
                 dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, err_thresh=0.2, silent=False) 
 
@@ -419,6 +428,93 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
     if noise: ffig = ffig.replace('.png', '_wnoise.png') 
     fig.savefig(ffig, bbox_inches='tight')
     return None 
+
+
+def fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.],  method='interpexterp', dSFS_limit=1.): 
+    ''' Compare the QF derived from GMMs among the data and simulation  
+    '''
+    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
+    
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_n, name in enumerate(names):  # plot fQ fits
+        sub = fig.add_subplot(2,3,i_n+1) 
+        print('--- %s ---' % name) 
+
+        plts = []
+        for i_z in range(len(zlo)): 
+            # read in logM and logSFR along with bestfits
+            if 'candels' not in name: 
+                logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
+                fSFS = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+            else: 
+                logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False)
+                fSFS = highzSFSfit(name, i_z+1, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+            cut = (cs & notzero) 
+
+            # calculate dSFS 
+            if method == 'powerlaw': 
+                _ = fSFS.powerlaw(logMfid=10.5) 
+                dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
+            elif method == 'broken_powerlaw': 
+                _ = fSFS.broken_powerlaw(logMturnover=10., mlim=fSFS._has_nbinthresh) 
+                dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, silent=False) 
+            elif method == 'interpexterp': 
+                dsfs = fSFS.d_SFS(logm[cut], logsfr[cut], method=method, err_thresh=0.2, silent=False) 
+
+            # calculate fQ 
+            quenched = (dsfs < -1.*dSFS_limit)
+
+            mbins = np.linspace(8., 12., 17) 
+            m_fq, fq, fq_err = [], [], [] 
+            for i_m in range(len(mbins)-1):  
+                inmbin = (logm[cut] > mbins[i_m]) & (logm[cut] <= mbins[i_m+1]) 
+                if np.sum(inmbin) < 20.: continue 
+
+                m_fq.append(0.5 * (mbins[i_m] + mbins[i_m+1])) 
+                fq.append(float(np.sum(inmbin & quenched))/float(np.sum(inmbin)))
+
+                inmbin = (fSFS._fit_logm > mbins[i_m]) & (fSFS._fit_logm <= mbins[i_m+1]) 
+                if np.sum(inmbin) == 1: 
+                    fq_err.append(fSFS._fit_err_logssfr[inmbin][0]) 
+                elif np.sum(inmbin) == 0: 
+                    fq_err.append(0.) 
+                else: raise ValueError
+
+            #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
+            _plt = sub.fill_between([0], [0], [0], 
+                    color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
+            if 'candels' not in name: 
+                sub.fill_between(m_fq, np.array(fq) - np.array(fq_err), np.array(fq) + np.array(fq_err),
+                        color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25), linewidth=0)
+            else: 
+                sub.fill_between(m_fq, np.array(fq) - np.array(fq_err), np.array(fq) + np.array(fq_err),
+                        color=lighten_color('k', 0.1 + float(i_z) * 0.15), linewidth=0)
+            plts.append(_plt) 
+
+        sub.set_xlim([9., 11.2]) 
+        sub.set_ylim([0., 1.]) 
+        if i_n < 3: sub.set_xticklabels([]) 
+        if i_n not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.05, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if i_n == 2: 
+            sub.legend(plts, zlbls, loc='upper right', handletextpad=0.3, prop={'size': 12}) 
+        #    sub.legend(plts[:3], zlbls[:3], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+        #elif i_n == 4: 
+        #    sub.legend(plts[3:], zlbls[3:], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    
+    ffig = os.path.join(dir_fig, 
+            'fQ_zevo_dsfs.%s.%s.dlogM%.1f.slope_prior%.1f_%.1f.dSFSlim_%.1f.png' % (censat, method, dlogM, slope_prior[0], slope_prior[1], dSFS_limit))
+    fig.savefig(ffig, bbox_inches='tight')
+    return None
 
 
 def probSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
@@ -1579,20 +1675,21 @@ if __name__=="__main__":
         QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
     ''' 
     # dSFS 
-    #for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
-    #    for method in ['powerlaw', 'interpexterp']: 
-    #        dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
-    #        dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
-    #        fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-    #        fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-    #for name in ['eagle']:
+    for method in ['powerlaw', 'interpexterp']: # , broken_powerlaw]: 
+        #for name in ['tng']:#['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
+        #    dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
+        #    dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
+        #    fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        #    fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        #fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        #fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        fQ_dSFS_zevo_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+    ##for name in ['eagle']:
     #    probSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     #for method in ['powerlaw', 'interpexterp']: 
-    #    fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-    #    fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+
     # candels fields comparison 
-    CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
-    CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.])
     '''
     CANDELS_fields(dlogM=0.4, slope_prior=[0., 2.])
     CANDELS_fields_QF(dlogM=0.4, slope_prior=[0., 2.])
