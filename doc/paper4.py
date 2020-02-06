@@ -361,25 +361,22 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
     ''' 
     names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
-    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
-    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
-    zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
     
     fig = plt.figure(figsize=(12,8))
     bkgd = fig.add_subplot(111, frameon=False)
-    for i_n, name in enumerate(names): 
-        print('--- %s ---' % name) 
-        sub = fig.add_subplot(2,3,i_n+1) 
-        plts = []
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
 
-        for i_z in range(len(zlo)): 
-            # read in logM and logSFR along with bestfits
+        plts = []
+        for i_n, name in enumerate(names):  # plot fQ fits
             if name != 'candels': 
                 logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat=censat, noise=noise, seed=seed)
                 fSFS = highzSFSfit(name, i_z+1, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+                colour = 'C'+str(i_n) 
             else: 
                 logm, logsfr, cs, notzero = readHighz(name, i_z+1, censat='all', noise=False)
                 fSFS = highzSFSfit(name, i_z+1, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) # fit the SFSs
+                colour = 'k' 
             cut = (cs & notzero) 
 
             # calculate dSFS 
@@ -395,32 +392,38 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
             # calculate fQ 
             quenched = (dsfs < -1.*dSFS_limit)
 
-            mbins = np.linspace(8., 12., 17) 
-            m_fq, fq = [], [] 
-            for i_m in range(len(mbins)-1):  
-                inmbin = (logm[cut] > mbins[i_m]) & (logm[cut] <= mbins[i_m+1]) 
-                if np.sum(inmbin) < 20.: continue 
+            mbin0 = fSFS._mbins[fSFS._has_nbinthresh,0]
+            mbin1 = fSFS._mbins[fSFS._has_nbinthresh,1]
+            m_fq, fq, fq_err = [], [], [] 
+            for i_m in range(np.sum(fSFS._has_nbinthresh)):  
+                _inmbin = (fSFS._fit_logm >  mbin0[i_m]) & (fSFS._fit_logm <= mbin1[i_m]) 
+                if np.sum(_inmbin) != 1: 
+                    continue 
+                inmbin = (logm[cut] > mbin0[i_m]) & (logm[cut] <= mbin1[i_m]) 
 
-                m_fq.append(0.5 * (mbins[i_m] + mbins[i_m+1])) 
+                m_fq.append(0.5 * (mbin0[i_m] + mbin1[i_m])) 
                 fq.append(float(np.sum(inmbin & quenched))/float(np.sum(inmbin)))
-            _plt, = sub.plot(m_fq, fq, 
-                    color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25))
-            plts.append(_plt) 
+                fq_err.append(fSFS._fit_err_logssfr[_inmbin][0]) 
 
+            _plt, = sub.plot(m_fq, fq, color=colour)
+            sub.fill_between(m_fq, np.array(fq) - np.array(fq_err), np.array(fq) + np.array(fq_err),
+                    color=colour, alpha=0.5, linewidth=0)
+            plts.append(_plt) 
         sub.set_xlim([9., 11.2]) 
         sub.set_ylim([0., 1.]) 
-        if i_n < 3: sub.set_xticklabels([]) 
-        if i_n not in [0, 3]: sub.set_yticklabels([]) 
-        sub.text(0.05, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=20)
-        if i_n == 2: 
-            sub.legend(plts, zlbls, loc='upper right', handletextpad=0.3, prop={'size': 12}) 
-        #    sub.legend(plts[:3], zlbls[:3], loc='center left', handletextpad=0.3, prop={'size': 15}) 
-        #elif i_n == 4: 
-        #    sub.legend(plts[3:], zlbls[3:], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+        if i_z < 3: sub.set_xticklabels([]) 
+        if i_z not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.95, 0.95, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='top', transform=sub.transAxes, fontsize=15)
+        if i_z == 0: 
+            sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+        elif i_z == 1: 
+            sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
     bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
-    bkgd.set_ylabel(r'$f_Q$ defined using $d_{\rm SFS}$',labelpad=15, fontsize=25) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
     ffig = os.path.join(dir_fig, 
@@ -468,22 +471,19 @@ def fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, s
 
             # calculate fQ 
             quenched = (dsfs < -1.*dSFS_limit)
-
-            mbins = np.linspace(8., 12., 17) 
+            
+            mbin0 = fSFS._mbins[fSFS._has_nbinthresh,0]
+            mbin1 = fSFS._mbins[fSFS._has_nbinthresh,1]
             m_fq, fq, fq_err = [], [], [] 
-            for i_m in range(len(mbins)-1):  
-                inmbin = (logm[cut] > mbins[i_m]) & (logm[cut] <= mbins[i_m+1]) 
-                if np.sum(inmbin) < 20.: continue 
+            for i_m in range(np.sum(fSFS._has_nbinthresh)):  
+                _inmbin = (fSFS._fit_logm >  mbin0[i_m]) & (fSFS._fit_logm <= mbin1[i_m]) 
+                if np.sum(_inmbin) != 1: 
+                    continue 
+                inmbin = (logm[cut] > mbin0[i_m]) & (logm[cut] <= mbin1[i_m]) 
 
-                m_fq.append(0.5 * (mbins[i_m] + mbins[i_m+1])) 
+                m_fq.append(0.5 * (mbin0[i_m] + mbin1[i_m])) 
                 fq.append(float(np.sum(inmbin & quenched))/float(np.sum(inmbin)))
-
-                inmbin = (fSFS._fit_logm > mbins[i_m]) & (fSFS._fit_logm <= mbins[i_m+1]) 
-                if np.sum(inmbin) == 1: 
-                    fq_err.append(fSFS._fit_err_logssfr[inmbin][0]) 
-                elif np.sum(inmbin) == 0: 
-                    fq_err.append(0.) 
-                else: raise ValueError
+                fq_err.append(fSFS._fit_err_logssfr[_inmbin][0]) 
 
             #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
             _plt = sub.fill_between([0], [0], [0], 
@@ -513,6 +513,7 @@ def fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, s
     
     ffig = os.path.join(dir_fig, 
             'fQ_zevo_dsfs.%s.%s.dlogM%.1f.slope_prior%.1f_%.1f.dSFSlim_%.1f.png' % (censat, method, dlogM, slope_prior[0], slope_prior[1], dSFS_limit))
+    if noise: ffig = ffig.replace('.png', '_wnoise.png') 
     fig.savefig(ffig, bbox_inches='tight')
     return None
 
@@ -1675,14 +1676,14 @@ if __name__=="__main__":
         QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
     ''' 
     # dSFS 
-    for method in ['powerlaw', 'interpexterp']: # , broken_powerlaw]: 
+    for method in ['powerlaw', 'interpexterp', 'broken_powerlaw']: #[]: 
         #for name in ['tng']:#['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
         #    dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
         #    dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
         #    fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         #    fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-        #fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-        #fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         fQ_dSFS_zevo_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
     ##for name in ['eagle']:
