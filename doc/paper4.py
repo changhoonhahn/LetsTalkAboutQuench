@@ -430,6 +430,7 @@ def fQ_dSFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior
             'fQ_dsfs.%s.%s.dlogM%.1f.slope_prior%.1f_%.1f.dSFSlim_%.1f.png' % (censat, method, dlogM, slope_prior[0], slope_prior[1], dSFS_limit))
     if noise: ffig = ffig.replace('.png', '_wnoise.png') 
     fig.savefig(ffig, bbox_inches='tight')
+    fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight')
     return None 
 
 
@@ -515,6 +516,7 @@ def fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, s
             'fQ_zevo_dsfs.%s.%s.dlogM%.1f.slope_prior%.1f_%.1f.dSFSlim_%.1f.png' % (censat, method, dlogM, slope_prior[0], slope_prior[1], dSFS_limit))
     if noise: ffig = ffig.replace('.png', '_wnoise.png') 
     fig.savefig(ffig, bbox_inches='tight')
+    fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight')
     return None
 
 
@@ -1676,12 +1678,13 @@ if __name__=="__main__":
         QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
     ''' 
     # dSFS 
+    '''
     for method in ['powerlaw', 'interpexterp', 'broken_powerlaw']: #[]: 
-        #for name in ['tng']:#['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
-        #    dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
-        #    dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
-        #    fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
-        #    fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+        for name in ['eagle', 'illustris_100myr', 'tng', 'simba', 'sam-light-full', 'sam-light-slice']:
+            dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
+            dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method)
+            fQ_dSFS(name, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
+            fQ_dSFS(name, censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         fQ_dSFS_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         fQ_dSFS_comparison(censat='centrals', noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
         fQ_dSFS_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], method=method, dSFS_limit=1.)
@@ -1689,6 +1692,7 @@ if __name__=="__main__":
     ##for name in ['eagle']:
     #    probSFS(name, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     #for method in ['powerlaw', 'interpexterp']: 
+    '''
 
     # candels fields comparison 
     '''
