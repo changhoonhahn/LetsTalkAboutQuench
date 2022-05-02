@@ -32,6 +32,7 @@ zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
 zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
 dir_fig = os.path.join(UT.doc_dir(), 'highz', 'figs') 
 
+
 def highzSFSfit(name, i_z, censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.], overwrite=False): 
     """ fit SFS to the SFR-M* relation of `name` catalog `i_z` redshift bin 
     
@@ -139,7 +140,7 @@ def readHighz(name, i_z, censat='all', noise=False, seed=1):
             logsfr = np.log10(sfr) 
             notzero = (sfr != 0.)
 
-        elif 'sam-light' in name: 
+        elif 'sam-' in name: 
             _, ms, sfr, cs = np.loadtxt(f_data, skiprows=2, unpack=True) 
             logms = np.log10(ms)
             logsfr = np.log10(sfr)
@@ -222,6 +223,10 @@ def fHighz(name, i_z, censat='all', noise=False, seed=1):
         f_data = ''.join([dat_dir, 'SAM_lightcone/SAMfull_z', str(i_z), '.txt'])
     elif name == 'sam-light-slice': # SAM light cone dz=0.01 slice around the median redshift 
         f_data = ''.join([dat_dir, 'SAM_lightcone/SAMslice_z', str(i_z), '.txt'])
+    elif name == 'sam-s21-full': 
+        f_data = ''.join([dat_dir, 'SAM_Sommerville21/SAMfull_z', str(i_z), '.txt'])
+    elif name == 'sam-s21-slice': 
+        f_data = ''.join([dat_dir, 'SAM_Sommerville21/SAMslice_z', str(i_z), '.txt'])
     elif name == 'simba': 
         f_data = ''.join([dat_dir, 'SIMBA/SIMBA_z', str(i_z), '.txt'])
     else: 
@@ -678,8 +683,9 @@ def pssfr(name, i_z, censat='all', noise=False, dlogM=0.4, slope_prior=[0., 2.],
 ################################################
 def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     ''' Compare the SFS fits among the data and simulation  
-    '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    '''            
+    # 'sam-light-slice',
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
     
     # SFMS overplotted ontop of SFR--M* relation 
@@ -727,7 +733,7 @@ def SFR_Mstar_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_pri
 def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     
     sfs_dict = {} 
@@ -789,7 +795,7 @@ def SFS_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0.
 def SFS_zevo_comparison(censat='all', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS'] 
     zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
 
@@ -1021,7 +1027,7 @@ def fcomp_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_pr
 def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     
     fq_dict = {} 
@@ -1082,7 +1088,7 @@ def QF_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior
 def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the QF derived from GMMs among the data and simulation  
     '''
-    names = ['sam-light-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
     lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
@@ -1147,6 +1153,171 @@ def QF_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
     fig.savefig(fpdf, bbox_inches='tight')
     return None
 
+
+def QF_1dex(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
+    ''' derive quiescent fraction from GMM best-fit. quiescent fraction defined as all components below SFS 
+    '''
+
+    logm, logsfr, cs, nonzero = readHighz(name, i_z, censat=censat, noise=noise, seed=seed)
+    fSFS = highzSFSfit(name, i_z, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
+    
+    # M* bins where SFS is reasonably fit 
+    mbin0 = fSFS._mbins[fSFS._has_nbinthresh,0]
+    mbin1 = fSFS._mbins[fSFS._has_nbinthresh,1]
+    nmbin = len(fSFS._mbins_median)
+    assert np.sum(fSFS._has_nbinthresh) == nmbin 
+
+    logm_sfs, _, _, w_sfs = fSFS._theta_sfs.T
+
+    f_q = np.zeros(nmbin) # fq
+    err_f_q = np.zeros((2, nmbin)) # fq error
+    for i_m in range(nmbin): 
+        # calculate the fraction of galaxies have that zero SFR
+        inmbin      = cs & (logm > mbin0[i_m]) & (logm < mbin1[i_m]) # within bin 
+
+        mbin_sfs = (mbin0[i_m] < logm_sfs) & (logm_sfs < mbin1[i_m]) 
+        if np.sum(mbin_sfs) > 0: 
+            _i_m = np.where(mbin_sfs)[0][0]
+            sfs_ssfr = (fSFS._fit_logsfr - fSFS._fit_logm)[_i_m]
+
+            sfs_ssfr_1sig_high  = sfs_ssfr + fSFS._fit_err_logssfr[_i_m]
+            sfs_ssfr_1sig_low   = sfs_ssfr - fSFS._fit_err_logssfr[_i_m]
+        
+            f_q[i_m] = float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr - 1.))/float(np.sum(inmbin))
+            err_f_q[0, i_m] =  float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr_1sig_high - 1.))/float(np.sum(inmbin))
+            err_f_q[1, i_m] =  float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr_1sig_low - 1.))/float(np.sum(inmbin))
+
+    return 0.5*(mbin0 + mbin1), f_q, err_f_q
+
+
+def QF_1dex_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
+    ''' Compare the QF derived from GMMs among the data and simulation  
+    '''
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
+    
+    fq_dict = {} 
+    for name in names:  
+        fqs = [] 
+        for i in range(1,len(zlo)+1): 
+            if 'candels' not in name: 
+                marr, fq, fqerr = QF_1dex(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
+            else: 
+                marr, fq, fqerr = QF_1dex(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
+            fqs.append([marr, fq, fqerr[0], fqerr[1]]) 
+        fq_dict[name] = fqs
+    
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+
+        plts = []
+        for i_n, name in enumerate(names):  # plot fQ fits
+            if 'candels' in name: 
+                colour = 'k'
+                _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][3],
+                                        alpha=1., color=colour, linewidth=0, zorder=1)
+            else: 
+                colour = 'C'+str(i_n) 
+                _plt = sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][3],
+                                        alpha=1, color=colour, linewidth=0, zorder=10)
+            plts.append(_plt) 
+        sub.set_xlim([9., 11.2]) 
+        sub.set_ylim([0., 1.]) 
+        if i_z < 3: sub.set_xticklabels([]) 
+        if i_z not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+        elif i_z == 1: 
+            sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    
+    ffig = os.path.join(dir_fig, 'fq_1dex_comparison_%s_dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % (censat, dlogM, slope_prior[0], slope_prior[1]))
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
+    return None
+
+
+def QF_1dex_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
+    ''' Compare the QF derived from GMMs among the data and simulation  
+    '''
+    names = ['sam-s21-slice', 'eagle', 'illustris_100myr', 'tng', 'simba', 'candels_goods']
+    lbls = ['SC-SAM', 'EAGLE', 'Illustris', 'Illustris TNG', 'SIMBA', 'CANDELS (GOODS)'] 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    zlbls = ['$0.5 < z < 1.0$', '$1.0 < z < 1.4$', '$1.4 < z < 1.8$', '$1.8 < z < 2.2$', '$2.2 < z < 2.6$', '$2.6 < z < 3.0$']
+    
+    fq_dict = {} 
+    for name in names:  
+        print('--- %s ---' % name) 
+        fqs = [] 
+        for i in range(1,len(zlo)+1): 
+            if 'candels' not in name: 
+                marr, fq, fqerr = QF_1dex(name, i, censat=censat, noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
+            else: 
+                marr, fq, fqerr = QF_1dex(name, i, censat='all', noise=False, dlogM=dlogM, slope_prior=slope_prior) 
+            fqs.append([marr, fq, fqerr[0], fqerr[1]]) 
+        fq_dict[name] = fqs
+    
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_n, name in enumerate(names):  # plot fQ fits
+        sub = fig.add_subplot(2,3,i_n+1) 
+        print('--- %s ---' % name) 
+
+        plts = []
+        for i_z in range(len(zlo)): 
+            #sub.plot(fq_dict[name][i_z][0], fq_dict[name][i_z][1], c='C%i' % i_z) 
+            _plt = sub.fill_between([0], [0], [0], 
+                    color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
+            if 'candels' not in name: 
+                sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][3], 
+                                        color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25), linewidth=0)
+            else: 
+                sub.fill_between(fq_dict[name][i_z][0], 
+                                        fq_dict[name][i_z][2], 
+                                        fq_dict[name][i_z][3], 
+                                        color=lighten_color('k', 0.1 + float(i_z) * 0.15), 
+                                        linewidth=0)
+            #                        alpha=0.5, color='C'+str(i_z), linewidth=0)
+            plts.append(_plt) 
+
+        sub.set_xlim([9., 11.2]) 
+        sub.set_ylim([0., 1.]) 
+        if i_n < 3: sub.set_xticklabels([]) 
+        if i_n not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.05, 0.95, lbls[i_n], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if i_n == 2: 
+            sub.legend(plts, zlbls, loc='upper right', handletextpad=0.3, prop={'size': 12}) 
+        #    sub.legend(plts[:3], zlbls[:3], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+        #elif i_n == 4: 
+        #    sub.legend(plts[3:], zlbls[3:], loc='center left', handletextpad=0.3, prop={'size': 15}) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    
+    ffig = os.path.join(dir_fig, 'fq_1dex_zevo_comparison_%s.dlogM%.1f.slope_prior_%.1f_%.1f.pdf' % 
+            (censat, dlogM, slope_prior[0], slope_prior[1]))
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
+    return None
 
 ##################################################
 # appendix: CANDELS fields 
@@ -1302,6 +1473,8 @@ def Pssfr_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, poisson=Fa
             inmbin = (logm > mbin[0]) & (logm < mbin[1]) & cs # in M* bin 
             ngal_bin = float(np.sum(inmbin)) 
 
+            nonzero = nonzero
+
             dsfr_res = SFRres_dict[name] # SFR resolution 
 
             hs_uniform, hs_poisson = [], [] 
@@ -1315,7 +1488,7 @@ def Pssfr_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, poisson=Fa
                 _logsfr[~nonzero] = logsfr_z 
                 _logssfr = _logsfr - logm 
                 
-                h0, h1 = np.histogram(_logssfr, bins=40, range=[-16., -8.])
+                h0, h1 = np.histogram(_logssfr[inmbin], bins=40, range=[-16., -8.])
                 hs_uniform.append(h0)
                 
                 logsfr_nz   = np.log10(10**logsfr[nonzero] + dsfr_res * rand.poisson(size=np.sum(nonzero))) 
@@ -1325,14 +1498,14 @@ def Pssfr_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, poisson=Fa
                 _logsfr[~nonzero] = logsfr_z 
                 _logssfr = _logsfr - logm 
 
-                h0, h1 = np.histogram(_logssfr, bins=40, range=[-16., -8.])
+                h0, h1 = np.histogram(_logssfr[inmbin], bins=40, range=[-16., -8.])
                 hs_poisson.append(h0)
 
             hs_uniform = np.array(hs_uniform)/ngal_bin
             hs_poisson = np.array(hs_poisson)/ngal_bin
                
             sub = fig.add_subplot(2,4,i_c+1+4*i_m)
-            h0, h1 = np.histogram(logsfr[nonzero] - logm[nonzero], bins=40, range=[-16., -8.])
+            h0, h1 = np.histogram((logsfr - logm)[nonzero & inmbin], bins=40, range=[-16., -8.])
             bar_x, bar_y = UT.bar_plot(h1, h0/ngal_bin)
             sub.plot(bar_x, bar_y, c='k', ls='-', lw=1.5)#, label='w/o SFR $=0$')
 
@@ -1411,7 +1584,7 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
                 _logm       = np.concatenate([logm_nz, logm_z]) 
                 _logsfr     = np.concatenate([logsfr_nz, logsfr_z]) 
 
-                fSFS_mc = fstarforms(fit_range=[8.5, 12.0]) # stellar mass range
+                fSFS_mc = sFS(fit_range=[8.5, 12.0]) # stellar mass range
                 sfs_fit = fSFS_mc.fit(_logm, _logsfr,
                         method='gaussmix',      # Gaussian Mixture Model fitting 
                         dlogm = dlogM,          # stellar mass bins of 0.4 dex
@@ -1660,6 +1833,11 @@ if __name__=="__main__":
     fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     # quiescent fraction and 
+    for censat in ['all', 'centrals', 'satellites']:
+        slope_prior = [0., 2.]
+        #QF_1dex_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+        QF_1dex_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
+
     '''
     for censat in ['all', 'centrals', 'satellites']:
         slope_prior = [0., 2.]
