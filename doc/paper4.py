@@ -1186,6 +1186,10 @@ def QF_1dex(name, i_z, censat='centrals', noise=False, seed=1, dlogM=0.4, slope_
             f_q[i_m] = float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr - 1.))/float(np.sum(inmbin))
             err_f_q[0, i_m] =  float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr_1sig_high - 1.))/float(np.sum(inmbin))
             err_f_q[1, i_m] =  float(np.sum((logsfr - logm)[inmbin] < sfs_ssfr_1sig_low - 1.))/float(np.sum(inmbin))
+        else: 
+            f_q[i_m] = -999.
+            err_f_q[0, i_m] = -999.
+            err_f_q[1, i_m] = -999.
 
     return 0.5*(mbin0 + mbin1), f_q, err_f_q
 
@@ -1284,9 +1288,11 @@ def QF_1dex_zevo_comparison(censat='centrals', noise=False, seed=1, dlogM=0.4, s
             _plt = sub.fill_between([0], [0], [0], 
                     color=lighten_color('C0', 0.2 + float(i_z) * 0.25), linewidth=0)
             if 'candels' not in name: 
-                sub.fill_between(fq_dict[name][i_z][0], 
-                                        fq_dict[name][i_z][2], 
-                                        fq_dict[name][i_z][3], 
+                mlim = (fq_dict[name][i_z][2] >= 0.)
+
+                sub.fill_between(fq_dict[name][i_z][0][mlim], 
+                                        fq_dict[name][i_z][2][mlim], 
+                                        fq_dict[name][i_z][3][mlim], 
                                         color=lighten_color('C%i' % i_n, 0.2 + float(i_z) * 0.25), linewidth=0)
             else: 
                 sub.fill_between(fq_dict[name][i_z][0], 
@@ -1653,7 +1659,8 @@ def Mlim_res_impact(censat='centrals', n_mc=20, noise=False, seed=1, dlogM=0.4, 
 def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'sam-light-full']
+    #names = ['sam-light-slice', 'sam-light-full']
+    names = ['sam-s21-slice', 'sam-s21-full']
     lbls = ['SAM (slice)', 'SAM (full)']
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
@@ -1693,7 +1700,7 @@ def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     ffig = os.path.join(dir_fig, 'sfs_SAM_comparison_centrals_dlogM%.1f_slope_prior_%.1f_%.1f.pdf' % 
             (dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
+    #fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -1702,7 +1709,8 @@ def SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
 def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
     ''' Compare the SFMS fits among the data and simulation  
     '''
-    names = ['sam-light-slice', 'sam-light-full']
+    #names = ['sam-light-slice', 'sam-light-full']
+    names = ['sam-s21-slice', 'sam-s21-full']
     lbls = ['SC-SAM slice', 'SC-SAM full'] 
     zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
     zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
@@ -1748,7 +1756,71 @@ def QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]):
     ffig = os.path.join(dir_fig, 'fq_SAM_comparison_centrals_dlogM%.1f_slope_prior_%.1f_%.1f.pdf' % 
             (dlogM, slope_prior[0], slope_prior[1])) 
     if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
-    fig.savefig(ffig, bbox_inches='tight')
+    #fig.savefig(ffig, bbox_inches='tight')
+    fpdf = UT.fig_tex(ffig, pdf=True) 
+    fig.savefig(fpdf, bbox_inches='tight')
+    return None
+
+
+def QF_1dex_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.]): 
+    ''' Compare the SFMS fits among the data and simulation  
+    '''
+    #names = ['sam-light-slice', 'sam-light-full']
+    names = ['sam-s21-slice', 'sam-s21-full']
+    lbls = ['SC-SAM slice', 'SC-SAM full'] 
+    zlo = [0.5, 1., 1.4, 1.8, 2.2, 2.6]
+    zhi = [1., 1.4, 1.8, 2.2, 2.6, 3.0]
+    
+    fq_dict = {} 
+    for name in names:  
+        fqs = [] 
+        for i in range(1,len(zlo)+1): 
+            marr, fq, fqerr = QF_1dex(name, i, censat='centrals', noise=noise, seed=seed, dlogM=dlogM, slope_prior=slope_prior)
+            print(marr)
+            print(fq)
+            print(fqerr)
+            fqs.append([marr, fq, fqerr[0], fqerr[1]]) 
+        fq_dict[name] = fqs
+
+    fig = plt.figure(figsize=(12,8))
+    bkgd = fig.add_subplot(111, frameon=False)
+    for i_z in range(len(zlo)): 
+        sub = fig.add_subplot(2,3,i_z+1) 
+
+        plts = []
+        for i_n, name in enumerate(names):  # plot fQ fits
+            if name == 'candels': colour = 'k'
+            else: colour = 'C'+str(i_n) 
+            #_plt = sub.fill_between(fq_dict[name][i_z][0], fq_dict[name][i_z][2], fq_dict[name][i_z][3], alpha=0.5, color=colour, linewidth=0)
+
+            mlim = (fq_dict[name][i_z][2] >= 0.)
+
+            _plt = sub.fill_between(fq_dict[name][i_z][0][mlim], 
+                                    fq_dict[name][i_z][2][mlim], 
+                                    fq_dict[name][i_z][3][mlim], 
+                                    alpha=0.5, color=colour, linewidth=0)
+
+            plts.append(_plt) 
+        sub.set_xlim([8.5, 12.]) 
+        sub.set_ylim([0., 1.]) 
+        if i_z < 3: sub.set_xticklabels([]) 
+        if i_z not in [0, 3]: sub.set_yticklabels([]) 
+        sub.text(0.95, 0.05, '$'+str(zlo[i_z])+'< z <'+str(zhi[i_z])+'$', 
+                ha='right', va='bottom', transform=sub.transAxes, fontsize=20)
+        if i_z == 0: 
+            sub.legend(plts[:3], lbls[:3], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+        elif i_z == 1: 
+            sub.legend(plts[3:], lbls[3:], loc='upper left', handletextpad=0.5, prop={'size': 17}) 
+            #sub.text(0.05, 0.95, ' '.join(name.upper().split('_')),
+            #        ha='left', va='top', transform=sub.transAxes, fontsize=20)
+    bkgd.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    bkgd.set_xlabel(r'log ( $M_* \;\;[M_\odot]$ )', labelpad=15, fontsize=25) 
+    bkgd.set_ylabel(r'Quiescent Fraction ($f_{\rm Q}$)', labelpad=15, fontsize=25) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    ffig = os.path.join(dir_fig, 'fq_1dex_SAM_comparison_centrals_dlogM%.1f_slope_prior_%.1f_%.1f.pdf' % 
+            (dlogM, slope_prior[0], slope_prior[1])) 
+    if noise: ffig = ffig.replace('.pdf', '_wnoise_seed%i.pdf' % seed)
+    #fig.savefig(ffig, bbox_inches='tight')
     fpdf = UT.fig_tex(ffig, pdf=True) 
     fig.savefig(fpdf, bbox_inches='tight')
     return None
@@ -1833,11 +1905,6 @@ if __name__=="__main__":
     fcomp_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     # quiescent fraction and 
-    for censat in ['all', 'centrals', 'satellites']:
-        slope_prior = [0., 2.]
-        #QF_1dex_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
-        QF_1dex_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
-
     '''
     for censat in ['all', 'centrals', 'satellites']:
         slope_prior = [0., 2.]
@@ -1848,12 +1915,16 @@ if __name__=="__main__":
         QF_zevo_comparison(censat=censat, noise=True, seed=1, dlogM=0.4, slope_prior=slope_prior)
     '''
     # comparison between SAM slice and full 
+    QF_1dex_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[0., 2.])
+    QF_1dex_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[0., 2.])
     '''
     for prior in [0., 0.2, 0.4]:   
         SFS_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
         SFS_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[prior, 2.])
-        QF_SAM_comparison(noise=False, seed=1, dlogM=0.4, dev_thresh=dthresh)
-        QF_SAM_comparison(noise=True, seed=1, dlogM=0.4, dev_thresh=dthresh)
+        QF_SAM_comparison(noise=False, seed=1, dlogM=0.4)
+        QF_SAM_comparison(noise=True, seed=1, dlogM=0.4)
+        QF_1dex_SAM_comparison(noise=False, seed=1, dlogM=0.4, slope_prior=[prior, 2.])#, dev_thresh=dthresh)
+        QF_1dex_SAM_comparison(noise=True, seed=1, dlogM=0.4, slope_prior=[prior, 2.])#, dev_thresh=dthresh)
     ''' 
     # dSFS 
     '''
